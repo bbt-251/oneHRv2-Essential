@@ -243,12 +243,12 @@ Migration is complete when all of the following are true:
 
 | Phase | Task ID | Task | Estimate | Status |
 |---|---|---|---:|---|
-| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.1 | Create architecture decision record (ADR) for auth, DB, storage, realtime transport | 2h | Todo |
-| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.2 | Inventory all Firebase touchpoints (auth, firestore, rules, storage, admin SDK) | 3h | Todo |
-| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.3 | Produce endpoint and module dependency map (employee, attendance, leave, payroll, etc.) | 3h | Todo |
-| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.4 | Define target RBAC/ABAC authorization matrix from Firestore rules | 4h | Todo |
-| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.5 | Define data privacy classification (PII, payroll-sensitive fields) | 2h | Todo |
-| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.6 | Define migration acceptance criteria and rollback triggers | 2h | Todo |
+| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.1 | Create architecture decision record (ADR) for auth, DB, storage, realtime transport | 2h | Completed |
+| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.2 | Inventory all Firebase touchpoints (auth, firestore, rules, storage, admin SDK) | 3h | Completed |
+| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.3 | Produce endpoint and module dependency map (employee, attendance, leave, payroll, etc.) | 3h | Completed |
+| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.4 | Define target RBAC/ABAC authorization matrix from Firestore rules | 4h | Completed |
+| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.5 | Define data privacy classification (PII, payroll-sensitive fields) | 2h | Completed |
+| Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.6 | Define migration acceptance criteria and rollback triggers | 2h | Completed |
 | Phase 1 — Environment and Infrastructure Setup | 1.1 | Provision Ubuntu VM baseline hardening (users, SSH policy, firewall) | 3h | Todo |
 | Phase 1 — Environment and Infrastructure Setup | 1.2 | Configure reverse proxy (Nginx/Caddy), TLS, HSTS | 3h | Todo |
 | Phase 1 — Environment and Infrastructure Setup | 1.3 | Set up MongoDB environment (managed or replica set) | 4h | Todo |
@@ -257,9 +257,9 @@ Migration is complete when all of the following are true:
 | Phase 1 — Environment and Infrastructure Setup | 1.6 | Configure centralized log collection and retention | 3h | Todo |
 | Phase 1 — Environment and Infrastructure Setup | 1.7 | Configure backup routines (DB + object storage metadata snapshots) | 3h | Todo |
 | Phase 1 — Environment and Infrastructure Setup | 1.8 | Configure monitoring/alerts (CPU, memory, error rate, auth failures) | 3h | Todo |
-| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.1 | Bootstrap backend app structure and environment config management | 3h | Todo |
+| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.1 | Bootstrap backend app structure and environment config management | 3h | In Progress |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.2 | Implement authentication module (email/password, hash, token/session) | 4h | Todo |
-| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.3 | Implement refresh token flow + secure cookie policy | 3h | Todo |
+| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.3 | Implement refresh token flow + secure cookie policy | 3h | In Progress |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.4 | Implement login rate limiting + lockout policy | 3h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.5 | Implement RBAC middleware and policy guard interface | 4h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.6 | Implement audit logging middleware for sensitive endpoints | 3h | Todo |
@@ -275,7 +275,7 @@ Migration is complete when all of the following are true:
 | Phase 3 — Data Model and Migration Tooling | 3.8 | Build migration validation checks (counts, sampling, invariants) | 4h | Todo |
 | Phase 3 — Data Model and Migration Tooling | 3.9 | Build migration dry-run report generator | 3h | Todo |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.1 | Design realtime event contract (`added/modified/removed`) | 2h | Todo |
-| Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.2 | Implement SSE subscription endpoint with auth + policy checks | 4h | Todo |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.2 | Implement SSE subscription endpoint with auth + policy checks | 4h | In Progress |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.3 | Implement MongoDB change stream listener service | 4h | Todo |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.4 | Implement per-user/per-role server-side filtering | 4h | Todo |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.5 | Implement reconnect + resume token handling | 4h | Todo |
@@ -305,8 +305,8 @@ Migration is complete when all of the following are true:
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.2 | Implement compensation endpoints | 4h | Todo |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.3 | Implement employee loan endpoints | 4h | Todo |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.4 | Write payroll/compensation tests | 4h | Todo |
-| Phase 7 — Frontend Adapter and Incremental Cutover | 7.1 | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`) | 4h | Todo |
-| Phase 7 — Frontend Adapter and Incremental Cutover | 7.2 | Replace auth context Firebase calls with API-based auth | 4h | Todo |
+| Phase 7 — Frontend Adapter and Incremental Cutover | 7.1 | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`) | 4h | Completed |
+| Phase 7 — Frontend Adapter and Incremental Cutover | 7.2 | Replace auth context Firebase calls with API-based auth | 4h | In Progress |
 | Phase 7 — Frontend Adapter and Incremental Cutover | 7.3 | Replace core firestore hooks with API + realtime adapter | 4h | Todo |
 | Phase 7 — Frontend Adapter and Incremental Cutover | 7.4 | Replace file upload paths with signed URL flow | 3h | Todo |
 | Phase 7 — Frontend Adapter and Incremental Cutover | 7.5 | Add feature flags for module-level data source switching | 3h | Todo |
