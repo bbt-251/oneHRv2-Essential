@@ -248,6 +248,20 @@ Migration is complete when all of the following are true:
 4. Data validation and reconciliation reports are clean.
 5. Firebase services are no longer required for runtime operations.
 
+
+## Phase 1 Implementation Artifacts
+- `infrastructure/phase-1/scripts/bootstrap-vm.sh`
+- `infrastructure/phase-1/scripts/setup-runtime.sh`
+- `infrastructure/phase-1/scripts/setup-datastores.sh`
+- `infrastructure/phase-1/scripts/setup-observability.sh`
+- `infrastructure/phase-1/scripts/backup.sh`
+- `infrastructure/phase-1/nginx/api.conf`
+- `infrastructure/phase-1/docs/domain-strategy.md`
+- `infrastructure/phase-1/docs/tenant-routing.md`
+- `infrastructure/phase-1/docs/object-storage-policy.md`
+- `infrastructure/phase-1/docs/logging-retention.md`
+- `infrastructure/phase-1/monitoring/alerts.yml`
+
 ## Task Status Summary Table
 
 **Status options:** `Todo`, `In Progress`, `Completed`.
@@ -260,17 +274,17 @@ Migration is complete when all of the following are true:
 | Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.4 | Define target RBAC/ABAC authorization matrix from Firestore rules | 4h | Todo |
 | Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.5 | Define data privacy classification (PII, payroll-sensitive fields) | 2h | Todo |
 | Phase 0 — Discovery, Scope Lock, and Security Baseline | 0.6 | Define migration acceptance criteria and rollback triggers | 2h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.1 | Provision Ubuntu VM baseline hardening (users, SSH policy, firewall) | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.2 | Configure reverse proxy (Nginx/Caddy), TLS, HSTS | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.3 | Set up MongoDB environment (managed or replica set) | 4h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.4 | Set up Redis for queues, rate limiting, and cache | 2h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.5 | Configure object storage bucket and IAM/policy for signed URL usage | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.6 | Configure centralized log collection and retention | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.7 | Configure backup routines (DB + object storage metadata snapshots) | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.8 | Configure monitoring/alerts (CPU, memory, error rate, auth failures) | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.9 | Define stable API domain strategy for dev/int/staging/prod | 2h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.10 | Configure DNS and reverse-proxy routing for environment API domains | 3h | Todo |
-| Phase 1 — Environment and Infrastructure Setup | 1.11 | Define tenant routing strategy (subdomain/path/header) and standards | 3h | Todo |
+| Phase 1 — Environment and Infrastructure Setup | 1.1 | Provision Ubuntu VM baseline hardening (users, SSH policy, firewall) | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.2 | Configure reverse proxy (Nginx/Caddy), TLS, HSTS | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.3 | Set up MongoDB environment (managed or replica set) | 4h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.4 | Set up Redis for queues, rate limiting, and cache | 2h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.5 | Configure object storage bucket and IAM/policy for signed URL usage | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.6 | Configure centralized log collection and retention | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.7 | Configure backup routines (DB + object storage metadata snapshots) | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.8 | Configure monitoring/alerts (CPU, memory, error rate, auth failures) | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.9 | Define stable API domain strategy for dev/int/staging/prod | 2h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.10 | Configure DNS and reverse-proxy routing for environment API domains | 3h | Completed |
+| Phase 1 — Environment and Infrastructure Setup | 1.11 | Define tenant routing strategy (subdomain/path/header) and standards | 3h | Completed |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.1 | Bootstrap backend app structure and environment config management | 3h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.2 | Implement authentication module (email/password, hash, token/session) | 4h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.3 | Implement refresh token flow + secure cookie policy | 3h | Todo |
