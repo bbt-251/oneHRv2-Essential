@@ -41,8 +41,11 @@
 | 1.6 | Configure centralized log collection and retention | 3h |
 | 1.7 | Configure backup routines (DB + object storage metadata snapshots) | 3h |
 | 1.8 | Configure monitoring/alerts (CPU, memory, error rate, auth failures) | 3h |
+| 1.9 | Define stable API domain strategy for dev/int/staging/prod | 2h |
+| 1.10 | Configure DNS and reverse-proxy routing for environment API domains | 3h |
+| 1.11 | Define tenant routing strategy (subdomain/path/header) and standards | 3h |
 
-**Phase estimate:** 24h
+**Phase estimate:** 32h
 
 ---
 
@@ -59,8 +62,12 @@
 | 2.6 | Implement audit logging middleware for sensitive endpoints | 3h |
 | 2.7 | Implement standardized error model and request validation | 3h |
 | 2.8 | Write API auth integration tests (happy path + abuse path) | 4h |
+| 2.9 | Translate `firebase.rules.txt` into backend policy matrix (resource/action/role) | 4h |
+| 2.10 | Implement policy evaluator middleware for API authorization | 4h |
+| 2.11 | Implement tenant-scoped query guards for read/write endpoints | 4h |
+| 2.12 | Build rule-parity test suite for critical permission scenarios | 4h |
 
-**Phase estimate:** 27h
+**Phase estimate:** 43h
 
 ---
 
@@ -96,8 +103,10 @@
 | 4.6 | Implement client-side `subscribe()` adapter for React hooks | 4h |
 | 4.7 | Add throttling/debouncing for high-frequency event bursts | 3h |
 | 4.8 | Add realtime integration tests and soak test scripts | 4h |
+| 4.9 | Enforce policy checks during realtime subscribe/stream lifecycle | 4h |
+| 4.10 | Add tenant channel isolation and authorization tests | 4h |
 
-**Phase estimate:** 29h
+**Phase estimate:** 37h
 
 ---
 
@@ -169,8 +178,10 @@
 | 7.5 | Add feature flags for module-level data source switching | 3h |
 | 7.6 | Add observability logs for source-of-truth mismatch detection | 3h |
 | 7.7 | Execute QA regression for migrated modules | 4h |
+| 7.8 | Implement centralized API base URL mapping by environment | 3h |
+| 7.9 | Implement tenant-aware route resolution in frontend gateways | 3h |
 
-**Phase estimate:** 25h
+**Phase estimate:** 31h
 
 ---
 
@@ -207,7 +218,7 @@
 ---
 
 ## Program Totals
-- **Total engineering estimate:** 275h
+- **Total engineering estimate:** 313h
 - **Tasks exceeding 4h:** **0**
 - **Recommended team shape:** 2–4 engineers + 1 QA + 1 DevOps/SRE (part-time)
 
@@ -257,6 +268,9 @@ Migration is complete when all of the following are true:
 | Phase 1 — Environment and Infrastructure Setup | 1.6 | Configure centralized log collection and retention | 3h | Todo |
 | Phase 1 — Environment and Infrastructure Setup | 1.7 | Configure backup routines (DB + object storage metadata snapshots) | 3h | Todo |
 | Phase 1 — Environment and Infrastructure Setup | 1.8 | Configure monitoring/alerts (CPU, memory, error rate, auth failures) | 3h | Todo |
+| Phase 1 — Environment and Infrastructure Setup | 1.9 | Define stable API domain strategy for dev/int/staging/prod | 2h | Todo |
+| Phase 1 — Environment and Infrastructure Setup | 1.10 | Configure DNS and reverse-proxy routing for environment API domains | 3h | Todo |
+| Phase 1 — Environment and Infrastructure Setup | 1.11 | Define tenant routing strategy (subdomain/path/header) and standards | 3h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.1 | Bootstrap backend app structure and environment config management | 3h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.2 | Implement authentication module (email/password, hash, token/session) | 4h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.3 | Implement refresh token flow + secure cookie policy | 3h | Todo |
@@ -265,6 +279,10 @@ Migration is complete when all of the following are true:
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.6 | Implement audit logging middleware for sensitive endpoints | 3h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.7 | Implement standardized error model and request validation | 3h | Todo |
 | Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.8 | Write API auth integration tests (happy path + abuse path) | 4h | Todo |
+| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.9 | Translate `firebase.rules.txt` into backend policy matrix (resource/action/role) | 4h | Todo |
+| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.10 | Implement policy evaluator middleware for API authorization | 4h | Todo |
+| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.11 | Implement tenant-scoped query guards for read/write endpoints | 4h | Todo |
+| Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization) | 2.12 | Build rule-parity test suite for critical permission scenarios | 4h | Todo |
 | Phase 3 — Data Model and Migration Tooling | 3.1 | Define collection schemas and validation rules for core modules | 4h | Todo |
 | Phase 3 — Data Model and Migration Tooling | 3.2 | Implement migration ID strategy (`legacyId`, checksum, migratedAt) | 2h | Todo |
 | Phase 3 — Data Model and Migration Tooling | 3.3 | Build Firestore export parser for core entities | 4h | Todo |
@@ -282,6 +300,8 @@ Migration is complete when all of the following are true:
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.6 | Implement client-side `subscribe()` adapter for React hooks | 4h | Todo |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.7 | Add throttling/debouncing for high-frequency event bursts | 3h | Todo |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.8 | Add realtime integration tests and soak test scripts | 4h | Todo |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.9 | Enforce policy checks during realtime subscribe/stream lifecycle | 4h | Todo |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent) | 4.10 | Add tenant channel isolation and authorization tests | 4h | Todo |
 | Phase 5 — Storage Migration (Firebase Storage Replacement) | 5.1 | Define object key naming convention and metadata schema | 2h | Todo |
 | Phase 5 — Storage Migration (Firebase Storage Replacement) | 5.2 | Implement signed upload URL endpoint | 3h | Todo |
 | Phase 5 — Storage Migration (Firebase Storage Replacement) | 5.3 | Implement signed download URL endpoint with auth policy | 3h | Todo |
@@ -312,6 +332,8 @@ Migration is complete when all of the following are true:
 | Phase 7 — Frontend Adapter and Incremental Cutover | 7.5 | Add feature flags for module-level data source switching | 3h | Todo |
 | Phase 7 — Frontend Adapter and Incremental Cutover | 7.6 | Add observability logs for source-of-truth mismatch detection | 3h | Todo |
 | Phase 7 — Frontend Adapter and Incremental Cutover | 7.7 | Execute QA regression for migrated modules | 4h | Todo |
+| Phase 7 — Frontend Adapter and Incremental Cutover | 7.8 | Implement centralized API base URL mapping by environment | 3h | Todo |
+| Phase 7 — Frontend Adapter and Incremental Cutover | 7.9 | Implement tenant-aware route resolution in frontend gateways | 3h | Todo |
 | Phase 8 — Dual-Run, Verification, and Cutover | 8.1 | Enable shadow reads and compare old/new responses | 4h | Todo |
 | Phase 8 — Dual-Run, Verification, and Cutover | 8.2 | Enable controlled dual writes for critical entities | 4h | Todo |
 | Phase 8 — Dual-Run, Verification, and Cutover | 8.3 | Build drift report dashboard (count and field mismatch) | 4h | Todo |
