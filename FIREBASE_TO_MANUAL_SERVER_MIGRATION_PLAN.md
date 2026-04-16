@@ -8,9 +8,18 @@
 
 ## Execution Status
 
-- **Phase 0 — Discovery, Scope Lock, and Security Baseline:** ✅ Implemented
-- **Phase 1 — Environment and Infrastructure Setup:** ✅ Implemented
-- **Phase 2 — Backend Foundation (Auth, API Skeleton, Authorization):** ✅ Implemented
+| Phase | Name                                                           | Status         |
+| ----- | -------------------------------------------------------------- | -------------- |
+| 0     | Discovery, Scope Lock, and Security Baseline                  | ✅ Complete    |
+| 1     | Environment and Infrastructure Setup                           | ✅ Complete    |
+| 2     | Backend Foundation (Auth, API Skeleton, Authorization)        | ✅ Complete    |
+| 3     | Data Model and Migration Tooling                              | ✅ Complete    |
+| 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ⏳ In Progress |
+| 5     | Storage Migration (Firebase Storage Replacement)              | ⏳ In Progress |
+| 6     | Domain-by-Domain API Migration (Core Operations First)        | ⏳ In Progress |
+| 7     | Frontend Adapter and Incremental Cutover                      | ⏳ In Progress |
+| 8     | Dual-Run, Verification, and Cutover                           | ⏳ In Progress |
+| 9     | Post-Cutover Hardening and Firebase Decommission              | ⏳ In Progress |
 
 ## Estimation Rules
 
