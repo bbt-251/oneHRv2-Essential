@@ -1,0 +1,30 @@
+# Dependencies
+.pnpm-store
+node_modules
+
+# Build outputs
+.next
+out
+dist
+
+# Generated files
+*.min.js
+*.min.css
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db

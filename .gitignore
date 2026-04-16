@@ -1,0 +1,44 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+.vscode
+push_to_branches.ps1
+.prettierrc
+.zencoder
+
+test-csv-files
+REFACTORING_GUIDE.md
+comprehensive-migration-plan.md
+package-lock.json
+package-lock.json
+performance_management_models_v2.md
+
+scripts
+ACTIVE_EMPLOYEES_MIGRATION_SUMMARY.md
+firebase-debug.log
+md

@@ -1,0 +1,531 @@
+import {
+    ColumnConfig,
+    DataToolbar,
+    Density,
+    getDensityRowClasses,
+} from "@/components/hr-manager/core-settings/blocks/data-toolbar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { useFirestore } from "@/context/firestore-context";
+import { useToast } from "@/context/toastContext";
+import { useConfirm } from "@/hooks/use-confirm-dialog";
+import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { CurrencyModel } from "@/lib/models/hr-settings";
+import { formatTimestamp } from "@/lib/util/dayjs_format";
+import { Calculator, Edit, Eye, Loader2, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+
+interface CurrencyFormProps {
+    data?: CurrencyModel;
+    isAddEditLoading: boolean;
+    onSave: (data: CurrencyModel) => void;
+    onCancel: () => void;
+}
+
+function CurrencyForm({ data, isAddEditLoading, onSave, onCancel }: CurrencyFormProps) {
+    const [formData, setFormData] = useState<CurrencyModel>(
+        data || {
+            id: "",
+            name: "",
+            exchangeRate: 0,
+            active: true,
+            timestamp: new Date().toISOString(),
+        },
+    );
+
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {};
+
+        if (!formData.name.trim()) {
+            newErrors.name = "Currency name is required";
+        }
+
+        if (formData.exchangeRate <= 0) {
+            newErrors.exchangeRate = "Exchange rate must be greater than 0";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (validateForm()) {
+            const saveData = {
+                ...formData,
+                timestamp: data ? formData.timestamp : new Date().toISOString(),
+            };
+            onSave(saveData);
+        }
+    };
+
+    const handleInputChange = (field: keyof CurrencyModel, value: any) => {
+        setFormData({ ...formData, [field]: value });
+        if (errors[field]) {
+            setErrors({ ...errors, [field]: "" });
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+                <Label htmlFor="name">
+                    Currency Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={e => handleInputChange("name", e.target.value)}
+                    placeholder="Enter currency name (e.g., US Dollar)"
+                    className={errors.name ? "border-red-500" : ""}
+                />
+                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="exchangeRate">
+                    Exchange Rate <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                    id="exchangeRate"
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                    value={formData.exchangeRate}
+                    onChange={e =>
+                        handleInputChange("exchangeRate", Number.parseFloat(e.target.value) || 0)
+                    }
+                    placeholder="Enter exchange rate"
+                    className={errors.exchangeRate ? "border-red-500" : ""}
+                />
+                {errors.exchangeRate && (
+                    <p className="text-sm text-red-500">{errors.exchangeRate}</p>
+                )}
+                <p className="text-sm text-gray-500">
+                    Exchange rate relative to base currency (Ethiopian Birr = 1.0)
+                </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+                <Switch
+                    id="active"
+                    checked={formData.active}
+                    onCheckedChange={checked => handleInputChange("active", checked)}
+                />
+                <Label htmlFor="active">Active</Label>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={onCancel}>
+                    Cancel
+                </Button>
+                <Button type="submit" className="bg-amber-600 hover:bg-amber-700">
+                    {isAddEditLoading ? (
+                        <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="animate-spin h-4 w-4" />
+                            {data ? "Updating..." : "Adding..."}
+                        </div>
+                    ) : (
+                        `${data ? "Update Currency" : "Add Currency"}`
+                    )}
+                </Button>
+            </div>
+        </form>
+    );
+}
+
+export function Currency() {
+    const { hrSettings } = useFirestore();
+    const currencies = hrSettings.currencies;
+    const { showToast } = useToast();
+    const { confirm, ConfirmDialog } = useConfirm();
+    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
+    const [density, setDensity] = useState<Density>("normal");
+    const [showDialog, setShowDialog] = useState(false);
+    const [showViewDialog, setShowViewDialog] = useState(false);
+    const [editingItem, setEditingItem] = useState<CurrencyModel | null>(null);
+    const [viewingItem, setViewingItem] = useState<CurrencyModel | null>(null);
+
+    const currencyColumns: ColumnConfig[] = [
+        { key: "name", label: "Currency Name", visible: true },
+        { key: "exchangeRate", label: "Exchange Rate", visible: true },
+        { key: "active", label: "Status", visible: true },
+        { key: "timestamp", label: "Created", visible: true },
+    ];
+
+    const [columnConfig, setColumnConfig] = useState(currencyColumns);
+
+    const handleAdd = () => {
+        setEditingItem(null);
+        setShowDialog(true);
+    };
+
+    const handleEdit = (item: CurrencyModel) => {
+        setEditingItem(item);
+        setShowDialog(true);
+    };
+
+    const handleView = (item: CurrencyModel) => {
+        setViewingItem(item);
+        setShowViewDialog(true);
+    };
+
+    const handleDelete = (item: CurrencyModel) => {
+        confirm("Are you sure ?", async () => {
+            const res = await hrSettingsService.remove("currencies", item.id);
+            if (res) {
+                showToast("Currency deleted successfully", "Success", "success");
+            } else {
+                showToast("Error deleting currency", "Error", "error");
+            }
+        });
+    };
+
+    const handleSave = async (formData: CurrencyModel) => {
+        setIsAddEditLoading(true);
+
+        const { id, ...data } = formData;
+        if (editingItem) {
+            const res = await hrSettingsService.update("currencies", editingItem.id, data);
+            if (res) {
+                showToast("Currency updated successfully", "Success", "success");
+                setShowDialog(false);
+                setEditingItem(null);
+            } else {
+                showToast("Error updating payment type", "Error", "error");
+            }
+        } else {
+            const res = await hrSettingsService.create("currencies", data);
+            if (res) {
+                showToast("Currency created successfully", "Success", "success");
+                setShowDialog(false);
+                setEditingItem(null);
+            } else {
+                showToast("Error creating currency", "Error", "error");
+            }
+        }
+        setIsAddEditLoading(false);
+    };
+
+    const handleExport = () => {
+        const headers = columnConfig.filter(col => col.visible).map(col => col.label);
+        const csvContent = [
+            headers.join(","),
+            ...currencies.map(item =>
+                columnConfig
+                    .filter(col => col.visible)
+                    .map(col => {
+                        if (col.key === "active") {
+                            return item.active ? "Active" : "Inactive";
+                        }
+                        if (col.key === "timestamp") {
+                            return new Date(item.timestamp).toLocaleDateString();
+                        }
+                        return item[col.key as keyof CurrencyModel];
+                    })
+                    .join(","),
+            ),
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "currencies.csv";
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
+    const toggleColumn = (key: string) => {
+        setColumnConfig(
+            columnConfig.map(col => (col.key === key ? { ...col, visible: !col.visible } : col)),
+        );
+    };
+
+    const filtersContent = (
+        <div className="space-y-4">
+            <div className="space-y-2">
+                <Label>Status</Label>
+                <Select>
+                    <SelectTrigger>
+                        <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+    );
+
+    const visibleColumnKeys = columnConfig.filter(col => col.visible).map(col => col.key);
+
+    return (
+        <Card className="dark:bg-black dark:border-gray-700">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                    <Calculator className="h-5 w-5 text-amber-600" />
+                    Currency Management
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                Currencies
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Manage currency configurations and exchange rates
+                            </p>
+                        </div>
+                        <Button
+                            onClick={handleAdd}
+                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Currency
+                        </Button>
+                    </div>
+
+                    <DataToolbar
+                        columns={columnConfig}
+                        onToggleColumn={toggleColumn}
+                        density={density}
+                        onDensityChange={setDensity}
+                        onExport={handleExport}
+                        filtersContent={filtersContent}
+                        filtersActiveCount={0}
+                    />
+
+                    <Card className="dark:bg-black dark:border-gray-700">
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-amber-800 hover:bg-amber-800">
+                                        {columnConfig
+                                            .filter(col => visibleColumnKeys.includes(col.key))
+                                            .map(column => (
+                                                <TableHead
+                                                    key={column.key}
+                                                    className="text-yellow-100 font-semibold"
+                                                >
+                                                    {column.label}
+                                                </TableHead>
+                                            ))}
+                                        <TableHead className="text-yellow-100 font-semibold">
+                                            Actions
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {currencies.map((item, index) => (
+                                        <TableRow
+                                            key={item.id}
+                                            className={`${
+                                                index % 2 === 0
+                                                    ? "bg-white dark:bg-black"
+                                                    : "bg-slate-50/50 dark:bg-black/50"
+                                            } hover:bg-amber-50/50 dark:hover:bg-gray-700/50 ${getDensityRowClasses(
+                                                density,
+                                            )}`}
+                                        >
+                                            {columnConfig
+                                                .filter(col => visibleColumnKeys.includes(col.key))
+                                                .map(column => (
+                                                    <TableCell
+                                                        key={column.key}
+                                                        className="text-gray-900 dark:text-gray-100"
+                                                    >
+                                                        {column.key === "active" ? (
+                                                            <Badge
+                                                                variant={
+                                                                    item.active
+                                                                        ? "default"
+                                                                        : "secondary"
+                                                                }
+                                                            >
+                                                                {item.active
+                                                                    ? "Active"
+                                                                    : "Inactive"}
+                                                            </Badge>
+                                                        ) : column.key === "timestamp" ? (
+                                                            item.timestamp &&
+                                                            formatTimestamp(item.timestamp)
+                                                        ) : column.key === "exchangeRate" ? (
+                                                            item.exchangeRate?.toFixed(6)
+                                                        ) : (
+                                                            item[column.key as keyof CurrencyModel]
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+                                            <TableCell>
+                                                <div className="flex space-x-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleView(item)}
+                                                        className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleEdit(item)}
+                                                        className="h-8 w-8 p-0 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-gray-700"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDelete(item)}
+                                                        className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {currencies.length === 0 && (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={columnConfig.length + 1}
+                                                className="text-center py-8 text-gray-500 dark:text-gray-400"
+                                            >
+                                                No currencies found. Click "Add Currency" to create
+                                                your first entry.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Add/Edit Dialog */}
+                <Dialog open={showDialog} onOpenChange={setShowDialog}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto dark:bg-black dark:text-white">
+                        <DialogHeader>
+                            <DialogTitle>
+                                {editingItem ? "Edit Currency" : "Add New Currency"}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <CurrencyForm
+                            data={editingItem || undefined}
+                            isAddEditLoading={isAddEditLoading}
+                            onSave={handleSave}
+                            onCancel={() => setShowDialog(false)}
+                        />
+                    </DialogContent>
+                </Dialog>
+
+                {/* View Dialog */}
+                <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+                    <DialogContent className="max-w-2xl dark:bg-black dark:text-white">
+                        <DialogHeader>
+                            <DialogTitle>Currency Details</DialogTitle>
+                        </DialogHeader>
+                        {viewingItem && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                Currency Name
+                                            </Label>
+                                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                {viewingItem.name}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                Exchange Rate
+                                            </Label>
+                                            <p className="text-lg text-gray-900 dark:text-white">
+                                                {viewingItem.exchangeRate?.toFixed(6)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                Status
+                                            </Label>
+                                            <Badge
+                                                variant={
+                                                    viewingItem.active ? "default" : "secondary"
+                                                }
+                                            >
+                                                {viewingItem.active ? "Active" : "Inactive"}
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                Created
+                                            </Label>
+                                            <p className="text-lg text-gray-900 dark:text-white">
+                                                {viewingItem.timestamp &&
+                                                    formatTimestamp(viewingItem.timestamp)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end space-x-2 pt-4 border-t dark:border-gray-700">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowViewDialog(false)}
+                                        className="dark:border-gray-600 dark:text-gray-300"
+                                    >
+                                        Close
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            setShowViewDialog(false);
+                                            handleEdit(viewingItem);
+                                        }}
+                                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                                    >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+
+            {ConfirmDialog}
+        </Card>
+    );
+}
