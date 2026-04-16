@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
-import { clearManualSession } from "@/lib/backend/manual/auth-session";
+import {
+  clearManualSession,
+  readRefreshToken,
+} from "@/lib/backend/manual/auth-session";
+import { revokeRefreshToken } from "@/lib/backend/manual/auth-service";
 
 export async function POST() {
-    await clearManualSession();
-    return NextResponse.json({ success: true });
+  const refreshToken = await readRefreshToken();
+
+  if (refreshToken) {
+    revokeRefreshToken(refreshToken);
+  }
+
+  await clearManualSession();
+  return NextResponse.json({ success: true });
 }
