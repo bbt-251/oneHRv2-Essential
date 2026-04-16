@@ -1,14 +1,13 @@
-import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
-import { onSnapshot, query, Unsubscribe, where } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useToast } from "./toastContext";
-import { auth } from "@/lib/backend/firebase/init";
-import { employeeCollection } from "@/lib/backend/firebase/collections";
+import { createManualAuthGateway } from "@/lib/backend/gateways/manual/auth-gateway";
+import { createManualDataGateway } from "@/lib/backend/gateways/manual/data-gateway";
+import { AuthIdentity, Unsubscribe } from "@/lib/backend/gateways/types";
 import { EmployeeModel } from "@/lib/models/employee";
 
 interface AuthContextType {
-    user: User | null;
+    user: AuthIdentity | null;
     authLoading: boolean;
     userData: EmployeeModel | null;
     signout: () => Promise<void>;
@@ -26,12 +25,14 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [authLoading, setAuthLoading] = useState(true);
+    const [user, setUser] = useState<AuthIdentity | null>(null);
+    const [authLoading, setAuthLoading] = useState<boolean>(true);
     const [userData, setUserData] = useState<EmployeeModel | null>(null);
-    const [signingOut, setSigningOut] = useState(false);
-    const [employeeNotFound, setEmployeeNotFound] = useState(false);
+    const [signingOut, setSigningOut] = useState<boolean>(false);
+    const [employeeNotFound, setEmployeeNotFound] = useState<boolean>(false);
     const { showToast } = useToast();
+    const authGateway = useMemo(() => createManualAuthGateway(), []);
+    const dataGateway = useMemo(() => createManualDataGateway(), []);
 
     const router = useRouter();
     const signout = async () => {
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             showToast("Signing out ...", "👋🏻", "default");
             // Sign out from Firebase first, then clear state, then redirect
-            await signOut(auth); // Firebase sign-out
+            await authGateway.signOut();
             setUser(null); // Clear user state
             setUserData(null); // Clear user data
             router.push("/signin");
@@ -52,24 +53,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const fetchUserData = useCallback(async (currentUser: User, showErrorToast: boolean = true) => {
+    const fetchUserData = useCallback(async (currentUser: AuthIdentity, showErrorToast: boolean = true) => {
         try {
             let unsubscribeUser: Unsubscribe | null = null;
 
             // Reset employeeNotFound when starting a new fetch
             setEmployeeNotFound(false);
 
-            const employeeQuery = query(employeeCollection, where("uid", "==", currentUser.uid));
-            unsubscribeUser = onSnapshot(employeeQuery, async snapshot => {
+            unsubscribeUser = dataGateway.subscribeEmployeeByUid(currentUser.uid, (employees, hasPendingWrites) => {
                 // Only process when we have final data (not pending writes)
-                if (snapshot.metadata.hasPendingWrites) {
+                if (hasPendingWrites) {
                     return; // Wait for pending writes to complete
                 }
-
-                const employees = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                })) as EmployeeModel[];
 
                 console.log({
                     uid: currentUser.uid,
@@ -91,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setEmployeeNotFound(false);
                 } else {
                     // Employee not found - if snapshot is empty after all data loaded, employee doesn't exist
-                    if (snapshot.empty) {
+                    if (employees.length === 0) {
                         setEmployeeNotFound(true);
                         console.warn("Employee record not found for user:", {
                             uid: currentUser.uid,
@@ -128,14 +123,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             return () => {};
         }
-    }, []);
+    }, [dataGateway, showToast]);
 
     useEffect(() => {
         let shortTimeout: NodeJS.Timeout | null = null;
         let longTimeout: NodeJS.Timeout | null = null;
         let unsubscribed = false;
 
-        const unsubscribeAuth = onAuthStateChanged(auth, async currentUser => {
+        const unsubscribeAuth = authGateway.onAuthStateChanged(async currentUser => {
             setUser(currentUser);
 
             if (currentUser) {
@@ -163,7 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (shortTimeout) clearTimeout(shortTimeout);
             if (longTimeout) clearTimeout(longTimeout);
         };
-    }, [fetchUserData]);
+    }, [authGateway, fetchUserData]);
 
     // Watch userData: if it becomes non-null, end loading immediately
     useEffect(() => {
@@ -184,7 +179,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Only apply auto-logout if user is authenticated
         if (!user) return;
 
-        const auth = getAuth();
         let timer: NodeJS.Timeout;
 
         // Pages where auto-logout should not apply
@@ -202,7 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // 5 minutes = 300000 ms
             timer = setTimeout(
                 () => {
-                    signOut(auth);
+                    authGateway.signOut();
                     router.push("/logged-out");
                 },
                 5 * 60 * 1000,
@@ -221,7 +215,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (timer) clearTimeout(timer);
             events.forEach(event => window.removeEventListener(event, resetTimer));
         };
-    }, [user]); // Add user as dependency
+    }, [authGateway, router, user]); // Add user as dependency
 
     return (
         <AuthContext.Provider
