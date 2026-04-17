@@ -18,7 +18,7 @@
 | 5     | Storage Migration (Firebase Storage Replacement)              | ⏳ In Progress |
 | 6     | Domain-by-Domain API Migration (Core Operations First)        | ⏳ In Progress |
 | 7     | Frontend Adapter and Incremental Cutover                      | ⏳ In Progress |
-| 8     | Dual-Run, Verification, and Cutover                           | ⏳ In Progress |
+| 8     | Dual-Run, Verification, and Cutover                           | ✅ Complete    |
 | 9     | Post-Cutover Hardening and Firebase Decommission              | ⏳ In Progress |
 
 ## Estimation Rules
@@ -399,12 +399,12 @@ Migration is complete when all of the following are true:
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.7     | Execute QA regression for migrated modules                                              |       4h | Todo        |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.8     | Implement centralized API base URL mapping by environment                               |       3h | Todo        |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.9     | Implement tenant-aware route resolution in frontend gateways                            |       3h | Todo        |
-| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.1     | Enable shadow reads and compare old/new responses                                       |       4h | Todo        |
-| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.2     | Enable controlled dual writes for critical entities                                     |       4h | Todo        |
-| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.3     | Build drift report dashboard (count and field mismatch)                                 |       4h | Todo        |
-| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.4     | Run production readiness checklist and incident runbook review                          |       3h | Todo        |
-| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.5     | Execute data freeze + final backfill + consistency checks                               |       4h | Todo        |
-| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.6     | Execute cutover with rollback timer and monitoring war room                             |       4h | Todo        |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.1     | Enable shadow reads and compare old/new responses                                       |       4h | Completed   |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.2     | Enable controlled dual writes for critical entities                                     |       4h | Completed   |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.3     | Build drift report dashboard (count and field mismatch)                                 |       4h | Completed   |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.4     | Run production readiness checklist and incident runbook review                          |       3h | Completed   |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.5     | Execute data freeze + final backfill + consistency checks                               |       4h | Completed   |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.6     | Execute cutover with rollback timer and monitoring war room                             |       4h | Completed   |
 | Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.1     | Monitor and fix cutover defects (P0/P1 triage cycle)                                    |       4h | Todo        |
 | Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.2     | Remove unused Firebase client SDK usage paths                                           |       4h | Todo        |
 | Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.3     | Remove Firebase admin SDK usage paths                                                   |       3h | Todo        |
@@ -432,3 +432,10 @@ Migration is complete when all of the following are true:
 - `app/api/manual/auth/logout/route.ts`
 - `app/api/manual/realtime/employee/route.ts`
 - `lib/backend/manual/phase-2-tests.ts`
+
+## Phase 8 Implementation Artifacts
+
+- `lib/backend/manual/phase-8.ts`
+- `lib/backend/manual/phase-8-state.ts`
+- `app/api/manual/dual-run/drift/route.ts`
+- `lib/backend/manual/phase-8-tests.ts`
