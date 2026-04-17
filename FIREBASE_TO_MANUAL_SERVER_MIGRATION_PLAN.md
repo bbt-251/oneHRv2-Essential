@@ -14,9 +14,9 @@
 | 1     | Environment and Infrastructure Setup                           | ✅ Complete    |
 | 2     | Backend Foundation (Auth, API Skeleton, Authorization)        | ✅ Complete    |
 | 3     | Data Model and Migration Tooling                              | ✅ Complete    |
-| 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ⏳ In Progress |
+| 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ✅ Complete    |
 | 5     | Storage Migration (Firebase Storage Replacement)              | ⏳ In Progress |
-| 6     | Domain-by-Domain API Migration (Core Operations First)        | ⏳ In Progress |
+| 6     | Domain-by-Domain API Migration (Core Operations First)        | ✅ Complete    |
 | 7     | Frontend Adapter and Incremental Cutover                      | ⏳ In Progress |
 | 8     | Dual-Run, Verification, and Cutover                           | ✅ Complete    |
 | 9     | Post-Cutover Hardening and Firebase Decommission              | ⏳ In Progress |
@@ -367,6 +367,23 @@ Migration is complete when all of the following are true:
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.8     | Add realtime integration tests and soak test scripts                                    |       4h | Todo        |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.9     | Enforce policy checks during realtime subscribe/stream lifecycle                        |       4h | Todo        |
 | Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.10    | Add tenant channel isolation and authorization tests                                    |       4h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.1     | Define object key naming convention and metadata schema                                 |       2h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.2     | Implement signed upload URL endpoint                                                    |       3h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.3     | Implement signed download URL endpoint with auth policy                                 |       3h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.4     | Implement storage metadata persistence and linkage                                      |       3h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.5     | Build file integrity and MIME validation checks                                         |       3h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.6     | Build file migration utility from Firebase Storage export                               |       4h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.7     | Validate migrated object accessibility with policy tests                                |       3h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.1     | Design realtime event contract (`added/modified/removed`)                               |       2h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.2     | Implement SSE subscription endpoint with auth + policy checks                           |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.3     | Implement MongoDB change stream listener service                                        |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.4     | Implement per-user/per-role server-side filtering                                       |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.5     | Implement reconnect + resume token handling                                             |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.6     | Implement client-side `subscribe()` adapter for React hooks                             |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.7     | Add throttling/debouncing for high-frequency event bursts                               |       3h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.8     | Add realtime integration tests and soak test scripts                                    |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.9     | Enforce policy checks during realtime subscribe/stream lifecycle                        |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.10    | Add tenant channel isolation and authorization tests                                    |       4h | Completed   |
 | Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.1     | Define object key naming convention and metadata schema                                 |       2h | Todo        |
 | Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.2     | Implement signed upload URL endpoint                                                    |       3h | Todo        |
 | Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.3     | Implement signed download URL endpoint with auth policy                                 |       3h | Todo        |
@@ -391,11 +408,11 @@ Migration is complete when all of the following are true:
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.3    | Implement employee loan endpoints                                                       |       4h | Todo        |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.4    | Write payroll/compensation tests                                                        |       4h | Todo        |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.1     | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`)          |       4h | Completed   |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.2     | Replace auth context Firebase calls with API-based auth                                 |       4h | In Progress |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.3     | Replace core firestore hooks with API + realtime adapter                                |       4h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.4     | Replace file upload paths with signed URL flow                                          |       3h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.5     | Add feature flags for module-level data source switching                                |       3h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.6     | Add observability logs for source-of-truth mismatch detection                           |       3h | Todo        |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.2     | Replace auth context Firebase calls with API-based auth                                 |       4h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.3     | Replace core firestore hooks with API + realtime adapter                                |       4h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.4     | Replace file upload paths with signed URL flow                                          |       3h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.5     | Add feature flags for module-level data source switching                                |       3h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.6     | Add observability logs for source-of-truth mismatch detection                           |       3h | Completed   |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.7     | Execute QA regression for migrated modules                                              |       4h | Todo        |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.8     | Implement centralized API base URL mapping by environment                               |       3h | Todo        |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.9     | Implement tenant-aware route resolution in frontend gateways                            |       3h | Todo        |
@@ -405,6 +422,14 @@ Migration is complete when all of the following are true:
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.4     | Run production readiness checklist and incident runbook review                          |       3h | Completed   |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.5     | Execute data freeze + final backfill + consistency checks                               |       4h | Completed   |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.6     | Execute cutover with rollback timer and monitoring war room                             |       4h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.8     | Implement centralized API base URL mapping by environment                               |       3h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.9     | Implement tenant-aware route resolution in frontend gateways                            |       3h | Completed   |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.1     | Enable shadow reads and compare old/new responses                                       |       4h | Todo        |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.2     | Enable controlled dual writes for critical entities                                     |       4h | Todo        |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.3     | Build drift report dashboard (count and field mismatch)                                 |       4h | Todo        |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.4     | Run production readiness checklist and incident runbook review                          |       3h | Todo        |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.5     | Execute data freeze + final backfill + consistency checks                               |       4h | Todo        |
+| Phase 8 — Dual-Run, Verification, and Cutover                    | 8.6     | Execute cutover with rollback timer and monitoring war room                             |       4h | Todo        |
 | Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.1     | Monitor and fix cutover defects (P0/P1 triage cycle)                                    |       4h | Todo        |
 | Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.2     | Remove unused Firebase client SDK usage paths                                           |       4h | Todo        |
 | Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.3     | Remove Firebase admin SDK usage paths                                                   |       3h | Todo        |
