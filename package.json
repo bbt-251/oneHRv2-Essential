@@ -21,6 +21,7 @@
     "test:manual:phase2": "npx tsx lib/backend/manual/phase-2-tests.ts",
     "test:manual:phase3": "npx tsx lib/backend/manual/phase-3-tests.ts",
     "test:manual:phase5": "npx tsx lib/backend/manual/phase-5-tests.ts"
+    "test:manual:phase4": "npx tsx lib/backend/manual/phase-4-tests.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

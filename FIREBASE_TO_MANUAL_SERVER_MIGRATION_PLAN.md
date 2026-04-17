@@ -14,7 +14,7 @@
 | 1     | Environment and Infrastructure Setup                           | ✅ Complete    |
 | 2     | Backend Foundation (Auth, API Skeleton, Authorization)        | ✅ Complete    |
 | 3     | Data Model and Migration Tooling                              | ✅ Complete    |
-| 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ⏳ In Progress |
+| 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ✅ Complete    |
 | 5     | Storage Migration (Firebase Storage Replacement)              | ⏳ In Progress |
 | 6     | Domain-by-Domain API Migration (Core Operations First)        | ⏳ In Progress |
 | 7     | Frontend Adapter and Incremental Cutover                      | ⏳ In Progress |
@@ -374,6 +374,23 @@ Migration is complete when all of the following are true:
 | Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.5     | Build file integrity and MIME validation checks                                         |       3h | Completed   |
 | Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.6     | Build file migration utility from Firebase Storage export                               |       4h | Completed   |
 | Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.7     | Validate migrated object accessibility with policy tests                                |       3h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.1     | Design realtime event contract (`added/modified/removed`)                               |       2h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.2     | Implement SSE subscription endpoint with auth + policy checks                           |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.3     | Implement MongoDB change stream listener service                                        |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.4     | Implement per-user/per-role server-side filtering                                       |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.5     | Implement reconnect + resume token handling                                             |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.6     | Implement client-side `subscribe()` adapter for React hooks                             |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.7     | Add throttling/debouncing for high-frequency event bursts                               |       3h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.8     | Add realtime integration tests and soak test scripts                                    |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.9     | Enforce policy checks during realtime subscribe/stream lifecycle                        |       4h | Completed   |
+| Phase 4 — Realtime Layer (`onSnapshot` Equivalent)               | 4.10    | Add tenant channel isolation and authorization tests                                    |       4h | Completed   |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.1     | Define object key naming convention and metadata schema                                 |       2h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.2     | Implement signed upload URL endpoint                                                    |       3h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.3     | Implement signed download URL endpoint with auth policy                                 |       3h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.4     | Implement storage metadata persistence and linkage                                      |       3h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.5     | Build file integrity and MIME validation checks                                         |       3h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.6     | Build file migration utility from Firebase Storage export                               |       4h | Todo        |
+| Phase 5 — Storage Migration (Firebase Storage Replacement)       | 5.7     | Validate migrated object accessibility with policy tests                                |       3h | Todo        |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6A.1    | Implement employee CRUD + query endpoints                                               |       4h | Todo        |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6A.2    | Implement employee-role linkage and permission checks                                   |       3h | Todo        |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6A.3    | Implement employee profile read model for dashboard                                     |       3h | Todo        |
