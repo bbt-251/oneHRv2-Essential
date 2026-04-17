@@ -19,7 +19,7 @@
 | 6     | Domain-by-Domain API Migration (Core Operations First)        | ✅ Complete    |
 | 7     | Frontend Adapter and Incremental Cutover                      | ✅ Complete    |
 | 8     | Dual-Run, Verification, and Cutover                           | ✅ Complete    |
-| 9     | Post-Cutover Hardening and Firebase Decommission              | ⏳ In Progress |
+| 9     | Post-Cutover Hardening and Firebase Decommission              | ✅ Complete    |
 
 ## Estimation Rules
 
@@ -391,11 +391,11 @@ Migration is complete when all of the following are true:
 | Phase 8 | 8.5 | Execute data freeze + final backfill + consistency checks |       4h | Completed |
 | Phase 8 | 8.6 | Execute cutover with rollback timer and monitoring war room |       4h | Completed |
 | Phase 9 | 9.1 | Monitor and fix cutover defects (P0/P1 triage cycle) |       4h | Completed |
-| Phase 9 | 9.2 | Remove unused Firebase client SDK usage paths |       4h | In Progress |
-| Phase 9 | 9.3 | Remove Firebase admin SDK usage paths |       3h | In Progress |
-| Phase 9 | 9.4 | Remove obsolete environment variables and secrets |       2h | In Progress |
-| Phase 9 | 9.5 | Finalize operational docs and ownership handoff |       3h | In Progress |
-| Phase 9 | 9.6 | Archive/decommission Firebase resources after safety window |       3h | In Progress |
+| Phase 9 | 9.2 | Remove unused Firebase client SDK usage paths |       4h | Completed |
+| Phase 9 | 9.3 | Remove Firebase admin SDK usage paths |       3h | Completed |
+| Phase 9 | 9.4 | Remove obsolete environment variables and secrets |       2h | Completed |
+| Phase 9 | 9.5 | Finalize operational docs and ownership handoff |       3h | Completed |
+| Phase 9 | 9.6 | Archive/decommission Firebase resources after safety window |       3h | Completed |
 
 ## Phase 2 Implementation Artifacts
 
@@ -424,3 +424,10 @@ Migration is complete when all of the following are true:
 - `lib/backend/manual/phase-8-state.ts`
 - `app/api/manual/dual-run/drift/route.ts`
 - `lib/backend/manual/phase-8-tests.ts`
+
+## Phase 9 Implementation Artifacts
+
+- `lib/backend/manual/migration/phase-9-firebase-decommission-audit.mjs`
+- `lib/backend/manual/migration/phase-9-env-cleanup-audit.mjs`
+- `docs/operations/firebase-decommission-handoff.md`
+- `docs/operations/firebase-decommission-archive.md`
