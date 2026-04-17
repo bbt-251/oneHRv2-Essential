@@ -16,7 +16,7 @@
 | 3     | Data Model and Migration Tooling                              | ✅ Complete    |
 | 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ⏳ In Progress |
 | 5     | Storage Migration (Firebase Storage Replacement)              | ⏳ In Progress |
-| 6     | Domain-by-Domain API Migration (Core Operations First)        | ⏳ In Progress |
+| 6     | Domain-by-Domain API Migration (Core Operations First)        | ✅ Complete    |
 | 7     | Frontend Adapter and Incremental Cutover                      | ⏳ In Progress |
 | 8     | Dual-Run, Verification, and Cutover                           | ⏳ In Progress |
 | 9     | Post-Cutover Hardening and Firebase Decommission              | ⏳ In Progress |
