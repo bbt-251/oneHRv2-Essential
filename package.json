@@ -1,6 +1,6 @@
 {
   "name": "oneHRv2",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3011",
@@ -21,11 +21,12 @@
     "test:manual:phase2": "npx tsx lib/backend/manual/phase-2-tests.ts",
     "test:manual:phase3": "npx tsx lib/backend/manual/phase-3-tests.ts",
     "audit:firebase:decommission": "node lib/backend/manual/migration/phase-9-firebase-decommission-audit.mjs",
-    "audit:firebase:decommission:strict": "node lib/backend/manual/migration/phase-9-firebase-decommission-audit.mjs --strict"
-    "test:manual:phase8": "npx tsx lib/backend/manual/phase-8-tests.ts"
+    "audit:firebase:decommission:strict": "node lib/backend/manual/migration/phase-9-firebase-decommission-audit.mjs --strict",
+    "test:manual:phase8": "npx tsx lib/backend/manual/phase-8-tests.ts",
     "test:manual:phase6": "npx tsx lib/backend/manual/phase-6-tests.ts",
     "test:manual:phase5": "npx tsx lib/backend/manual/phase-5-tests.ts",
-    "test:manual:phase4": "npx tsx lib/backend/manual/phase-4-tests.ts"
+    "test:manual:phase4": "npx tsx lib/backend/manual/phase-4-tests.ts",
+    "test:manual:all": "pnpm run test:manual:phase2 && pnpm run test:manual:phase3 && pnpm run test:manual:phase4 && pnpm run test:manual:phase5 && pnpm run test:manual:phase6 && pnpm run test:manual:phase8"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
