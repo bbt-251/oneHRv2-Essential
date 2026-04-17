@@ -408,14 +408,14 @@ Migration is complete when all of the following are true:
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.3    | Implement employee loan endpoints                                                       |       4h | Todo        |
 | Phase 6 — Domain-by-Domain API Migration (Core Operations First) | 6D.4    | Write payroll/compensation tests                                                        |       4h | Todo        |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.1     | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`)          |       4h | Completed   |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.2     | Replace auth context Firebase calls with API-based auth                                 |       4h | In Progress |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.3     | Replace core firestore hooks with API + realtime adapter                                |       4h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.4     | Replace file upload paths with signed URL flow                                          |       3h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.5     | Add feature flags for module-level data source switching                                |       3h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.6     | Add observability logs for source-of-truth mismatch detection                           |       3h | Todo        |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.2     | Replace auth context Firebase calls with API-based auth                                 |       4h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.3     | Replace core firestore hooks with API + realtime adapter                                |       4h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.4     | Replace file upload paths with signed URL flow                                          |       3h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.5     | Add feature flags for module-level data source switching                                |       3h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.6     | Add observability logs for source-of-truth mismatch detection                           |       3h | Completed   |
 | Phase 7 — Frontend Adapter and Incremental Cutover               | 7.7     | Execute QA regression for migrated modules                                              |       4h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.8     | Implement centralized API base URL mapping by environment                               |       3h | Todo        |
-| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.9     | Implement tenant-aware route resolution in frontend gateways                            |       3h | Todo        |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.8     | Implement centralized API base URL mapping by environment                               |       3h | Completed   |
+| Phase 7 — Frontend Adapter and Incremental Cutover               | 7.9     | Implement tenant-aware route resolution in frontend gateways                            |       3h | Completed   |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.1     | Enable shadow reads and compare old/new responses                                       |       4h | Todo        |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.2     | Enable controlled dual writes for critical entities                                     |       4h | Todo        |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.3     | Build drift report dashboard (count and field mismatch)                                 |       4h | Todo        |
