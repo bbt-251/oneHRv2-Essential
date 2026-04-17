@@ -8,34 +8,33 @@ import {
     createLeaveManagement,
     updateLeaveManagement,
 } from "@/lib/backend/api/employee-management/leave-management-service";
-import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
-import { uploadLeaveAttachment } from "@/lib/backend/firebase/upload/uploadLeaveAttachment";
+import { uploadLeaveAttachmentViaGateway } from "@/lib/backend/gateways/upload-leave-attachment";
 import { LeaveModel } from "@/lib/models/leave";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import { sendNotification } from "../notification/send-notification";
 
 export interface LeaveRequestFormData {
-    id: string;
-    leaveType: string;
-    firstDayOfLeave: string;
-    lastDayOfLeave: string;
-    dateOfReturn: string;
-    numberOfLeaveDaysRequested: number;
-    reason: string;
-    standIn: string;
-    authorizedDays: string;
-    onBehalf: boolean;
-    employee: string;
-    attachments: File[];
-    halfDayOption: "HDM" | "HDA" | null;
+  id: string;
+  leaveType: string;
+  firstDayOfLeave: string;
+  lastDayOfLeave: string;
+  dateOfReturn: string;
+  numberOfLeaveDaysRequested: number;
+  reason: string;
+  standIn: string;
+  authorizedDays: string;
+  onBehalf: boolean;
+  employee: string;
+  attachments: File[];
+  halfDayOption: "HDM" | "HDA" | null;
 }
 
 interface useLeaveRequestFormProps {
-    initialData?: LeaveModel | null;
-    isEditing?: boolean;
-    onSuccess?: () => void;
-    onOpenChange: (open: boolean) => void;
+  initialData?: LeaveModel | null;
+  isEditing?: boolean;
+  onSuccess?: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 export const useLeaveRequestForm = ({
@@ -49,11 +48,13 @@ export const useLeaveRequestForm = ({
     const { user, userData } = useAuth();
 
     const getLeaveTypeName = (positionId: string) =>
-        hrSettings.leaveTypes.find(p => p.id === positionId)?.name || "Unknown";
+        hrSettings.leaveTypes.find((p) => p.id === positionId)?.name || "Unknown";
 
-    const manager = activeEmployees.find(emp => emp.uid === userData?.reportingLineManager);
+    const manager = activeEmployees.find(
+        (emp) => emp.uid === userData?.reportingLineManager,
+    );
 
-    const [requestId] = useState(() =>
+    const [requestId] = useState<string>(() =>
         isEditing && initialData
             ? initialData.leaveRequestID
             : `LR-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
@@ -78,7 +79,7 @@ export const useLeaveRequestForm = ({
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const currentEmployee = activeEmployees.find(emp => emp.id === user?.uid);
+    const currentEmployee = activeEmployees.find((emp) => emp.id === user?.uid);
 
     useEffect(() => {
         if (initialData) {
@@ -101,7 +102,7 @@ export const useLeaveRequestForm = ({
     }, [initialData]);
 
     const authorizedDays = hrSettings.leaveTypes.find(
-        leaveType => leaveType.id === formData.leaveType,
+        (leaveType) => leaveType.id === formData.leaveType,
     )?.authorizedDays;
 
     useEffect(() => {
@@ -110,7 +111,7 @@ export const useLeaveRequestForm = ({
             const end = dayjs(formData.lastDayOfLeave);
 
             if (end.isBefore(start)) {
-                setFormData(prev => ({
+                setFormData((prev) => ({
                     ...prev,
                     dateOfReturn: "",
                     numberOfLeaveDaysRequested: 0,
@@ -119,13 +120,19 @@ export const useLeaveRequestForm = ({
                 return;
             }
 
-            const employeeForLeaveId = formData.onBehalf ? formData.employee : user?.uid;
-            const employee = activeEmployees.find(emp => emp.uid === employeeForLeaveId);
-            const shiftType = hrSettings.shiftTypes.find(st => st.id === employee?.shiftType);
+            const employeeForLeaveId = formData.onBehalf
+                ? formData.employee
+                : user?.uid;
+            const employee = activeEmployees.find(
+                (emp) => emp.uid === employeeForLeaveId,
+            );
+            const shiftType = hrSettings.shiftTypes.find(
+                (st) => st.id === employee?.shiftType,
+            );
             const holidays = hrSettings.holidays || [];
 
             if (!shiftType) {
-                setFormData(prev => ({
+                setFormData((prev) => ({
                     ...prev,
                     dateOfReturn: "", // Cannot accurately determine without defined shift working days
                     numberOfLeaveDaysRequested: 0,
@@ -153,10 +160,10 @@ export const useLeaveRequestForm = ({
             while (current.isBefore(end) || current.isSame(end, "day")) {
                 const dayOfWeekName = dayMap[current.day()];
                 const isWorkingDay = shiftType.workingDays.some(
-                    day => day.dayOfTheWeek === dayOfWeekName,
+                    (day) => day.dayOfTheWeek === dayOfWeekName,
                 );
                 const isHoliday = holidays.some(
-                    h => h.active === "Yes" && dayjs(h.date).isSame(current, "day"),
+                    (h) => h.active === "Yes" && dayjs(h.date).isSame(current, "day"),
                 );
 
                 if (isWorkingDay && !isHoliday) {
@@ -194,10 +201,10 @@ export const useLeaveRequestForm = ({
             while (true) {
                 const dayOfWeekName = dayMap[returnDate.day()];
                 const isWorkingDay = shiftType.workingDays.some(
-                    day => day.dayOfTheWeek === dayOfWeekName,
+                    (day) => day.dayOfTheWeek === dayOfWeekName,
                 );
                 const isHoliday = holidays.some(
-                    h => h.active === "Yes" && dayjs(h.date).isSame(returnDate, "day"),
+                    (h) => h.active === "Yes" && dayjs(h.date).isSame(returnDate, "day"),
                 );
 
                 if (isWorkingDay && !isHoliday) {
@@ -206,7 +213,7 @@ export const useLeaveRequestForm = ({
                 returnDate = returnDate.add(1, "day");
             }
 
-            setFormData(prev => ({
+            setFormData((prev) => ({
                 ...prev,
                 dateOfReturn: returnDate.format("MMMM DD, YYYY"),
                 numberOfLeaveDaysRequested: leaveDays,
@@ -233,43 +240,43 @@ export const useLeaveRequestForm = ({
 
             // If not same day, clear half-day option
             if (!isSameDay && formData.halfDayOption) {
-                setFormData(prev => ({ ...prev, halfDayOption: null }));
+                setFormData((prev) => ({ ...prev, halfDayOption: null }));
             }
         }
     }, [formData.halfDayOption]);
 
     const handleDateChange = (field: string, value: string) => {
-        setFormData(prev => {
+        setFormData((prev) => {
             const formattedDate = dayjs(value).format("YYYY-MM-DD");
             const newData = { ...prev, [field]: formattedDate };
             return newData;
         });
-        setErrors(prev => ({ ...prev, [field]: "" }));
+        setErrors((prev) => ({ ...prev, [field]: "" }));
     };
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(event.target.files || []);
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             attachments: [...prev.attachments, ...files],
         }));
     };
 
     const removeFile = (index: number) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             attachments: prev.attachments.filter((_, i) => i !== index),
         }));
     };
 
     const handleOnBehalfChange = (checked: boolean) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             onBehalf: checked,
             employee: checked ? prev.employee : "",
         }));
         if (!checked && errors.employee) {
-            setErrors(prev => {
+            setErrors((prev) => {
                 const newErrors = { ...prev };
                 delete newErrors.employee;
                 return newErrors;
@@ -280,15 +287,17 @@ export const useLeaveRequestForm = ({
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
         if (!formData.leaveType) newErrors.leaveType = "Leave type is required";
-        if (!formData.firstDayOfLeave) newErrors.firstDayOfLeave = "Start date is required";
-        if (!formData.lastDayOfLeave) newErrors.lastDayOfLeave = "End date is required";
+        if (!formData.firstDayOfLeave)
+            newErrors.firstDayOfLeave = "Start date is required";
+        if (!formData.lastDayOfLeave)
+            newErrors.lastDayOfLeave = "End date is required";
 
         // Check if first day of leave is a holiday
         const holidays = hrSettings.holidays || [];
         if (formData.firstDayOfLeave) {
             const firstDayDate = dayjs(formData.firstDayOfLeave);
             const matchingHoliday = holidays.find(
-                h => h.active === "Yes" && dayjs(h.date).isSame(firstDayDate, "day"),
+                (h) => h.active === "Yes" && dayjs(h.date).isSame(firstDayDate, "day"),
             );
             if (matchingHoliday) {
                 newErrors.firstDayOfLeave = `The first day of leave (${matchingHoliday.name}) is a holiday. Please select a different date.`;
@@ -308,7 +317,8 @@ export const useLeaveRequestForm = ({
             newErrors.lastDayOfLeave = "Invalid leave period";
 
         if (formData.numberOfLeaveDaysRequested > availableBalance) {
-            newErrors.lastDayOfLeave = "Requested leave days exceed available balance.";
+            newErrors.lastDayOfLeave =
+        "Requested leave days exceed available balance.";
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -317,23 +327,33 @@ export const useLeaveRequestForm = ({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) {
-            showToast("Please fix the errors in the form", "Validation Error", "error", 4000);
+            showToast(
+                "Please fix the errors in the form",
+                "Validation Error",
+                "error",
+                4000,
+            );
             return;
         }
         setIsSubmitting(true);
         try {
             const attachmentUrls = [];
             if (formData.attachments && formData.attachments.length > 0) {
-                const uploadPromises = formData.attachments.map(file =>
-                    uploadLeaveAttachment(file, initialData?.id || `LR${Date.now()}`),
+                const uploadPromises = formData.attachments.map((file) =>
+                    uploadLeaveAttachmentViaGateway(
+                        file,
+                        initialData?.id || `LR${Date.now()}`,
+                    ),
                 );
                 attachmentUrls.push(...(await Promise.all(uploadPromises)));
             }
             const leaveRequestData = {
                 id: isEditing && initialData ? initialData.id : `LR${Date.now()}`,
                 employeeID: user?.uid || "",
-                timestamp: isEditing && initialData ? initialData.timestamp : getTimestamp(),
-                leaveRequestID: isEditing && initialData ? initialData.leaveRequestID : requestId,
+                timestamp:
+          isEditing && initialData ? initialData.timestamp : getTimestamp(),
+                leaveRequestID:
+          isEditing && initialData ? initialData.leaveRequestID : requestId,
                 leaveState: (isEditing && initialData
                     ? initialData.leaveState
                     : "Requested") as LeaveModel["leaveState"],
@@ -348,9 +368,9 @@ export const useLeaveRequestForm = ({
                 dateOfReturn: formData.dateOfReturn,
                 numberOfLeaveDaysRequested: formData.numberOfLeaveDaysRequested,
                 balanceLeaveDays:
-                    isEditing && initialData
-                        ? initialData.balanceLeaveDays
-                        : userData?.balanceLeaveDays || 0,
+          isEditing && initialData
+              ? initialData.balanceLeaveDays
+              : userData?.balanceLeaveDays || 0,
                 comments: isEditing && initialData ? initialData.comments : [],
                 attachments: attachmentUrls,
                 requestedFor: formData.onBehalf ? formData.employee : null,
@@ -367,13 +387,18 @@ export const useLeaveRequestForm = ({
                     user?.uid ?? "",
                     userData?.firstName + " " + userData?.surname || "Employee",
                 );
-                showToast("Leave request updated successfully", "Success", "success", 3000);
+                showToast(
+                    "Leave request updated successfully",
+                    "Success",
+                    "success",
+                    3000,
+                );
                 onSuccess();
             } else {
                 await createLeaveManagement(
-                    leaveRequestData as Omit<LeaveModel, "id">,
-                    user?.uid ?? "",
-                    userData?.firstName + " " + userData?.surname || "Employee",
+          leaveRequestData as Omit<LeaveModel, "id">,
+          user?.uid ?? "",
+          userData?.firstName + " " + userData?.surname || "Employee",
                 );
                 showToast("Leave request submitted successfully", "Success", "success");
 
@@ -389,7 +414,7 @@ export const useLeaveRequestForm = ({
                     messageKey: "LEAVE_REQUEST_SUBMITTED_TO_MANAGER",
                     payload: {
                         employeeName:
-                            userData?.firstName + " " + userData?.surname || "An employee",
+              userData?.firstName + " " + userData?.surname || "An employee",
                         leaveType: getLeaveTypeName(leaveRequestData.leaveType),
                         startDate: leaveRequestData.firstDayOfLeave,
                         endDate: leaveRequestData.lastDayOfLeave,
@@ -399,7 +424,7 @@ export const useLeaveRequestForm = ({
 
                 if (formData.onBehalf) {
                     const onBehalfEmployee = activeEmployees.find(
-                        emp => emp.uid === formData.employee,
+                        (emp) => emp.uid === formData.employee,
                     );
                     if (onBehalfEmployee) {
                         await sendNotification({
@@ -425,7 +450,11 @@ export const useLeaveRequestForm = ({
             handleCancel();
         } catch (error) {
             console.error("Error saving leave request:", error);
-            showToast("Failed to save leave request. Please try again.", "Error", "error");
+            showToast(
+                "Failed to save leave request. Please try again.",
+                "Error",
+                "error",
+            );
         } finally {
             setIsSubmitting(false);
         }

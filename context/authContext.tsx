@@ -1,8 +1,17 @@
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import { useToast } from "./toastContext";
-import { createManualAuthGateway } from "@/lib/backend/gateways/manual/auth-gateway";
-import { createManualDataGateway } from "@/lib/backend/gateways/manual/data-gateway";
+import {
+    createAuthGateway,
+    createEmployeeDataGateway,
+} from "@/lib/backend/gateways/factory";
 import { AuthIdentity, Unsubscribe } from "@/lib/backend/gateways/types";
 import { EmployeeModel } from "@/lib/models/employee";
 
@@ -31,8 +40,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [signingOut, setSigningOut] = useState<boolean>(false);
     const [employeeNotFound, setEmployeeNotFound] = useState<boolean>(false);
     const { showToast } = useToast();
-    const authGateway = useMemo(() => createManualAuthGateway(), []);
-    const dataGateway = useMemo(() => createManualDataGateway(), []);
+    const authGateway = useMemo(() => createAuthGateway(), []);
+    const dataGateway = useMemo(() => createEmployeeDataGateway(), []);
 
     const router = useRouter();
     const signout = async () => {
@@ -53,92 +62,100 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const fetchUserData = useCallback(async (currentUser: AuthIdentity, showErrorToast: boolean = true) => {
-        try {
-            let unsubscribeUser: Unsubscribe | null = null;
+    const fetchUserData = useCallback(
+        async (currentUser: AuthIdentity, showErrorToast: boolean = true) => {
+            try {
+                let unsubscribeUser: Unsubscribe | null = null;
 
-            // Reset employeeNotFound when starting a new fetch
-            setEmployeeNotFound(false);
+                // Reset employeeNotFound when starting a new fetch
+                setEmployeeNotFound(false);
 
-            unsubscribeUser = dataGateway.subscribeEmployeeByUid(currentUser.uid, (employees, hasPendingWrites) => {
-                // Only process when we have final data (not pending writes)
-                if (hasPendingWrites) {
-                    return; // Wait for pending writes to complete
-                }
+                unsubscribeUser = dataGateway.subscribeEmployeeByUid(
+                    currentUser.uid,
+                    (employees, hasPendingWrites) => {
+                        // Only process when we have final data (not pending writes)
+                        if (hasPendingWrites) {
+                            return; // Wait for pending writes to complete
+                        }
 
-                console.log({
-                    uid: currentUser.uid,
-                    email: currentUser.email,
-                    employees,
-                    found: employees.length > 0,
-                });
-
-                // Match by Firebase UID or email (prioritize companyEmail)
-                const employee = employees.find(
-                    u =>
-                        u.uid === currentUser.uid ||
-                        u.companyEmail === currentUser.email ||
-                        u.personalEmail === currentUser.email,
-                );
-
-                if (employee) {
-                    setUserData(employee);
-                    setEmployeeNotFound(false);
-                } else {
-                    // Employee not found - if snapshot is empty after all data loaded, employee doesn't exist
-                    if (employees.length === 0) {
-                        setEmployeeNotFound(true);
-                        console.warn("Employee record not found for user:", {
+                        console.log({
                             uid: currentUser.uid,
                             email: currentUser.email,
+                            employees,
+                            found: employees.length > 0,
                         });
 
-                        // Show error toast only if requested (after login)
-                        if (showErrorToast) {
-                            showToast(
-                                "Employee record not found. Please contact your HR administrator.",
-                                "⚠️",
-                                "error",
-                            );
+                        // Match by Firebase UID or email (prioritize companyEmail)
+                        const employee = employees.find(
+                            (u) =>
+                                u.uid === currentUser.uid ||
+                                u.companyEmail === currentUser.email ||
+                                u.personalEmail === currentUser.email,
+                        );
+
+                        if (employee) {
+                            setUserData(employee);
+                            setEmployeeNotFound(false);
+                        } else {
+                            // Employee not found - if snapshot is empty after all data loaded, employee doesn't exist
+                            if (employees.length === 0) {
+                                setEmployeeNotFound(true);
+                                console.warn("Employee record not found for user:", {
+                                    uid: currentUser.uid,
+                                    email: currentUser.email,
+                                });
+
+                                // Show error toast only if requested (after login)
+                                if (showErrorToast) {
+                                    showToast(
+                                        "Employee record not found. Please contact your HR administrator.",
+                                        "⚠️",
+                                        "error",
+                                    );
+                                }
+                            }
                         }
-                    }
-                }
-            });
-
-            return () => {
-                unsubscribeUser?.();
-            };
-        } catch (err) {
-            console.error("Error fetching user data:", err);
-            setEmployeeNotFound(true);
-
-            // Show error toast only if requested (after login)
-            if (showErrorToast) {
-                showToast(
-                    "Error loading employee data. Please try again or contact support.",
-                    "⚠️",
-                    "error",
+                    },
                 );
-            }
 
-            return () => {};
-        }
-    }, [dataGateway, showToast]);
+                return () => {
+                    unsubscribeUser?.();
+                };
+            } catch (err) {
+                console.error("Error fetching user data:", err);
+                setEmployeeNotFound(true);
+
+                // Show error toast only if requested (after login)
+                if (showErrorToast) {
+                    showToast(
+                        "Error loading employee data. Please try again or contact support.",
+                        "⚠️",
+                        "error",
+                    );
+                }
+
+                return () => {};
+            }
+        },
+        [dataGateway, showToast],
+    );
 
     useEffect(() => {
         let shortTimeout: NodeJS.Timeout | null = null;
         let longTimeout: NodeJS.Timeout | null = null;
         let unsubscribed = false;
 
-        const unsubscribeAuth = authGateway.onAuthStateChanged(async currentUser => {
-            setUser(currentUser);
+        const unsubscribeAuth = authGateway.onAuthStateChanged(
+            async (currentUser) => {
+                setUser(currentUser);
 
-            if (currentUser) {
-                await fetchUserData(currentUser);
-            } else {
-                setUserData(null);
-            }
-        });
+                if (currentUser) {
+                    await fetchUserData(currentUser);
+                } else {
+                    setUserData(null);
+                }
+            },
+        );
 
         // Short timeout (2.5s)
         shortTimeout = setTimeout(() => {
@@ -189,7 +206,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             // Check if current path is excluded
             const currentPath = window.location.pathname;
-            if (excludedPaths.some(path => currentPath.startsWith(path))) {
+            if (excludedPaths.some((path) => currentPath.startsWith(path))) {
                 return; // Don't set timer for excluded paths
             }
 
@@ -206,20 +223,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // List of events that indicate user activity
         const events = ["mousemove", "keydown", "mousedown", "touchstart"];
 
-        events.forEach(event => window.addEventListener(event, resetTimer));
+        events.forEach((event) => window.addEventListener(event, resetTimer));
 
         // Start the timer initially
         resetTimer();
 
         return () => {
             if (timer) clearTimeout(timer);
-            events.forEach(event => window.removeEventListener(event, resetTimer));
+            events.forEach((event) => window.removeEventListener(event, resetTimer));
         };
     }, [authGateway, router, user]); // Add user as dependency
 
     return (
         <AuthContext.Provider
-            value={{ user, authLoading, userData, signout, signingOut, employeeNotFound }}
+            value={{
+                user,
+                authLoading,
+                userData,
+                signout,
+                signingOut,
+                employeeNotFound,
+            }}
         >
             {children}
         </AuthContext.Provider>
