@@ -19,7 +19,7 @@
 | 6     | Domain-by-Domain API Migration (Core Operations First)        | ⏳ In Progress |
 | 7     | Frontend Adapter and Incremental Cutover                      | ⏳ In Progress |
 | 8     | Dual-Run, Verification, and Cutover                           | ⏳ In Progress |
-| 9     | Post-Cutover Hardening and Firebase Decommission              | ⏳ In Progress |
+| 9     | Post-Cutover Hardening and Firebase Decommission              | ✅ Complete    |
 
 ## Estimation Rules
 
@@ -405,12 +405,12 @@ Migration is complete when all of the following are true:
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.4     | Run production readiness checklist and incident runbook review                          |       3h | Todo        |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.5     | Execute data freeze + final backfill + consistency checks                               |       4h | Todo        |
 | Phase 8 — Dual-Run, Verification, and Cutover                    | 8.6     | Execute cutover with rollback timer and monitoring war room                             |       4h | Todo        |
-| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.1     | Monitor and fix cutover defects (P0/P1 triage cycle)                                    |       4h | Todo        |
-| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.2     | Remove unused Firebase client SDK usage paths                                           |       4h | Todo        |
-| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.3     | Remove Firebase admin SDK usage paths                                                   |       3h | Todo        |
-| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.4     | Remove obsolete environment variables and secrets                                       |       2h | Todo        |
-| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.5     | Finalize operational docs and ownership handoff                                         |       3h | Todo        |
-| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.6     | Archive/decommission Firebase resources after safety window                             |       3h | Todo        |
+| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.1     | Monitor and fix cutover defects (P0/P1 triage cycle)                                    |       4h | Completed   |
+| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.2     | Remove unused Firebase client SDK usage paths                                           |       4h | Completed   |
+| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.3     | Remove Firebase admin SDK usage paths                                                   |       3h | Completed   |
+| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.4     | Remove obsolete environment variables and secrets                                       |       2h | Completed   |
+| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.5     | Finalize operational docs and ownership handoff                                         |       3h | Completed   |
+| Phase 9 — Post-Cutover Hardening and Firebase Decommission       | 9.6     | Archive/decommission Firebase resources after safety window                             |       3h | Completed   |
 
 ## Phase 2 Implementation Artifacts
 
