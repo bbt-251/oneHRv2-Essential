@@ -28,20 +28,20 @@ import { Calculator, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { LoanTypeForm } from "./loan-type-components";
 import { LoanTypeModel } from "@/lib/models/hr-settings";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 
 export function LoanType() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const loanTypes = hrSettings.loanTypes;
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
     const [density, setDensity] = useState<Density>("normal");
-    const [showDialog, setShowDialog] = useState(false);
-    const [showViewDialog, setShowViewDialog] = useState(false);
+    const [showDialog, setShowDialog] = useState<boolean>(false);
+    const [showViewDialog, setShowViewDialog] = useState<boolean>(false);
     const [editingItem, setEditingItem] = useState<LoanTypeModel | null>(null);
     const [viewingItem, setViewingItem] = useState<LoanTypeModel | null>(null);
 
@@ -61,7 +61,7 @@ export function LoanType() {
         { key: "timestamp", label: "Created", visible: true },
     ];
 
-    const [columnConfig, setColumnConfig] = useState(loanTypeColumns);
+    const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(loanTypeColumns);
 
     const handleAdd = () => {
         setEditingItem(null);
@@ -92,7 +92,7 @@ export function LoanType() {
     const handleSave = async (formData: LoanTypeModel) => {
         setIsAddEditLoading(true);
 
-        const { id, ...data } = formData;
+        const { id: _id, ...data } = formData;
         if (editingItem) {
             const res = await hrSettingsService.update("loanTypes", editingItem.id, data);
             if (res) {
@@ -306,8 +306,8 @@ export function LoanType() {
                                                 colSpan={columnConfig.length + 1}
                                                 className="text-center py-8 text-gray-500 dark:text-gray-400"
                                             >
-                                                No loan types found. Click "Add Loan Type" to create
-                                                your first entry.
+                                                No loan types found. Click &quot;Add Loan Type&quot;
+                                                to create your first entry.
                                             </TableCell>
                                         </TableRow>
                                     )}

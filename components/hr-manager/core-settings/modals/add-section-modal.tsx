@@ -1,6 +1,5 @@
 "use client";
-import { useEffect } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +13,12 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { SectionSettingsModel } from "@/lib/backend/firebase/hrSettingsService";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { SectionSettingsModel } from "@/lib/backend/hr-settings-service";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/authContext";
 import { SECTION_LOG_MESSAGES } from "@/lib/log-descriptions/department-section";
@@ -39,20 +38,21 @@ export function AddSection({
 }: AddSectionProps) {
     const { showToast } = useToast();
     const { theme } = useTheme();
-    const { hrSettings, employees } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const { userData } = useAuth();
     const departments = hrSettings.departmentSettings;
     const supervisors = employees.filter(e => e.managerPosition === true);
 
     // Helper: given a stored department value (could be id or name), return the department id
-    const normalizeDepartmentId = (val?: string) => {
-        if (!val) return "";
-        // if it already matches an id, return it
-        if (departments.find(d => d.id === val)) return val;
-        // otherwise try matching by name and return the id
-        const byName = departments.find(d => d.name === val);
-        return byName ? byName.id : "";
-    };
+    const normalizeDepartmentId = useCallback(
+        (val?: string) => {
+            if (!val) return "";
+            if (departments.find(d => d.id === val)) return val;
+            const byName = departments.find(d => d.name === val);
+            return byName ? byName.id : "";
+        },
+        [departments],
+    );
 
     const resetForm = () =>
         setFormData({
@@ -63,7 +63,13 @@ export function AddSection({
             active: editingSection?.active || false,
         });
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        code: string;
+        department: string;
+        supervisor: string | null;
+        active: boolean;
+    }>({
         name: editingSection?.name || "",
         code: editingSection?.code || "",
         department: normalizeDepartmentId(editingSection?.department),
@@ -91,8 +97,8 @@ export function AddSection({
                 active: true,
             });
         }
-    }, [editingSection, departments]); // This effect runs when editingSection or departments change
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    }, [editingSection, normalizeDepartmentId]);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const handleSubmit = async () => {
         if (isSubmitting) return;

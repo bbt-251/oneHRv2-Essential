@@ -17,10 +17,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LateComersModel } from "@/lib/models/late-comers";
 import { getLateComersByMonth } from "@/lib/backend/api/attendance/late-comers-service";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import dayjs from "dayjs";
 
@@ -30,10 +30,10 @@ interface LateComersModalProps {
 }
 
 export function LateComersModal({ isOpen, onClose }: LateComersModalProps) {
-    const { employees } = useFirestore();
+    const { employees } = useData();
     const [lateComers, setLateComers] = useState<LateComersModel[]>([]);
-    const [selectedMonth, setSelectedMonth] = useState(dayjs().format("MMMM"));
-    const [loading, setLoading] = useState(false);
+    const [selectedMonth, setSelectedMonth] = useState<string>(dayjs().format("MMMM"));
+    const [loading, setLoading] = useState<boolean>(false);
 
     const months = [
         "January",
@@ -50,13 +50,7 @@ export function LateComersModal({ isOpen, onClose }: LateComersModalProps) {
         "December",
     ];
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchLateComers();
-        }
-    }, [isOpen, selectedMonth]);
-
-    const fetchLateComers = async () => {
+    const fetchLateComers = useCallback(async () => {
         setLoading(true);
         try {
             const currentYear = dayjs().year();
@@ -67,7 +61,13 @@ export function LateComersModal({ isOpen, onClose }: LateComersModalProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedMonth]);
+
+    useEffect(() => {
+        if (isOpen) {
+            void fetchLateComers();
+        }
+    }, [fetchLateComers, isOpen]);
 
     const getEmployeeName = (employeeUID: string) => {
         const employee = employees.find(e => e.uid === employeeUID);

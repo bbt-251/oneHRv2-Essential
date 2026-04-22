@@ -43,7 +43,14 @@ export function DetailEmployeeModal({
     // Employee modal state
     const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>("");
     const [employeeStatusFilter, setEmployeeStatusFilter] = useState<string>("all");
-    const [employeeVisibleColumns, setEmployeeVisibleColumns] = useState({
+    const [employeeVisibleColumns, setEmployeeVisibleColumns] = useState<{
+        name: boolean;
+        position: boolean;
+        email: boolean;
+        phone: boolean;
+        joinDate: boolean;
+        status: boolean;
+    }>({
         name: true,
         position: true,
         email: true,
@@ -67,6 +74,28 @@ export function DetailEmployeeModal({
         });
     }, [selectedEmployees, employeeSearchTerm, employeeStatusFilter]);
 
+    const getEmployeeColumnValue = (
+        employee: EmployeeModel,
+        key: keyof typeof employeeVisibleColumns,
+    ) => {
+        switch (key) {
+            case "name":
+                return `${employee.firstName} ${employee.surname}`;
+            case "position":
+                return employee.employmentPosition;
+            case "email":
+                return employee.personalEmail;
+            case "phone":
+                return employee.personalPhoneNumber;
+            case "joinDate":
+                return employee.hireDate;
+            case "status":
+                return employee.contractStatus;
+            default:
+                return "";
+        }
+    };
+
     // Employee CSV export (modal)
     const exportEmployees = () => {
         const header = Object.keys(employeeVisibleColumns)
@@ -76,7 +105,7 @@ export function DetailEmployeeModal({
             .map(e =>
                 Object.keys(employeeVisibleColumns)
                     .filter(k => employeeVisibleColumns[k as keyof typeof employeeVisibleColumns])
-                    .map(k => (e as any)[k])
+                    .map(k => getEmployeeColumnValue(e, k as keyof typeof employeeVisibleColumns))
                     .join(","),
             )
             .join("\n");

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
     Table,
     TableBody,
@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { FileText, Plus, Columns, Filter, X, RotateCcw, Paperclip } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 import LeaveDetail from "../modals/leave-detail";
 import RollbackRequestModal from "../modals/rollback-request";
@@ -32,6 +32,20 @@ import ViewAttachment from "../modals/view-attachment";
 import LeaveStats from "./leave-stats";
 import BalanceDetailsModal from "../modals/balance-details-modal";
 import { annualLeaveType, unpaidLeaveType } from "../modals/add-leave-request-modal";
+import { LeaveModel } from "@/lib/models/leave";
+
+interface LeaveTableFilters {
+    leaveRequestId: string;
+    leaveState: string;
+    leaveStage: string;
+    leaveType: string;
+    standIn: string;
+    startDate: string;
+    endDate: string;
+    minDays: string;
+    maxDays: string;
+    rollbackStatus: string;
+}
 
 // Column definitions
 const columnDefinitions = [
@@ -68,7 +82,7 @@ const getStatusColor = (status: string) => {
 export default function LeaveTable() {
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const { employees, leaveManagements, hrSettings } = useFirestore();
+    const { employees, leaveManagements, ...hrSettings } = useData();
 
     const employeeLeaveRequests = useMemo(
         () =>
@@ -85,12 +99,12 @@ export default function LeaveTable() {
         return leaveType?.name || "Unknown";
     };
     // Add new state for attachment and rollback functionality
-    const [selectedAttachments, setSelectedAttachments] = useState<any[]>([]);
+    const [selectedAttachments, setSelectedAttachments] = useState<string[]>([]);
     const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState<boolean>(false);
     const [isRollbackModalOpen, setIsRollbackModalOpen] = useState<boolean>(false);
 
     // Column visibility state
-    const [visibleColumns, setVisibleColumns] = useState(() => {
+    const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
         columnDefinitions.forEach(col => {
             initial[col.key] = col.defaultVisible;
@@ -99,7 +113,7 @@ export default function LeaveTable() {
     });
 
     // Filter state
-    const [tableFilters, setTableFilters] = useState({
+    const [tableFilters, setTableFilters] = useState<LeaveTableFilters>({
         leaveRequestId: "",
         leaveState: "",
         leaveStage: "",
@@ -115,7 +129,7 @@ export default function LeaveTable() {
     const activeFiltersCount = Object.values(tableFilters).filter(value => value !== "").length;
 
     // Add this after the existing state declarations
-    const [selectedLeave, setSelectedLeave] = useState<any>(null);
+    const [selectedLeave, setSelectedLeave] = useState<LeaveModel | null>(null);
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState<boolean>(false);
     const [isBalanceDetailsModalOpen, setIsBalanceDetailsModalOpen] = useState<boolean>(false);
 
@@ -186,7 +200,7 @@ export default function LeaveTable() {
                 matchesRollback
             );
         });
-    }, [employeeLeaveRequests, tableFilters, leaveManagements]);
+    }, [employeeLeaveRequests, tableFilters]);
 
     // Toggle column visibility
     const toggleColumn = (columnKey: string) => {
@@ -213,18 +227,18 @@ export default function LeaveTable() {
     };
 
     // Add this function after the navigation functions
-    const handleOpenLeaveDetail = (leave: any) => {
+    const handleOpenLeaveDetail = (leave: LeaveModel) => {
         setSelectedLeave(leave);
         setIsLeaveModalOpen(true);
     };
 
     // handle rollback request
-    const handleRollbackRequest = (request: any) => {
+    const handleRollbackRequest = (request: LeaveModel) => {
         setSelectedLeave(request);
         setIsRollbackModalOpen(true);
     };
 
-    const handleViewAttachments = (request: any) => {
+    const handleViewAttachments = (request: LeaveModel) => {
         setSelectedAttachments(request.attachments);
         setIsAttachmentModalOpen(true);
     };

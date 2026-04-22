@@ -10,6 +10,7 @@ import { useTheme } from "@/components/theme-provider";
 export function Dashboard() {
     const { userData } = useAuth();
     const { theme } = useTheme();
+
     return (
         <main className={`min-h-screen ${theme === "dark" ? "bg-black " : ""}`}>
             <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -22,7 +23,7 @@ export function Dashboard() {
                     <p
                         className={`text-lg font-medium ${theme === "dark" ? "text-slate-300" : "text-slate-600"}`}
                     >
-                        Here's what's happening with your team today.
+                        Here&apos;s what&apos;s happening with your team today.
                     </p>
                 </div>
 

@@ -2,43 +2,27 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import {
-    CompetencePositionAssociationModel,
-    hrSettingsService,
-    PositionDefinitionModel,
-} from "@/lib/backend/firebase/hrSettingsService";
-import { createSuccessionPlan } from "@/lib/backend/api/succession-planning/succession-planning-service";
-import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { hrSettingsService, PositionDefinitionModel } from "@/lib/backend/hr-settings-service";
+import { useCallback, useMemo, useState } from "react";
 import ConfigTable, { ColumnDef } from "../config-table";
 import PositionDialog from "./add-edit-position";
-import { times } from "lodash";
 import { useAuth } from "@/context/authContext";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 
-export interface AvailableCompetency {
-    id: string;
-    timestamp: string;
-    name: string;
-    type: string;
-}
-
 type FormState = PositionDefinitionModel;
 
-const searchableKeys = ["pid", "name", "type", "grade", "band", "active", "critical"];
+const searchableKeys = ["name", "grade", "band", "active", "critical"];
 
 const nonFilterableKeys = [
     "id",
     "createdAt",
     "updatedAt",
-    "pid",
     "startDate",
     "endDate",
     "additionalInformation",
-    "successionPlanningID",
     "keys",
     "companyProfileUsed",
     "step",
@@ -46,24 +30,40 @@ const nonFilterableKeys = [
 ];
 
 export default function PositionDefinition() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
 
-    const [items, setItems] = useState<PositionDefinitionModel[]>([]);
-    const [open, setOpen] = useState(false);
+    const items = hrSettings.positions;
+    const [open, setOpen] = useState<boolean>(false);
     const [form, setForm] = useState<FormState | null>(null);
     const [mode, setMode] = useState<"add" | "edit">("add");
-    const [saveLoading, setSaveLoading] = useState(false);
-    const [availableCompetencies, setAvailableCompetencies] = useState<AvailableCompetency[]>([]);
-    const [originalCompetencies, setOriginalCompetencies] = useState<string[]>([]);
+    const [saveLoading, setSaveLoading] = useState<boolean>(false);
 
-    // Wizard state - Updated steps to include Competencies
-    const [step, setStep] = useState(0);
-    const steps = ["Basic Info", "Description", "Competencies", "Additional"];
-
+    const [step, setStep] = useState<number>(0);
+    const steps = ["Basic Info", "Description", "Additional"];
     const workflowStepOptions = ["Draft", "Review", "Approval", "Finalized"];
+
+    const handleDelete = useCallback(
+        (id: string) => {
+            confirm("Are you sure ?", async () => {
+                const removed = await hrSettingsService.remove(
+                    "positions",
+                    id,
+                    userData?.uid ?? "",
+                    JOB_MANAGEMENT_LOG_MESSAGES.POSITION_DELETED(id),
+                );
+
+                if (removed) {
+                    showToast("Position deleted successfully", "Success", "success");
+                } else {
+                    showToast("Error deleting position", "Error", "error");
+                }
+            });
+        },
+        [confirm, showToast, userData?.uid],
+    );
 
     const columns: ColumnDef[] = useMemo(
         () => [
@@ -71,8 +71,8 @@ export default function PositionDefinition() {
             {
                 key: "grade",
                 header: "Grade",
-                render: (r: PositionDefinitionModel) =>
-                    hrSettings.grades?.find(g => g.id == r.grade)?.grade ?? "",
+                render: (row: PositionDefinitionModel) =>
+                    hrSettings.grades?.find(grade => grade.id === row.grade)?.grade ?? "",
             },
             { key: "band", header: "Band" },
             { key: "startDate", header: "Start Date" },
@@ -80,15 +80,15 @@ export default function PositionDefinition() {
             {
                 key: "active",
                 header: "Active",
-                render: r => (
+                render: row => (
                     <Badge
                         className={
-                            r.active === "Yes"
+                            row.active === "Yes"
                                 ? "bg-green-100 text-green-800 border-green-200"
                                 : "bg-gray-100 text-gray-800"
                         }
                     >
-                        {r.active}
+                        {row.active}
                     </Badge>
                 ),
                 align: "center",
@@ -96,15 +96,15 @@ export default function PositionDefinition() {
             {
                 key: "critical",
                 header: "Critical",
-                render: r => (
+                render: row => (
                     <Badge
                         className={
-                            r.critical === "Yes"
+                            row.critical === "Yes"
                                 ? "bg-red-100 text-red-800 border-red-200"
                                 : "bg-gray-100 text-gray-800"
                         }
                     >
-                        {r.critical}
+                        {row.critical}
                     </Badge>
                 ),
                 align: "center",
@@ -112,18 +112,15 @@ export default function PositionDefinition() {
             {
                 key: "actions",
                 header: "Actions",
-                render: r => (
+                render: row => (
                     <div className="flex items-center gap-2">
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={e => {
-                                e.stopPropagation();
+                            onClick={event => {
+                                event.stopPropagation();
                                 setMode("edit");
-                                setOriginalCompetencies(
-                                    (r as PositionDefinitionModel).competencies,
-                                );
-                                setForm({ ...(r as PositionDefinitionModel) });
+                                setForm({ ...(row as PositionDefinitionModel) });
                                 setStep(0);
                                 setOpen(true);
                             }}
@@ -133,9 +130,9 @@ export default function PositionDefinition() {
                         <Button
                             size="sm"
                             variant="destructive"
-                            onClick={e => {
-                                e.stopPropagation();
-                                handleDelete(r.id as string);
+                            onClick={event => {
+                                event.stopPropagation();
+                                handleDelete(row.id as string);
                             }}
                         >
                             Delete
@@ -144,24 +141,8 @@ export default function PositionDefinition() {
                 ),
             },
         ],
-        [items],
+        [handleDelete, hrSettings.grades],
     );
-
-    useEffect(() => {
-        setItems(hrSettings.positions);
-    }, [hrSettings.positions]);
-
-    useEffect(() => {
-        const competences = hrSettings.competencies
-            .filter(c => c.active == "Yes")
-            .map(c => ({
-                id: c.id,
-                timestamp: c.createdAt,
-                name: c.competenceName,
-                type: c.competenceType,
-            }));
-        setAvailableCompetencies(competences);
-    }, [hrSettings.competencies]);
 
     function openAdd() {
         setMode("add");
@@ -184,205 +165,59 @@ export default function PositionDefinition() {
             createdAt: "",
             updatedAt: "",
         });
-        setOriginalCompetencies([]);
         setStep(0);
         setOpen(true);
     }
 
-    function handleRowClick(row: any) {
+    function handleRowClick(row: unknown) {
         setMode("edit");
-        setForm({ ...row });
-        setOriginalCompetencies(row.competencies);
+        setForm({ ...(row as PositionDefinitionModel) });
         setStep(0);
         setOpen(true);
     }
 
     async function handleSave() {
         if (!form) return;
+
         setSaveLoading(true);
-        const { id, createdAt, updatedAt, ...newData } = form;
+        const { id, createdAt: _createdAt, updatedAt: _updatedAt, ...newData } = form;
 
-        if (mode === "add") {
-            let successionPlanningID: string | undefined = undefined;
+        try {
+            if (mode === "add") {
+                const createdId = await hrSettingsService.create(
+                    "positions",
+                    newData as Partial<FormState>,
+                    userData?.uid ?? "",
+                    JOB_MANAGEMENT_LOG_MESSAGES.POSITION_CREATED(newData),
+                );
 
-            // If marked critical, create a succession plan first and link its ID
-            if (form.critical === "Yes") {
-                const planningID = `PLAN-${Date.now()}`;
-                const planId = await createSuccessionPlan({
-                    timestamp: dayjs().format("MMMM DD, YYYY - hh:mm"),
-                    planningID,
-                    planningStage: "Open",
-                    positionID: "", // will be set after we know the position id, keep linkage via planningID
-                    positionName: form.name,
-                    positionPath: [],
-                    candidates: [],
-                    commonCompetence: [],
-                    orderGuide: undefined,
-                });
-                if (planId) {
-                    successionPlanningID = planningID;
+                if (createdId) {
+                    showToast("Position created successfully", "Success", "success");
+                    setOpen(false);
+                } else {
+                    showToast("Error creating position", "Error", "error");
                 }
-            }
-
-            const res = await hrSettingsService.create(
-                "positions",
-                {
-                    ...newData,
-                    ...(successionPlanningID ? { successionPlanningID } : {}),
-                } as any,
-                userData?.uid ?? "",
-                JOB_MANAGEMENT_LOG_MESSAGES.POSITION_CREATED(newData),
-            );
-            const toBeCreated: Omit<
-                CompetencePositionAssociationModel,
-                "id" | "createdAt" | "updatedAt"
-            >[] = [];
-
-            form?.competencies?.map(cid => {
-                if (!originalCompetencies.includes(cid)) {
-                    toBeCreated.push({
-                        pid: res,
-                        cid,
-                        grade: form.grade,
-                        threshold: 0,
-                        active: "Yes",
-                    });
-                }
-            });
-
-            let result = true;
-
-            if (toBeCreated.length) {
-                result = (
-                    await hrSettingsService.batchCreate(
-                        "competencePositionAssociations",
-                        toBeCreated,
-                    )
-                )?.success;
-            }
-
-            if (!result) {
-                showToast("Error updating competence association", "Error", "error");
-                setSaveLoading(false);
-                return;
-            }
-
-            if (res) {
-                showToast("Position created successfully", "Success", "success");
-                setOpen(false);
             } else {
-                showToast("Error creating position", "Error", "error");
-            }
-        } else {
-            let result = true;
+                const updated = await hrSettingsService.update(
+                    "positions",
+                    id,
+                    newData,
+                    userData?.uid ?? "",
+                    JOB_MANAGEMENT_LOG_MESSAGES.POSITION_UPDATED({ id, ...newData }),
+                );
 
-            const toBeDeleted: string[] = [];
-            const toBeCreated: Omit<
-                CompetencePositionAssociationModel,
-                "id" | "createdAt" | "updatedAt"
-            >[] = [];
-
-            originalCompetencies.map(cid => {
-                if (!form.competencies.includes(cid)) {
-                    const cpa = hrSettings.competencePositionAssociations.find(
-                        cpa => cpa.pid == id && cpa.cid == cid,
-                    );
-                    if (cpa) toBeDeleted.push(cpa.id);
-                }
-            });
-            form?.competencies?.map(cid => {
-                if (!originalCompetencies.includes(cid)) {
-                    toBeCreated.push({
-                        pid: id,
-                        cid,
-                        grade: form.grade,
-                        threshold: 0,
-                        active: "Yes",
-                    });
-                }
-            });
-
-            if (toBeCreated.length) {
-                result = (
-                    await hrSettingsService.batchCreate(
-                        "competencePositionAssociations",
-                        toBeCreated,
-                    )
-                )?.success;
-            }
-            if (toBeDeleted.length) {
-                result = (
-                    await hrSettingsService.batchDelete(
-                        "competencePositionAssociations",
-                        toBeDeleted,
-                    )
-                )?.success;
-            }
-
-            if (!result) {
-                showToast("Error updating competence association", "Error", "error");
-                setSaveLoading(false);
-                return;
-            }
-
-            // For edits, if position becomes critical and had no successionPlanningID, create one
-            let updatedData: Partial<PositionDefinitionModel> = { ...newData };
-            const original = items.find(p => p.id === id);
-            if (
-                form.critical === "Yes" &&
-                (!original?.successionPlanningID || original.successionPlanningID === "")
-            ) {
-                const planningID = `PLAN-${Date.now()}`;
-                const planId = await createSuccessionPlan({
-                    timestamp: dayjs().format("MMMM DD, YYYY - hh:mm"),
-                    planningID,
-                    planningStage: "Open",
-                    positionID: id,
-                    positionName: form.name,
-                    positionPath: [],
-                    candidates: [],
-                    commonCompetence: [],
-                    orderGuide: undefined,
-                });
-                if (planId) {
-                    (updatedData as any).successionPlanningID = planningID;
+                if (updated) {
+                    showToast("Position updated successfully", "Success", "success");
+                    setOpen(false);
+                } else {
+                    showToast("Error updating position", "Error", "error");
                 }
             }
-
-            const res = await hrSettingsService.update(
-                "positions",
-                id,
-                updatedData,
-                userData?.uid ?? "",
-                JOB_MANAGEMENT_LOG_MESSAGES.POSITION_UPDATED({ id, ...updatedData }),
-            );
-            if (res) {
-                showToast("Position updated successfully", "Success", "success");
-                setOpen(false);
-            } else {
-                showToast("Error updating position", "Error", "error");
-            }
+        } finally {
+            setSaveLoading(false);
         }
-        setSaveLoading(false);
     }
 
-    async function handleDelete(id: string) {
-        confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
-                "positions",
-                id,
-                userData?.uid ?? "",
-                JOB_MANAGEMENT_LOG_MESSAGES.POSITION_DELETED(id),
-            );
-            if (res) {
-                showToast("Position deleted successfully", "Success", "success");
-            } else {
-                showToast("Error deleting position", "Error", "error");
-            }
-        });
-    }
-
-    // Step Select: use sentinel "none" to avoid empty string SelectItem
     const stepSelectValue = (form?.step ?? "none") as string;
 
     return (
@@ -408,11 +243,10 @@ export default function PositionDefinition() {
                 form={form}
                 setForm={setForm}
                 hrSettings={hrSettings}
-                availableCompetencies={availableCompetencies}
                 workflowStepOptions={workflowStepOptions}
                 stepSelectValue={stepSelectValue}
                 handleSave={handleSave}
-                saveLoading={false}
+                saveLoading={saveLoading}
             />
             {ConfirmDialog}
         </div>

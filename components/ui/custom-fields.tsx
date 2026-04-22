@@ -4,7 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { CustomField, CustomFieldType, CustomFieldSection } from "@/lib/models/employee";
 import {
     Select,
@@ -120,7 +120,7 @@ export function CustomFieldsEditor({
                 <p
                     className={`text-sm italic ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}
                 >
-                    No custom fields added. Click "Add Field" to add one.
+                    No custom fields added. Click &quot;Add Field&quot; to add one.
                 </p>
             )}
 

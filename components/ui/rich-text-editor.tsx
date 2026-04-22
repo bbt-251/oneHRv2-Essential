@@ -379,3 +379,5 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         );
     },
 );
+
+RichTextEditor.displayName = "RichTextEditor";

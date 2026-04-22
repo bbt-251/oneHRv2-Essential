@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, LogIn, Home, UserX, Mail, AlertCircle } from "lucide-react";
+import { Lock, LogIn, Home, UserX, AlertCircle } from "lucide-react";
 
 interface UnauthorizedPageProps {
     redirectToLogin?: boolean; // if true, show login button
@@ -82,7 +82,7 @@ export default function UnauthorizedPage({
                     <CardDescription className="text-left">
                         {reasonDetails?.description || (
                             <>
-                                You don't have permission to view this page. <br />
+                                You don&apos;t have permission to view this page. <br />
                                 {redirectToLogin
                                     ? "Please login with the correct account or return to the homepage."
                                     : "Return to the homepage to continue browsing."}

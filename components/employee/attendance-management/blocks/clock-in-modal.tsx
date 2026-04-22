@@ -5,19 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { confirmPassword } from "@/lib/backend/api/user-service";
-import { ShiftTypeModel } from "@/lib/backend/firebase/hrSettingsService";
+import { ShiftTypeModel } from "@/lib/backend/hr-settings-service";
 import { clockInOrOut } from "@/lib/backend/functions/clockInOrOut";
 import { AttendanceModel } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
-import { getUserTimezone } from "@/lib/util/dayjs_format";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { getCurrentLocation, isLocationInPolygons } from "@/lib/util/location";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { AlertTriangle, MapPin, Play } from "lucide-react";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ClockInModalProps {
     currentMonthAttendance: AttendanceModel | null;
@@ -27,9 +26,9 @@ interface ClockInModalProps {
 
 export function ClockInModal({ currentMonthAttendance, isOpen, onClose }: ClockInModalProps) {
     const { userData } = useAuth();
-    const { hrSettings, attendanceLogic, flexibilityParameter } = useFirestore();
+    const { attendanceLogic, flexibilityParameter, ...hrSettings } = useData();
     const flexParam = flexibilityParameter?.at(0) ?? null;
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [currentTime, setCurrentTime] = useState<Date>(new Date());
     const { theme } = useTheme();
     const { showToast } = useToast();
 
@@ -214,12 +213,10 @@ export function PasswordConfirmDialog({
     onConfirm,
 }: PasswordConfirmProps) {
     const { userData } = useAuth();
-    const { hrSettings } = useFirestore();
-    const companyInfo = hrSettings.companyInfo;
     const { showToast } = useToast();
-    const [open, setOpen] = useState(false);
-    const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState<boolean>(false);
+    const [password, setPassword] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
 
     const handleConfirm = async () => {
         setLoading(true);

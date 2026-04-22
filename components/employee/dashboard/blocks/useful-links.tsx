@@ -3,20 +3,14 @@
 import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/authContext";
-import { AlertTriangle, ArrowRight, Download, FileText, Target } from "lucide-react";
+import { ArrowRight, Download, FileText } from "lucide-react";
 import { useState } from "react";
 import { AddLeaveRequestModal } from "../../leave-management/modals/add-leave-request-modal";
-import { ObjectivesModal } from "../modals/objectives-modal";
 import { PayslipModal } from "../modals/payslip-modal";
-import { IssueFormModal } from "../../employee-engagement/modals/issue-form-modal";
-import { useToast } from "@/context/toastContext";
-import { createIssue } from "@/lib/backend/api/employee-engagement/issue/issue-service";
-import { IssueModel } from "@/lib/models/Issue";
 
 export function UsefulLinks() {
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const { showToast } = useToast();
 
     const links = [
         {
@@ -29,14 +23,6 @@ export function UsefulLinks() {
             disabled: !userData?.balanceLeaveDays || userData.balanceLeaveDays < 0,
         },
         {
-            id: "raise-issue",
-            title: "Raise an Issue",
-            description: "Report problems or concerns",
-            icon: AlertTriangle,
-            color: "bg-danger-50 hover:bg-danger-100 text-danger-800 border-danger-200",
-            iconColor: "text-danger-600",
-        },
-        {
             id: "download-payslip",
             title: "Download Pay Slip",
             description: "Get your latest pay statement",
@@ -44,62 +30,23 @@ export function UsefulLinks() {
             color: "bg-brand-50 hover:bg-brand-100 text-brand-800 border-brand-200",
             iconColor: "text-brand-600",
         },
-        {
-            id: "view-objectives",
-            title: "View Objectives",
-            description: "Check your current goals",
-            icon: Target,
-            color: "bg-success-50 hover:bg-success-100 text-success-800 border-success-200",
-            iconColor: "text-success-600",
-        },
     ];
-    const [editingIssue, setEditingIssue] = useState<IssueModel | null>(null);
-
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
-    const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
-    const [isPayslipModalOpen, setIsPayslipModalOpen] = useState(false);
-    const [isObjectivesModalOpen, setIsObjectivesModalOpen] = useState(false);
+    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState<boolean>(false);
+    const [isPayslipModalOpen, setIsPayslipModalOpen] = useState<boolean>(false);
 
     const handleLinkClick = (linkId: string) => {
         switch (linkId) {
             case "leave-request":
                 setIsLeaveModalOpen(true);
                 break;
-            case "raise-issue":
-                setIsIssueModalOpen(true);
-                break;
             case "download-payslip":
                 setIsPayslipModalOpen(true);
-                break;
-            case "view-objectives":
-                setIsObjectivesModalOpen(true);
                 break;
             default:
                 break;
         }
     };
-    const handleSubmitIssue = async (issueData: Omit<IssueModel, "id">) => {
-        try {
-            // required fields
 
-            if (!issueData.issueTitle.trim()) {
-                showToast("Issue Title is required", "error");
-                return;
-            }
-            setIsSubmitting(true);
-
-            await createIssue(issueData);
-            showToast("Issue created successfully", "success", "success");
-
-            setIsIssueModalOpen(false);
-        } catch (error) {
-            showToast("Failed to Issue created", "error", "error");
-            console.error("Failed to save issues:", error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
     return (
         <>
             <Card
@@ -156,20 +103,9 @@ export function UsefulLinks() {
                 open={isLeaveModalOpen}
                 onOpenChange={() => setIsLeaveModalOpen(false)}
             />
-            <IssueFormModal
-                isOpen={isIssueModalOpen}
-                onClose={() => setIsIssueModalOpen(false)}
-                onSubmit={handleSubmitIssue}
-                editingIssue={editingIssue}
-                isSubmitting={isSubmitting}
-            />
             <PayslipModal
                 isOpen={isPayslipModalOpen}
                 onClose={() => setIsPayslipModalOpen(false)}
-            />
-            <ObjectivesModal
-                isOpen={isObjectivesModalOpen}
-                onClose={() => setIsObjectivesModalOpen(false)}
             />
         </>
     );

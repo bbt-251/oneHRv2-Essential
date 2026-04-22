@@ -1,6 +1,7 @@
 "use client";
 
 import { AttendanceManagement } from "@/components/employee/attendance-management/page";
+import { Dashboard } from "@/components/employee/dashboard/page";
 import LeaveManagement from "@/components/employee/leave-management/page";
 import { EmployeeLoanManagement } from "@/components/hr-manager/compensation-benefits/loan/page";
 import { HRCompensationBenefits } from "@/components/hr-manager/compensation-benefits/page";
@@ -28,105 +29,111 @@ import {
     payrollOfficerItems,
 } from "@/components/sidebar";
 import { useAuth } from "@/context/authContext";
-import { notFound, redirect, useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 
-const routeMap: Record<string, React.ReactNode> = {
-    "attendance-management": (
+const routeMap: Record<string, () => React.ReactNode> = {
+    dashboard: () => (
+        <div className="space-y-6">
+            <Dashboard />
+        </div>
+    ),
+    "attendance-management": () => (
         <div className="space-y-6">
             <AttendanceManagement />
         </div>
     ),
-    "leave-management": (
+    "leave-management": () => (
         <div className="space-y-6">
             <LeaveManagement />
         </div>
     ),
-    "manager/reportees/directory": (
+    "manager/reportees/directory": () => (
         <div className="space-y-6">
             <TeamDirectoryPage />
         </div>
     ),
-    overtime_requests: (
+    overtime_requests: () => (
         <div className="space-y-6">
             <OvertimeApprovals />
         </div>
     ),
-    "hr/employees": (
+    "hr/employees": () => (
         <div className="space-y-6">
             <EmployeeManagement />
         </div>
     ),
-    "hr/attendance-management": (
+    "hr/attendance-management": () => (
         <div className="space-y-6">
             <AttendanceManagementHR />
         </div>
     ),
-    "hr/leave-management": (
+    "hr/leave-management": () => (
         <div className="space-y-6">
             <HRLeaveManagement />
         </div>
     ),
-    "hr/compensation-benefits": (
+    "hr/compensation-benefits": () => (
         <div className="space-y-6">
             <HRCompensationBenefits />
         </div>
     ),
-    "hr/payroll": (
+    "hr/payroll": () => (
         <div className="space-y-6">
             <PayrollManagement />
         </div>
     ),
-    "hr/payment-deduction": (
+    "hr/payment-deduction": () => (
         <div className="space-y-6">
             <PaymentDeductions />
         </div>
     ),
-    "hr/employee-loan": (
+    "hr/employee-loan": () => (
         <div className="space-y-6">
             <EmployeeLoanManagement />
         </div>
     ),
-    "hr/core-settings/company-profile": (
+    "hr/core-settings/company-profile": () => (
         <div className="space-y-6">
             <BasicInfo />
         </div>
     ),
-    "hr/core-settings/job-management": (
+    "hr/core-settings/job-management": () => (
         <div className="space-y-6">
             <JobManagement />
         </div>
     ),
-    "hr/core-settings/department": (
+    "hr/core-settings/department": () => (
         <div className="space-y-6">
             <Department />
         </div>
     ),
-    "hr/core-settings/section-management": (
+    "hr/core-settings/section-management": () => (
         <div className="space-y-6">
             <SectionManagement />
         </div>
     ),
-    "hr/core-settings/location-management": (
+    "hr/core-settings/location-management": () => (
         <div className="space-y-6">
             <LocationManagement />
         </div>
     ),
-    "hr/core-settings/marital-status": (
+    "hr/core-settings/marital-status": () => (
         <div className="space-y-6">
             <MaritalStatusManagement />
         </div>
     ),
-    "hr/module-settings/attendance-management": (
+    "hr/module-settings/attendance-management": () => (
         <div className="space-y-6">
             <AttendanceManagementSettings />
         </div>
     ),
-    "hr/module-settings/leave-management": (
+    "hr/module-settings/leave-management": () => (
         <div className="space-y-6">
             <HrLeaveManagementSettings />
         </div>
     ),
-    "hr/module-settings/payroll-configuration": (
+    "hr/module-settings/payroll-configuration": () => (
         <div className="space-y-6">
             <PayrollConfiguration />
         </div>
@@ -136,6 +143,8 @@ const routeMap: Record<string, React.ReactNode> = {
 export default function DynamicPage() {
     const { userData, employeeNotFound, authLoading, user } = useAuth();
     const params = useParams();
+    const router = useRouter();
+    const pathname = usePathname();
     const path = Array.isArray(params.route) ? params.route.join("/") : "";
 
     const employeeSidebarPaths = employeeItems.flatMap(i => [
@@ -174,8 +183,6 @@ export default function DynamicPage() {
         "/hr/module-settings/payroll-configuration",
     ];
 
-    const allowedPaths: string[] = [];
-
     const getRedirectReason = (): string => {
         if (!user) {
             return "no-user-data";
@@ -195,17 +202,42 @@ export default function DynamicPage() {
         return "page-not-allowed";
     };
 
-    userData?.role?.map(role => {
-        if (role == "HR Manager") {
-            allowedPaths.push(...(hrManagerPaths.filter(Boolean) as string[]));
-        } else if (role == "Manager") {
-            allowedPaths.push(...(managerPaths.filter(Boolean) as string[]));
-        } else if (role == "Employee") {
-            allowedPaths.push(...(employeePaths.filter(Boolean) as string[]));
-        } else if (role == "Payroll Officer") {
-            allowedPaths.push(...(payrollOfficerPaths.filter(Boolean) as string[]));
+    const allowedPaths = useMemo(() => {
+        const paths: string[] = [];
+
+        userData?.role?.forEach(role => {
+            if (role == "HR Manager") {
+                paths.push(...(hrManagerPaths.filter(Boolean) as string[]));
+            } else if (role == "Manager") {
+                paths.push(...(managerPaths.filter(Boolean) as string[]));
+            } else if (role == "Employee") {
+                paths.push(...(employeePaths.filter(Boolean) as string[]));
+            } else if (role == "Payroll Officer") {
+                paths.push(...(payrollOfficerPaths.filter(Boolean) as string[]));
+            }
+        });
+
+        return paths;
+    }, [employeePaths, hrManagerPaths, managerPaths, payrollOfficerPaths, userData?.role]);
+
+    const isAllowedPath = allowedPaths.includes(`/${path}`);
+    const renderRoute = routeMap[path];
+
+    useEffect(() => {
+        if (authLoading) {
+            return;
         }
-    });
+
+        if (!user) {
+            router.replace("/signin");
+            return;
+        }
+
+        if (!isAllowedPath) {
+            const reason = getRedirectReason();
+            router.replace(`/unauthorized?reason=${reason}`);
+        }
+    }, [authLoading, isAllowedPath, path, router, user, userData, employeeNotFound]);
 
     if (authLoading) {
         return (
@@ -219,13 +251,12 @@ export default function DynamicPage() {
     }
 
     if (!user) {
-        redirect("/signin");
+        return null;
     }
 
-    if (allowedPaths.includes(`/${path}`)) {
-        return routeMap[path] ?? notFound();
+    if (isAllowedPath && renderRoute) {
+        return <div key={path}>{renderRoute()}</div>;
     }
 
-    const reason = getRedirectReason();
-    redirect(`/unauthorized?reason=${reason}`);
+    return null;
 }

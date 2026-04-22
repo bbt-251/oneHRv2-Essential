@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -23,20 +22,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTheme } from "@/components/theme-provider";
 import { LeaveModel } from "@/lib/models/leave";
 import { dateFormat } from "@/lib/util/dayjs_format";
-import {
-    CalendarIcon,
-    Upload,
-    X,
-    FileText,
-    AlertCircle,
-    User,
-    AlertTriangle,
-    Clock,
-} from "lucide-react";
+import { CalendarIcon, Upload, X, FileText, AlertCircle, User, AlertTriangle } from "lucide-react";
 import dayjs from "dayjs";
 import { useLeaveRequestForm } from "@/lib/util/leave-request/use-leave-request-form";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,8 +98,6 @@ export function EditLeaveRequestModal({
 
     // Prevent editing if leave is not in requested state
     const canEdit = leaveRequest.leaveState === "Requested";
-    const isEditable = open && canEdit;
-
     if (!canEdit && open) {
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,7 +120,7 @@ export function EditLeaveRequestModal({
                         >
                             This leave request cannot be edited because it is{" "}
                             {leaveRequest.leaveState.toLowerCase()}. Only leave requests in
-                            "Requested" state can be modified.
+                            &quot;Requested&quot; state can be modified.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -150,19 +137,7 @@ export function EditLeaveRequestModal({
     }
 
     const availableBalance = userData?.balanceLeaveDays || 0;
-    console.log("Available Balance:", availableBalance);
     const isBalanceExceeded = formData.numberOfLeaveDaysRequested > availableBalance;
-
-    // Check if it's a same-day leave (half-day eligible)
-    const isSameDay =
-        formData.firstDayOfLeave &&
-        formData.lastDayOfLeave &&
-        dayjs(formData.firstDayOfLeave).isSame(dayjs(formData.lastDayOfLeave), "day");
-
-    const handleHalfDayOptionChange = (value: string) => {
-        const halfDayValue = value === "none" ? null : (value as "HDM" | "HDA");
-        setFormData(prev => ({ ...prev, halfDayOption: halfDayValue }));
-    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -237,7 +212,7 @@ export function EditLeaveRequestModal({
                             htmlFor="onBehalf"
                             className={`text-sm ${theme === "dark" ? "text-slate-300" : "text-slate-600"}`}
                         >
-                            Request leave on someone's behalf
+                            Request leave on someone&apos;s behalf
                         </Label>
                     </div>
 

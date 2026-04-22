@@ -33,7 +33,6 @@ export function EmployeeLoanManagement() {
         isSaving,
         editValues,
         setEditValues,
-        installPage,
         setInstallPage,
         visibleColumns,
         setVisibleColumns,

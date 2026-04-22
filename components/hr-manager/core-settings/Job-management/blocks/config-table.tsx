@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useMemo, SetStateAction, Dispatch } from "react";
+import { useState, useMemo } from "react";
 import {
     Table,
     TableBody,
@@ -25,20 +25,22 @@ import { cn } from "@/lib/utils";
 export interface ColumnDef {
     key: string;
     header: string;
-    render?: (row: any) => React.ReactNode;
+    render?: (row: Record<string, unknown>) => React.ReactNode;
     align?: "left" | "center" | "right";
 }
+
+type TableRowData = Record<string, unknown>;
 
 interface FilterModalProps {
     isOpen: boolean;
     onClose: () => void;
-    data: any[];
+    data: TableRowData[];
     nonFilterableKeys: string[];
-    onFilter: (filters: Record<string, any>) => void;
+    onFilter: (filters: Record<string, string>) => void;
 }
 
 function FilterModal({ isOpen, onClose, data, nonFilterableKeys, onFilter }: FilterModalProps) {
-    const [filters, setFilters] = useState<Record<string, any>>({});
+    const [filters, setFilters] = useState<Record<string, string>>({});
 
     const fields = useMemo(() => {
         if (data.length === 0) return [];
@@ -48,7 +50,7 @@ function FilterModal({ isOpen, onClose, data, nonFilterableKeys, onFilter }: Fil
                 key !== "actions" &&
                 (!nonFilterableKeys.length || !nonFilterableKeys.includes(key)),
         );
-    }, [data]);
+    }, [data, nonFilterableKeys]);
 
     const handleApplyFilters = () => {
         onFilter(filters);
@@ -103,10 +105,10 @@ function FilterModal({ isOpen, onClose, data, nonFilterableKeys, onFilter }: Fil
 export interface ConfigTableProps {
     title: string;
     columns: ColumnDef[];
-    data: any[];
+    data: TableRowData[];
     searchableKeys?: string[];
     nonFilterableKeys?: string[];
-    onRowClick?: (row: any, index: number) => void;
+    onRowClick?: (row: TableRowData, index: number) => void;
     filterRenderer?: () => React.ReactNode;
     onAddClick?: () => void;
     addButtonText?: string;
@@ -125,12 +127,12 @@ export function ConfigTable({
     addButtonText = "Add New",
 }: ConfigTableProps) {
     const { theme } = useTheme();
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
         columns.reduce((acc, col) => ({ ...acc, [col.key]: true }), {}),
     );
-    const [showFilterModal, setShowFilterModal] = useState(false);
-    const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({});
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+    const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({});
 
     const filteredData = useMemo(() => {
         let filtered = data;
@@ -251,7 +253,7 @@ export function ConfigTable({
                                             onCheckedChange={checked =>
                                                 setVisibleColumns(prev => ({
                                                     ...prev,
-                                                    [col.key]: checked as boolean,
+                                                    [col.key]: Boolean(checked),
                                                 }))
                                             }
                                         />

@@ -2,12 +2,12 @@
 
 import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFirestore } from "@/context/firestore-context";
-import { HolidayModel, ShiftTypeModel } from "@/lib/backend/firebase/hrSettingsService";
+import { useData } from "@/context/app-data-context";
+import { HolidayModel, ShiftTypeModel } from "@/lib/backend/hr-settings-service";
 import { AttendanceModel, DailyAttendance } from "@/lib/models/attendance";
 import { dateFormat } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { AttendanceModal } from "./attendance-modal";
 import { LeaveModel } from "@/lib/models/leave";
 import { EmployeeModel } from "@/lib/models/employee";
@@ -178,7 +178,7 @@ export function AttendanceCalendar({
 }: AttendanceCalendarProps) {
     const { userData } = useAuth();
     const { theme } = useTheme();
-    const { hrSettings, leaveManagements } = useFirestore();
+    const { leaveManagements, ...hrSettings } = useData();
     const holidays = hrSettings.holidays;
     const shifts = hrSettings.shiftTypes;
     const [selectedDay, setSelectedDay] = useState<{
@@ -188,8 +188,7 @@ export function AttendanceCalendar({
         status: string;
         dailyAttendance: DailyAttendance;
     } | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [monthsData, setMonthsData] = useState<MonthData[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedAttendance, setSelectedAttendance] = useState<AttendanceModel | null>(null);
 
     const handleDayClick = (
@@ -203,16 +202,11 @@ export function AttendanceCalendar({
         setIsModalOpen(true);
     };
 
-    useEffect(() => {
-        console.log("Attendance in AttendanceCalendar:", attendance);
-        console.log("UserData:", userData);
-        if (!attendance || attendance.length === 0) return;
-        const generated = attendance.map(a =>
-            generateMonthData(userData, a, holidays, leaveManagements, shifts),
-        );
-        console.log("Generated monthsData:", generated);
-        setMonthsData(generated);
-    }, [attendance, userData, leaveManagements, shifts, holidays]);
+    const monthsData = useMemo<MonthData[]>(
+        () =>
+            attendance.map(a => generateMonthData(userData, a, holidays, leaveManagements, shifts)),
+        [attendance, holidays, leaveManagements, shifts, userData],
+    );
 
     const filteredMonthsData = monthsData
         .filter(monthData => {
@@ -229,8 +223,6 @@ export function AttendanceCalendar({
             return monthData;
         })
         .filter(monthData => monthData.days.length > 0);
-
-    console.log("Filtered monthsData:", filteredMonthsData);
 
     return (
         <div className="space-y-6">

@@ -1,6 +1,6 @@
 // hooks/auth/usePasswordReset.ts
-import { auth } from "@/lib/backend/firebase/init";
 import { useState } from "react";
+import { requestPasswordResetWithBackend } from "@/lib/backend/client/auth-client";
 
 interface PasswordResetProps {
     email: string;
@@ -29,22 +29,13 @@ export const usePasswordReset = (): PasswordResetHook => {
         setError(null);
 
         try {
-            // Call the API endpoint to handle password reset with admin SDK
-            const response = await fetch("/api/auth/password-reset", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email }),
-            });
+            const data = await requestPasswordResetWithBackend({ email });
 
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
+            if (!data.success) {
                 return {
                     success: false,
-                    error: data.error || "Failed to send reset email. Please try again.",
-                    errorCode: data.errorCode || "unknown",
+                    error: data.error?.message || "Failed to send reset email. Please try again.",
+                    errorCode: data.error?.code || "unknown",
                 };
             }
 
@@ -55,23 +46,22 @@ export const usePasswordReset = (): PasswordResetHook => {
             let errorMessage = "Failed to send reset email. Please try again.";
             let errorCode = "unknown";
 
-            // Handle specific Firebase password reset errors
             if (err instanceof Error) {
                 switch (err.message) {
-                    case "Firebase: Error (auth/invalid-email).":
+                    case "auth/invalid-email":
                         errorMessage = "The email address is not valid.";
                         errorCode = "auth/invalid-email";
                         break;
-                    case "Firebase: Error (auth/user-not-found).":
+                    case "auth/user-not-found":
                         errorMessage =
                             "If an account with this email exists, a reset link has been sent.";
                         errorCode = "auth/user-not-found";
                         break;
-                    case "Firebase: Error (auth/too-many-requests).":
+                    case "auth/too-many-requests":
                         errorMessage = "Too many attempts. Try again later.";
                         errorCode = "auth/too-many-requests";
                         break;
-                    case "Firebase: Error (auth/network-request-failed).":
+                    case "auth/network-request-failed":
                         errorMessage = "Network error. Please check your connection.";
                         errorCode = "auth/network-request-failed";
                         break;

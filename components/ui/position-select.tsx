@@ -1,6 +1,6 @@
 "use client";
 
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/data-provider";
 import { useState, useEffect } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,9 +20,9 @@ export function PositionSelect({
     disabled = false,
     className,
 }: PositionSelectProps) {
-    const { hrSettings } = useFirestore();
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+    const { ...hrSettings } = useData();
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState<string>("");
 
     const positions = hrSettings.positions || [];
     const filteredPositions = positions.filter(pos =>

@@ -4,17 +4,19 @@ import { Header } from "@/components/header";
 import { AppSidebar } from "@/components/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/authContext";
-import { redirect } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     const { user, authLoading } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         if (!authLoading && !user) {
-            redirect("/");
+            router.replace("/");
         }
-    }, [user, authLoading]);
+    }, [authLoading, router, user]);
 
     // Show loading while checking authentication
     if (authLoading) {

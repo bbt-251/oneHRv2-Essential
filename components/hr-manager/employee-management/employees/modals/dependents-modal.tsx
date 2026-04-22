@@ -1,10 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
@@ -26,7 +24,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { X, Users, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { DependentModel } from "@/lib/models/dependent";
 import { EmployeeModel } from "@/lib/models/employee";
 import { AddDependentModal } from "./add-dependent-modal";
@@ -36,7 +34,7 @@ import { useToast } from "@/context/toastContext";
 import { deleteDependent } from "@/lib/backend/api/employee-management/dependent-service";
 import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 
 interface DependentsModalProps {
     employee: EmployeeModel;
@@ -46,28 +44,16 @@ interface DependentsModalProps {
 export function DependentsModal({ employee, onClose }: DependentsModalProps) {
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const { dependents, loading: dependentsLoading, error: dependentsError } = useFirestore();
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { dependents, loading: dependentsLoading, error: dependentsError } = useData();
 
     // Modal states
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showViewModal, setShowViewModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState<boolean>(false);
+    const [showEditModal, setShowEditModal] = useState<boolean>(false);
+    const [showViewModal, setShowViewModal] = useState<boolean>(false);
     const [selectedDependent, setSelectedDependent] = useState<DependentModel | null>(null);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-    // Filter dependents for this employee
-    useEffect(() => {
-        setIsLoading(dependentsLoading);
-        setError(dependentsError);
-
-        if (dependentsError) {
-            showToast(dependentsError, "error", "error");
-        } else if (!dependentsLoading) {
-            setIsLoading(false);
-        }
-    }, [dependentsLoading, dependentsError]);
+    const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
+    const isLoading = dependentsLoading;
+    const error = dependentsError;
 
     const handleAddSuccess = () => {
         setShowAddModal(false);

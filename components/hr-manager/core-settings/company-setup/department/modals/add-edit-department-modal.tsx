@@ -12,13 +12,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import {
     DepartmentSettingsModel,
     hrSettingsService,
     LocationModel,
-} from "@/lib/backend/firebase/hrSettingsService";
+} from "@/lib/backend/hr-settings-service";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
@@ -48,8 +48,8 @@ const AddEditDepartmentModal = ({
 }: AddDepartmentProps) => {
     const { theme } = useTheme();
     const { showToast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { hrSettings, employees } = useFirestore();
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const { employees, ...hrSettings } = useData();
     const { userData } = useAuth();
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
@@ -74,7 +74,7 @@ const AddEditDepartmentModal = ({
     const locationOptions = useMemo(() => {
         const convertToOptions = (
             nodes: LocationNode[],
-        ): { value: string; label: string; children?: any[] }[] => {
+        ): { value: string; label: string; children?: ReturnType<typeof convertToOptions> }[] => {
             return nodes.map(node => ({
                 value: node.id,
                 label: node.name,
@@ -87,7 +87,13 @@ const AddEditDepartmentModal = ({
         return convertToOptions(locationTree);
     }, [locationTree]);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        code: string;
+        manager: string;
+        location: string;
+        active: boolean;
+    }>({
         name: editingDepartment?.name ?? "",
         code: editingDepartment?.code ?? "",
         manager: editingDepartment?.manager ?? "",

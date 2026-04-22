@@ -26,14 +26,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { CurrencyModel } from "@/lib/models/hr-settings";
 import { formatTimestamp } from "@/lib/util/dayjs_format";
 import { Calculator, Edit, Eye, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+
+type CurrencyFieldValue = CurrencyModel[keyof CurrencyModel];
 
 interface CurrencyFormProps {
     data?: CurrencyModel;
@@ -81,7 +83,7 @@ function CurrencyForm({ data, isAddEditLoading, onSave, onCancel }: CurrencyForm
         }
     };
 
-    const handleInputChange = (field: keyof CurrencyModel, value: any) => {
+    const handleInputChange = (field: keyof CurrencyModel, value: CurrencyFieldValue) => {
         setFormData({ ...formData, [field]: value });
         if (errors[field]) {
             setErrors({ ...errors, [field]: "" });
@@ -157,14 +159,14 @@ function CurrencyForm({ data, isAddEditLoading, onSave, onCancel }: CurrencyForm
 }
 
 export function Currency() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const currencies = hrSettings.currencies;
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
     const [density, setDensity] = useState<Density>("normal");
-    const [showDialog, setShowDialog] = useState(false);
-    const [showViewDialog, setShowViewDialog] = useState(false);
+    const [showDialog, setShowDialog] = useState<boolean>(false);
+    const [showViewDialog, setShowViewDialog] = useState<boolean>(false);
     const [editingItem, setEditingItem] = useState<CurrencyModel | null>(null);
     const [viewingItem, setViewingItem] = useState<CurrencyModel | null>(null);
 
@@ -175,7 +177,7 @@ export function Currency() {
         { key: "timestamp", label: "Created", visible: true },
     ];
 
-    const [columnConfig, setColumnConfig] = useState(currencyColumns);
+    const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(currencyColumns);
 
     const handleAdd = () => {
         setEditingItem(null);
@@ -206,7 +208,7 @@ export function Currency() {
     const handleSave = async (formData: CurrencyModel) => {
         setIsAddEditLoading(true);
 
-        const { id, ...data } = formData;
+        const { id: _id, ...data } = formData;
         if (editingItem) {
             const res = await hrSettingsService.update("currencies", editingItem.id, data);
             if (res) {
@@ -421,8 +423,8 @@ export function Currency() {
                                                 colSpan={columnConfig.length + 1}
                                                 className="text-center py-8 text-gray-500 dark:text-gray-400"
                                             >
-                                                No currencies found. Click "Add Currency" to create
-                                                your first entry.
+                                                No currencies found. Click &quot;Add Currency&quot;
+                                                to create your first entry.
                                             </TableCell>
                                         </TableRow>
                                     )}

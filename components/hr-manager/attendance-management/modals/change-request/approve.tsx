@@ -15,7 +15,7 @@ import { AttendanceChangeRequest } from "../../page";
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients } from "@/lib/util/notification/recipients";
 import getFullName from "@/lib/util/getEmployeeFullName";
@@ -34,10 +34,10 @@ export function HRAttendanceApproveModal({
     requestData,
 }: HRAttendanceApproveModalProps) {
     const { userData } = useAuth();
-    const [comments, setComments] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [comments, setComments] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const { showToast } = useToast();
-    const { employees } = useFirestore();
+    const { employees } = useData();
 
     if (!request) return null;
 
@@ -62,7 +62,7 @@ export function HRAttendanceApproveModal({
                 5000,
             );
 
-            const employee = employees.find(e => request.employeeUid);
+            const employee = employees.find(e => e.uid === request.employeeUid);
 
             // Get recipients: For attendance change approval, notify BOTH employee and their manager
             const validRecipients = getNotificationRecipients(

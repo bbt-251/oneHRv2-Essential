@@ -22,9 +22,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService, MaritalStatusModel } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService, MaritalStatusModel } from "@/lib/backend/hr-settings-service";
 import { MARITAL_STATUS_LOG_MESSAGES } from "@/lib/log-descriptions/marital-document";
 import { Edit, Heart, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -33,19 +33,22 @@ import DeleteConfirm from "../blocks/delete-confirm";
 import { AddMaritalStatusModal } from "../modals/add-marital-status";
 
 export function MaritalStatusManagement() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const maritalStatuses = hrSettings?.maritalStatuses;
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { userData } = useAuth();
 
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState<boolean>(false);
     const [editingStatus, setEditingStatus] = useState<MaritalStatusModel | null>(null);
 
     const [density, setDensity] = useState<Density>("normal");
-    const [visibleColumns, setVisibleColumns] = useState({ name: true, active: true });
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
+    const [visibleColumns, setVisibleColumns] = useState<{ name: boolean; active: boolean }>({
+        name: true,
+        active: true,
+    });
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
 
     const handleEdit = (status: MaritalStatusModel) => {
         setEditingStatus(status);

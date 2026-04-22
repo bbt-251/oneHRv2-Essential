@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 export default interface InAppNotificationModel {
     id: string | null;
     timestamp: string;
@@ -6,4 +7,4 @@ export default interface InAppNotificationModel {
     message: string;
     action: string | null; // redirection route when a notification is clicked
     isRead: boolean;
-};;;;;;;;;;
+}

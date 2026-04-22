@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { LoanTypeModel } from "@/lib/models/hr-settings";
 import { Loader2 } from "lucide-react";
 
+type LoanFieldValue = LoanTypeModel[keyof LoanTypeModel];
+
 interface LoanTypeFormProps {
     data?: LoanTypeModel;
     isAddEditLoading: boolean;
@@ -57,7 +59,7 @@ export function LoanTypeForm({ data, isAddEditLoading, onSave, onCancel }: LoanT
         }
     };
 
-    const handleInputChange = (field: keyof LoanTypeModel, value: any) => {
+    const handleInputChange = (field: keyof LoanTypeModel, value: LoanFieldValue) => {
         setFormData({ ...formData, [field]: value });
         if (errors[field]) {
             setErrors({ ...errors, [field]: "" });

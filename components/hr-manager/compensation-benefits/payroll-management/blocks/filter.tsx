@@ -12,7 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { generatePayrollSlip } from "@/lib/backend/functions/payroll/generatePayrollSlip";
 import { generatePension } from "@/lib/backend/functions/payroll/generatePension";
@@ -46,19 +46,16 @@ export default function FilterActions({
     setSelectedMonth,
     setSelectedEmployees,
 }: FilterActionsProps) {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const companyInfo = hrSettings.companyInfo?.at(0);
     const pension = hrSettings.pension;
 
     const { showToast } = useToast();
-    const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState(false);
-    const [employeeSearch, setEmployeeSearch] = useState("");
-    const [payrollButtonLoading, setPayrollButtonLoading] = useState<boolean>(false);
-    const [pensionButtonLoading, setPensionButtonLoading] = useState<boolean>(false);
-    const [taxButtonLoading, setTaxButtonLoading] = useState<boolean>(false);
+    const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState<boolean>(false);
+    const [employeeSearch, setEmployeeSearch] = useState<string>("");
     const [pdfSettings, setPdfSettings] = useState<PayrollPDFSettingsModel | null>(null);
 
-    // Load PDF settings from Firestore
+    // Load PDF settings from the shared app data layer
     useEffect(() => {
         async function loadPdfSettings() {
             try {
@@ -273,18 +270,13 @@ export default function FilterActions({
                                 style={{ backgroundColor: "#3f3d56ff" }}
                                 disabled={selectedEmployees.length ? false : true}
                                 onClick={async () => {
-                                    setPayrollButtonLoading(true);
-                                    try {
-                                        await generatePayrollSlip(
-                                            selectedEmployees,
-                                            payrollData,
-                                            currentPDFSettings,
-                                            attendanceLogic,
-                                            showToast,
-                                        );
-                                    } finally {
-                                        setPayrollButtonLoading(false);
-                                    }
+                                    await generatePayrollSlip(
+                                        selectedEmployees,
+                                        payrollData,
+                                        currentPDFSettings,
+                                        attendanceLogic,
+                                        showToast,
+                                    );
                                 }}
                             >
                                 <FileText className="h-4 w-4" />
@@ -296,7 +288,6 @@ export default function FilterActions({
                                 className="flex items-center gap-2 justify-start h-10 text-white"
                                 style={{ backgroundColor: "#3f3d56ff" }}
                                 onClick={async () => {
-                                    setPensionButtonLoading(true);
                                     if (pension) {
                                         await generatePension(payrollData, companyInfo);
                                     } else {
@@ -306,7 +297,6 @@ export default function FilterActions({
                                             "warning",
                                         );
                                     }
-                                    setPensionButtonLoading(false);
                                 }}
                             >
                                 <PiggyBank className="h-4 w-4" />
@@ -321,7 +311,6 @@ export default function FilterActions({
                                     color: "#3f3d56ff",
                                 }}
                                 onClick={async () => {
-                                    setTaxButtonLoading(true);
                                     if (pension) {
                                         await generateTax(payrollData, companyInfo);
                                     } else {
@@ -331,7 +320,6 @@ export default function FilterActions({
                                             "warning",
                                         );
                                     }
-                                    setTaxButtonLoading(false);
                                 }}
                             >
                                 <Calculator className="h-4 w-4" />

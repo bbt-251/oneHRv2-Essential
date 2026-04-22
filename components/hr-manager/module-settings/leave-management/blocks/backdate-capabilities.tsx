@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
-import { useFirestore } from "@/context/firestore-context";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { useData } from "@/context/app-data-context";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
 import { LEAVE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/leave-management";
 import { useAuth } from "@/context/authContext";
@@ -16,7 +16,7 @@ import { useAuth } from "@/context/authContext";
 
 // Backdate Capabi
 export default function BackdateCapabilities() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const backdateCapabilities = hrSettings?.backdateCapabilities || [];
 
     const { theme } = useTheme();
@@ -125,8 +125,8 @@ export default function BackdateCapabilities() {
                         className={`text-gray-700 text-sm ${theme === "dark" ? "text-white" : "text-black"}`}
                     >
                         <strong>Note:</strong> A backdated leave request allows employees to submit
-                        leave requests for past dates, typically when they couldn't apply in advance
-                        due to unforeseen circumstances.
+                        leave requests for past dates, typically when they couldn&apos;t apply in
+                        advance due to unforeseen circumstances.
                     </p>
                 </div>
 

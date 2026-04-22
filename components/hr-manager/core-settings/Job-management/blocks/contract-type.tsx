@@ -1,17 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     Select,
     SelectContent,
@@ -19,11 +12,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Edit } from "lucide-react";
 
 import ConfigTable from "./config-table";
-import { ContractTypeModel, hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { ContractTypeModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import DeleteConfirm from "../../blocks/delete-confirm";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -32,18 +25,23 @@ import { useAuth } from "@/context/authContext";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 
 export default function ContractType() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { theme } = useTheme();
     const { showToast } = useToast();
     const { userData } = useAuth();
     const contractTypes = hrSettings.contractTypes;
 
-    const [showModal, setShowModal] = useState(false);
+    const [showModal, setShowModal] = useState<boolean>(false);
     const [editingContractType, setEditingContractType] = useState<ContractTypeModel | null>(null);
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        startDate: string;
+        endDate: string;
+        active: "Yes" | "No";
+    }>({
         name: "",
         startDate: "",
         endDate: "",
@@ -139,10 +137,6 @@ export default function ContractType() {
             JOB_MANAGEMENT_LOG_MESSAGES.CONTRACT_TYPE_DELETED(id),
         );
         showToast("Contract type deleted successfully", "success", "success");
-    };
-
-    const handleRowClick = (contractType: ContractTypeModel) => {
-        handleEdit(contractType);
     };
 
     const columns = [

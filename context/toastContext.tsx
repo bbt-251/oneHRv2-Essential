@@ -7,8 +7,7 @@ import {
     ToastTitle,
     ToastViewport,
 } from "@/components/ui/toast";
-import React, { createContext, useContext, useRef, useState, useCallback, useMemo } from "react";
-import { debounce } from "@/lib/utils";
+import React, { createContext, useContext, useRef, useState, useCallback } from "react";
 
 type ToastVariant = "success" | "error" | "warning" | "default";
 type ToastPriority = "low" | "normal" | "high" | "critical";
@@ -23,6 +22,13 @@ type ToastItem = {
     closing?: boolean;
     timestamp: number;
 };
+
+type AnalyticsWindow = Window & {
+    gtag?: (command: "event", eventName: string, params: Record<string, string | number>) => void;
+};
+
+const createToastId = (): string => crypto.randomUUID();
+const getToastTimestamp = (): number => Date.now();
 
 interface ToastContextType {
     showToast: (
@@ -107,76 +113,6 @@ export const ToastProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ 
         processNext();
     }, []);
 
-    // Debounced show toast to prevent rapid calls
-    const debouncedShowToast = useMemo(
-        () =>
-            debounce(
-                (
-                    message: string,
-                    title: string,
-                    variant: ToastVariant,
-                    timeout: number,
-                    priority: ToastPriority,
-                ) => {
-                    const id = Math.random().toString(36).substr(2, 9);
-                    const timestamp = Date.now();
-
-                    // Check for duplicate messages within 2 seconds
-                    const isDuplicate = toasts.some(
-                        toast =>
-                            toast.message === message &&
-                            toast.title === title &&
-                            timestamp - toast.timestamp < 2000,
-                    );
-
-                    if (isDuplicate) {
-                        // Extend existing toast instead of creating new one
-                        setToasts(prev =>
-                            prev.map(t =>
-                                t.message === message && t.title === title
-                                    ? { ...t, duration: Math.max(t.duration, timeout) }
-                                    : t,
-                            ),
-                        );
-                        return;
-                    }
-
-                    const newToast: ToastItem = {
-                        id,
-                        message,
-                        title,
-                        variant,
-                        duration: timeout,
-                        priority,
-                        timestamp,
-                    };
-
-                    // High priority toasts show immediately
-                    if (priority === "high" || priority === "critical") {
-                        setToasts(prev => {
-                            const newToasts = [newToast, ...prev];
-                            return newToasts.slice(-MAX_TOASTS);
-                        });
-                    } else {
-                        queueRef.current.push(newToast);
-                        processQueue();
-                    }
-
-                    // Track toast usage for analytics (if available)
-                    if (typeof window !== "undefined" && (window as any).gtag) {
-                        (window as any).gtag("event", "toast_shown", {
-                            message: message.substring(0, 50),
-                            variant,
-                            priority,
-                            timestamp,
-                        });
-                    }
-                },
-                100,
-            ),
-        [toasts, processQueue],
-    );
-
     const showToast = useCallback(
         (
             message: string,
@@ -185,9 +121,59 @@ export const ToastProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ 
             timeout: number = 3000,
             priority: ToastPriority = "normal",
         ) => {
-            debouncedShowToast(message, title, variant, timeout, priority);
+            const id = createToastId();
+            const timestamp = getToastTimestamp();
+
+            const isDuplicate = toasts.some(
+                toast =>
+                    toast.message === message &&
+                    toast.title === title &&
+                    timestamp - toast.timestamp < 2000,
+            );
+
+            if (isDuplicate) {
+                setToasts(prev =>
+                    prev.map(t =>
+                        t.message === message && t.title === title
+                            ? { ...t, duration: Math.max(t.duration, timeout) }
+                            : t,
+                    ),
+                );
+                return;
+            }
+
+            const newToast: ToastItem = {
+                id,
+                message,
+                title,
+                variant,
+                duration: timeout,
+                priority,
+                timestamp,
+            };
+
+            if (priority === "high" || priority === "critical") {
+                setToasts(prev => {
+                    const newToasts = [newToast, ...prev];
+                    return newToasts.slice(-MAX_TOASTS);
+                });
+            } else {
+                queueRef.current.push(newToast);
+                processQueue();
+            }
+
+            const analyticsWindow =
+                typeof window !== "undefined" ? (window as AnalyticsWindow) : undefined;
+            if (analyticsWindow?.gtag) {
+                analyticsWindow.gtag("event", "toast_shown", {
+                    message: message.substring(0, 50),
+                    variant,
+                    priority,
+                    timestamp,
+                });
+            }
         },
-        [debouncedShowToast],
+        [processQueue, toasts],
     );
 
     const hideToast = useCallback((id: string) => {

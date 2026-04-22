@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Download, Edit, Loader2, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     Table,
     TableBody,
@@ -31,9 +31,9 @@ import {
 } from "@/components/ui/select";
 import dayjs from "dayjs";
 import { timestampFormat } from "@/lib/util/dayjs_format";
-import { HolidayModel, hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { HolidayModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -41,17 +41,16 @@ import { useAuth } from "@/context/authContext";
 import { HOLIDAY_SETUP_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function HolidaySetup() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { theme } = useTheme();
     const { userData } = useAuth();
 
-    const [holidays, setHolidays] = useState<HolidayModel[]>([]);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isFetchModalOpen, setIsFetchModalOpen] = useState(false);
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [fetchLoading, setFetchLoading] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+    const [isFetchModalOpen, setIsFetchModalOpen] = useState<boolean>(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [fetchLoading, setFetchLoading] = useState<boolean>(false);
 
     const [editingHoliday, setEditingHoliday] = useState<HolidayModel | null>(null);
     const [formData, setFormData] = useState<Partial<HolidayModel>>({
@@ -60,14 +59,11 @@ export function HolidaySetup() {
         date: "",
         active: "Yes",
     });
-    const [fetchData, setFetchData] = useState({
+    const [fetchData, setFetchData] = useState<{ year: string; country: string }>({
         year: new Date().getFullYear().toString(),
         country: "",
     });
-
-    useEffect(() => {
-        setHolidays(hrSettings.holidays);
-    }, [hrSettings.holidays]);
+    const holidays: HolidayModel[] = hrSettings.holidays;
 
     // THEME CLASSES
     const cardBg = theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200";
@@ -131,7 +127,7 @@ export function HolidaySetup() {
         };
 
         if (editingHoliday) {
-            const { id, ...data } = formData;
+            const { id: _id, ...data } = formData;
 
             const res = await hrSettingsService.update(
                 "holidays",

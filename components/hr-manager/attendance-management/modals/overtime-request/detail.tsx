@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import {
     getOvertimeManagerDisplayName,
@@ -42,9 +42,9 @@ export function HROvertimeDetailModal({
     employees,
     overtimeTypes,
 }: HROvertimeDetailModalProps) {
-    if (!request) return null;
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState<boolean>(false);
 
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    if (!request) return null;
 
     const formatTime = (time: string) => {
         const [hours, minutes] = time.split(":");

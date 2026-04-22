@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,8 @@ import {
     hrSettingsService,
     HrSettingsType,
     LocationModel,
-} from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+} from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { AddLocation } from "../modals/add-location";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
@@ -34,7 +34,6 @@ import { LOCATION_LOG_MESSAGES } from "@/lib/log-descriptions/notification-locat
 interface LocationNode extends LocationModel {
     parentId?: string | null;
     children: LocationNode[];
-    isExpanded?: boolean;
     description?: string;
     address?: string;
 }
@@ -42,39 +41,33 @@ export function LocationManagement() {
     const { theme } = useTheme();
 
     const { showToast } = useToast();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { userData } = useAuth();
     const rawLocations = hrSettings.locations;
-    const [locations, setLocations] = useState<LocationNode[]>([]);
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
     const [editingLocation, setEditingLocation] = useState<LocationNode | null>(null);
     const [selectedParent, setSelectedParent] = useState<LocationNode | null>(null);
     const [draggedItem, setDraggedItem] = useState<LocationNode | null>(null);
+    const [expandedLocationIds, setExpandedLocationIds] = useState<string[]>([]);
 
-    useEffect(() => {
-        const buildTree = (items: LocationModel[]): LocationNode[] => {
-            const itemMap: { [key: string]: LocationNode } = {};
-            const roots: LocationNode[] = [];
+    const locations = useMemo(() => {
+        const itemMap: Record<string, LocationNode> = {};
+        const roots: LocationNode[] = [];
 
-            for (const item of items) {
-                itemMap[item.id] = { ...item, children: [], isExpanded: true };
-            }
-
-            for (const item of items) {
-                const node = itemMap[item.id];
-                if (node.parentId && itemMap[node.parentId]) {
-                    itemMap[node.parentId].children.push(node);
-                } else {
-                    roots.push(node);
-                }
-            }
-            return roots;
-        };
-
-        if (rawLocations) {
-            const tree = buildTree(rawLocations);
-            setLocations(tree);
+        for (const item of rawLocations) {
+            itemMap[item.id] = { ...item, children: [] };
         }
+
+        for (const item of rawLocations) {
+            const node = itemMap[item.id];
+            if (node.parentId && itemMap[node.parentId]) {
+                itemMap[node.parentId].children.push(node);
+            } else {
+                roots.push(node);
+            }
+        }
+
+        return roots;
     }, [rawLocations]);
 
     const getAllDescendantIds = (node: LocationNode): string[] => {
@@ -90,7 +83,15 @@ export function LocationManagement() {
     };
 
     const [density, setDensity] = useState<Density>("normal");
-    const [visibleColumns, setVisibleColumns] = useState({
+    const [visibleColumns, setVisibleColumns] = useState<{
+        name: boolean;
+        type: boolean;
+        startDate: boolean;
+        endDate: boolean;
+        active: boolean;
+        address: boolean;
+        description: boolean;
+    }>({
         name: true,
         type: true,
         startDate: true,
@@ -99,10 +100,10 @@ export function LocationManagement() {
         address: true,
         description: true,
     });
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [filterType, setFilterType] = useState<string>("all");
 
-    const [locationTypesState, setLocationTypesState] = useState([
+    const [locationTypesState] = useState<{ value: string; label: string }[]>([
         { value: "country", label: "Country" },
         { value: "region", label: "Region/State" },
         { value: "city", label: "City" },
@@ -137,31 +138,6 @@ export function LocationManagement() {
         }
         return null;
     };
-
-    const updateLocationInTree = (nodes: LocationNode[], updated: LocationNode): LocationNode[] =>
-        nodes.map(n =>
-            n.id === updated.id
-                ? { ...updated, children: n.children }
-                : { ...n, children: updateLocationInTree(n.children, updated) },
-        );
-
-    const addLocationToTree = (
-        nodes: LocationNode[],
-        newLoc: LocationNode,
-        parentId?: string,
-    ): LocationNode[] => {
-        if (!parentId) return [...nodes, newLoc];
-        return nodes.map(n =>
-            n.id === parentId
-                ? { ...n, children: [...n.children, newLoc] }
-                : { ...n, children: addLocationToTree(n.children, newLoc, parentId) },
-        );
-    };
-
-    const removeLocationFromTree = (nodes: LocationNode[], id: string): LocationNode[] =>
-        nodes
-            .filter(n => n.id !== id)
-            .map(n => ({ ...n, children: removeLocationFromTree(n.children, id) }));
 
     const handleDelete = async (type: HrSettingsType, id: string) => {
         const nodeToDelete = findLocationById(locations, id);
@@ -201,30 +177,6 @@ export function LocationManagement() {
                 showToast("An error occurred while deleting the location(s).", "error", "error");
             }
         }
-    };
-
-    const toggleExpanded = (id: string) => {
-        const toggle = (nodes: LocationNode[]): LocationNode[] =>
-            nodes.map(n =>
-                n.id === id
-                    ? { ...n, isExpanded: !n.isExpanded }
-                    : { ...n, children: toggle(n.children) },
-            );
-        setLocations(toggle(locations));
-    };
-
-    const getFullPath = (
-        nodes: LocationNode[],
-        targetId: string,
-        path: string[] = [],
-    ): string[] => {
-        for (const node of nodes) {
-            const current = [...path, node.name];
-            if (node.id === targetId) return current;
-            const found = getFullPath(node.children, targetId, current);
-            if (found.length) return found;
-        }
-        return [];
     };
 
     const flattenLocations = (nodes: LocationNode[]): LocationNode[] => {
@@ -277,7 +229,20 @@ export function LocationManagement() {
                             return (
                                 locationTypesState.find(t => t.value === l.type)?.label ?? l.type
                             );
-                        return String((l as any)[c.key] ?? "");
+                        return String(
+                            l[
+                                c.key as keyof Pick<
+                                    LocationNode,
+                                    | "name"
+                                    | "type"
+                                    | "startDate"
+                                    | "endDate"
+                                    | "active"
+                                    | "address"
+                                    | "description"
+                                >
+                            ] ?? "",
+                        );
                     })
                     .join(","),
             )
@@ -302,7 +267,7 @@ export function LocationManagement() {
                 department: "bg-orange-100 text-orange-800 border-orange-200",
                 building: "bg-red-100 text-red-800 border-red-200",
                 floor: "bg-amber-100 text-amber-800 border-amber-200",
-            }) as any
+            }) as Record<string, string>
         )[type] || "bg-gray-100 text-gray-800 border-gray-200";
 
     const handleDragStart = (e: React.DragEvent, location: LocationNode) => {
@@ -351,12 +316,18 @@ export function LocationManagement() {
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleExpanded(l.id!)}
+                        onClick={() =>
+                            setExpandedLocationIds(current =>
+                                current.includes(l.id)
+                                    ? current.filter(id => id !== l.id)
+                                    : [...current, l.id],
+                            )
+                        }
                         className={`h-6 w-6 p-0 ${theme === "dark" ? "hover:bg-slate-700" : "hover:bg-amber-100"}`}
                         disabled={l.children.length === 0}
                     >
                         {l.children.length > 0 ? (
-                            l.isExpanded ? (
+                            expandedLocationIds.includes(l.id) ? (
                                 <ChevronDown className="h-4 w-4" />
                             ) : (
                                 <ChevronRight className="h-4 w-4" />
@@ -450,7 +421,9 @@ export function LocationManagement() {
                     </div>
                 </div>
 
-                {l.isExpanded && l.children.length > 0 && renderLocationTree(l.children, level + 1)}
+                {expandedLocationIds.includes(l.id) &&
+                    l.children.length > 0 &&
+                    renderLocationTree(l.children, level + 1)}
             </div>
         ));
     return (

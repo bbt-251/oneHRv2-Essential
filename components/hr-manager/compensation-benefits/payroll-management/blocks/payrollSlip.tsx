@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
+/* eslint-disable react-hooks/static-components */
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { PayrollData } from "../page";
 import { numberCommaSeparator } from "@/lib/backend/functions/numberCommaSeparator";

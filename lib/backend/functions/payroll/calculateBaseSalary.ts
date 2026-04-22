@@ -3,12 +3,11 @@ import camelize from "../camelize";
 import { calculateOvertimeCost } from "../../../util/overtime-request-display";
 
 interface Props {
-    row: any;
+    row: Record<string, number | string | null | undefined>;
     overtimeConfigs: OvertimeConfigurationModel[];
     attendanceLogic: 1 | 2 | 3 | 4;
     salary: number;
     dailyWage: number | null;
-    hourlyWage: number | null;
     workedDays: number | null;
 }
 export function calculateBaseSalaryUpdated({
@@ -30,7 +29,7 @@ export function calculateBaseSalaryUpdated({
 
         overtimeConfigs.forEach(overtimeConfig => {
             if (row[camelize(overtimeConfig.overtimeType)] !== 0) {
-                let temp: number = calculateOvertimeCost(
+                const temp: number = calculateOvertimeCost(
                     row[camelize(overtimeConfig.overtimeType)] ?? 0,
                     overtimeConfig.overtimeRate ?? 0,
                     hourlyWage,
@@ -47,7 +46,7 @@ export function calculateBaseSalaryUpdated({
 
         overtimeConfigs.forEach(overtimeConfig => {
             if (row[camelize(overtimeConfig.overtimeType)] !== 0) {
-                let temp: number = calculateOvertimeCost(
+                const temp: number = calculateOvertimeCost(
                     row[camelize(overtimeConfig.overtimeType)] ?? 0,
                     overtimeConfig.overtimeRate ?? 0,
                     hourlyWage,
@@ -67,7 +66,7 @@ export function calculateBaseSalaryUpdated({
         calculating the additional salary component based on the specific overtime type for the given `row`. */
         overtimeConfigs.forEach(overtimeConfig => {
             if (row[camelize(overtimeConfig.overtimeType)] !== 0) {
-                let temp: number = calculateOvertimeCost(
+                const temp: number = calculateOvertimeCost(
                     row[camelize(overtimeConfig.overtimeType)] ?? 0,
                     overtimeConfig.overtimeRate ?? 0,
                     hourlyWage,

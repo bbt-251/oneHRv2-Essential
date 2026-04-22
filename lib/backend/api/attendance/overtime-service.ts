@@ -1,37 +1,19 @@
-import { getTimestamp } from "@/lib/util/dayjs_format";
-import dayjs from "dayjs";
-import {
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    setDoc,
-    updateDoc,
-    where,
-    writeBatch,
-} from "firebase/firestore";
-import { overtimeRequestCollection } from "../../firebase/collections";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
-import { db } from "../../firebase/init";
 import { createLog } from "../logCollection";
 import { OVERTIME_REQUEST_LOG_MESSAGES } from "@/lib/log-descriptions/manager-activities";
-
-const collectionRef = overtimeRequestCollection;
-const collectionName = collectionRef.id;
+import { mutateCompactData } from "@/lib/backend/client/data-client";
 
 export async function createOvertimeRequest(
     data: Omit<OvertimeRequestModel, "id">,
     actionBy: string,
 ): Promise<boolean> {
     try {
-        const docRef = doc(collectionRef);
-        await setDoc(docRef, {
-            ...data,
-            id: docRef.id,
+        await mutateCompactData({
+            resource: "overtimeRequests",
+            action: "create",
+            payload: data as Record<string, unknown>,
         });
 
-        // Log the creation
         await createLog(
             OVERTIME_REQUEST_LOG_MESSAGES.CREATED({
                 employeeUids: data.employeeUids,
@@ -45,9 +27,7 @@ export async function createOvertimeRequest(
 
         return true;
     } catch (e) {
-        console.log(`Error`, e);
-
-        // Log the failure
+        console.log("Error", e);
         await createLog(
             OVERTIME_REQUEST_LOG_MESSAGES.CREATED({
                 employeeUids: data.employeeUids,
@@ -68,11 +48,13 @@ export async function deleteOvertimeRequest(
     actionBy: string,
     employeeUids?: string[],
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await deleteDoc(docRef);
+        await mutateCompactData({
+            resource: "overtimeRequests",
+            action: "delete",
+            targetId: id,
+        });
 
-        // Log the deletion
         await createLog(
             OVERTIME_REQUEST_LOG_MESSAGES.DELETED({
                 id,
@@ -87,7 +69,6 @@ export async function deleteOvertimeRequest(
     } catch (err) {
         console.error(err);
 
-        // Log the failure
         await createLog(
             OVERTIME_REQUEST_LOG_MESSAGES.DELETED({
                 id,
@@ -106,11 +87,14 @@ export async function updateOvertimeRequest(
     data: Partial<OvertimeRequestModel> & { id: string },
     actionBy?: string,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, data.id);
     try {
-        await updateDoc(docRef, data as any);
+        await mutateCompactData({
+            resource: "overtimeRequests",
+            action: "update",
+            targetId: data.id,
+            payload: data as Record<string, unknown>,
+        });
 
-        // Log manager actions specifically
         if (actionBy && data.status === "approved") {
             await createLog(
                 OVERTIME_REQUEST_LOG_MESSAGES.APPROVED({
@@ -135,7 +119,6 @@ export async function updateOvertimeRequest(
                 "Success",
             );
         } else if (actionBy) {
-            // Log general update
             await createLog(
                 OVERTIME_REQUEST_LOG_MESSAGES.UPDATED({
                     id: data.id,
@@ -152,7 +135,6 @@ export async function updateOvertimeRequest(
     } catch (err) {
         console.error(err);
 
-        // Log manager action failures
         if (actionBy && data.status === "approved") {
             await createLog(
                 OVERTIME_REQUEST_LOG_MESSAGES.APPROVED({
@@ -177,7 +159,6 @@ export async function updateOvertimeRequest(
                 "Failure",
             );
         } else if (actionBy) {
-            // Log general update failure
             await createLog(
                 OVERTIME_REQUEST_LOG_MESSAGES.UPDATED({
                     id: data.id,

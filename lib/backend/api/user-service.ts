@@ -1,20 +1,32 @@
-import { getAuth, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import {
+    fetchBackendSession,
+    loginWithBackend,
+    type AuthSessionResponse,
+} from "@/lib/backend/client/auth-client";
 
-export async function confirmPassword(password: string) {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user || !user.email) {
+const getAuthenticatedEmail = async (): Promise<string> => {
+    const session = await fetchBackendSession();
+    if (!session.authenticated || !session.user?.email) {
         throw new Error("No logged-in user found");
     }
 
-    // Create credential with the entered password
-    const credential = EmailAuthProvider.credential(user.email, password);
+    return session.user.email;
+};
 
+const isSuccessfulAuth = (session: AuthSessionResponse): boolean => {
+    if (!session.authenticated) {
+        return false;
+    }
+
+    return Boolean(session.user?.uid);
+};
+
+export async function confirmPassword(password: string) {
     try {
-        await reauthenticateWithCredential(user, credential);
-        return true;
-    } catch (error) {
+        const email = await getAuthenticatedEmail();
+        const session = await loginWithBackend({ email, password });
+        return isSuccessfulAuth(session);
+    } catch {
         return false;
     }
 }

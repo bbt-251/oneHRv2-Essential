@@ -179,7 +179,7 @@ export function AddLeaveRequestModal({
                             htmlFor="onBehalf"
                             className={`text-sm ${theme === "dark" ? "text-slate-300" : "text-slate-600"}`}
                         >
-                            Request leave on someone's behalf
+                            Request leave on someone&apos;s behalf
                         </Label>
                     </div>
 

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     Select,
     SelectContent,
@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { PaymentTypeModel } from "@/lib/models/hr-settings";
 import { Loader2, Plus } from "lucide-react";
+
+type PaymentFieldValue = PaymentTypeModel[keyof PaymentTypeModel];
 
 interface PaymentTypeFormProps {
     data?: PaymentTypeModel;
@@ -50,7 +52,7 @@ export function PaymentTypeForm({
         },
     );
 
-    const [isCustom, setIsCustom] = useState(
+    const [isCustom, setIsCustom] = useState<boolean>(
         data ? !predefinedTypes.includes(data.paymentType) : false,
     );
 
@@ -115,7 +117,7 @@ export function PaymentTypeForm({
         }
     };
 
-    const handleInputChange = (field: keyof PaymentTypeModel, value: any) => {
+    const handleInputChange = (field: keyof PaymentTypeModel, value: PaymentFieldValue) => {
         setFormData({ ...formData, [field]: value });
         // Clear error when user starts typing
         if (errors[field]) {
@@ -400,8 +402,8 @@ export function PaymentTypeForm({
                         <p className="text-sm text-blue-800 dark:text-blue-200">
                             <strong>How it works:</strong> The payment will be tax-free up to the
                             lesser of:
-                            <br />• {formData.taxabilityThresholdAmount}% of the employee's base
-                            salary, OR
+                            <br />• {formData.taxabilityThresholdAmount}% of the employee&apos;s
+                            base salary, OR
                             <br />• {formData.taxabilityThresholdValue || 0} (whichever is smaller)
                             <br />
                             <br />

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +28,11 @@ import {
 } from "@/components/ui/table";
 import { EmployeeModel } from "@/lib/models/employee";
 
+interface DeductionTypeOption {
+    id: string;
+    deductionName?: string;
+}
+
 interface DeductionEntry {
     timestamp: string;
     id: string;
@@ -42,7 +46,7 @@ interface AddEditDeductionDialogProps {
     isAddDeductionDialogOpen: boolean;
     setIsAddDeductionDialogOpen: (open: boolean) => void;
     isDeductionEditMode: boolean;
-    editingDeductionId: string | null;
+    _editingDeductionId: string | null;
     newDeduction: Partial<DeductionEntry>;
     setNewDeduction: (deduction: Partial<DeductionEntry>) => void;
     selectedEmployeesForDeductionForm: EmployeeModel[];
@@ -54,17 +58,17 @@ interface AddEditDeductionDialogProps {
     filteredDeductionEmployees: EmployeeModel[];
     handleDeductionEmployeeToggle: (employee: EmployeeModel) => void;
     removeDeductionEmployee: (id: string) => void;
-    deductionTypes: any[];
+    deductionTypes: DeductionTypeOption[];
     handleAddDeduction: () => void;
     isAddEditLoading: boolean;
-    deductionsData: DeductionEntry[];
+    _deductionsData: DeductionEntry[];
 }
 
 export function AddEditDeductionDialog({
     isAddDeductionDialogOpen,
     setIsAddDeductionDialogOpen,
     isDeductionEditMode,
-    editingDeductionId,
+    _editingDeductionId,
     newDeduction,
     setNewDeduction,
     selectedEmployeesForDeductionForm,
@@ -79,7 +83,7 @@ export function AddEditDeductionDialog({
     deductionTypes,
     handleAddDeduction,
     isAddEditLoading,
-    deductionsData,
+    _deductionsData,
 }: AddEditDeductionDialogProps) {
     return (
         <Dialog open={isAddDeductionDialogOpen} onOpenChange={setIsAddDeductionDialogOpen}>

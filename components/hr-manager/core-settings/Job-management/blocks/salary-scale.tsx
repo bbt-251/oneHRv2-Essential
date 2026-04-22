@@ -23,20 +23,16 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import {
-    hrSettingsService,
-    SalaryScaleModel,
-    ScaleModel,
-} from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService, SalaryScaleModel, ScaleModel } from "@/lib/backend/hr-settings-service";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 import { cn } from "@/lib/utils";
 import { Plus, Settings } from "lucide-react";
 import { useState } from "react";
 
 export default function SalaryScale() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const salaryScales = hrSettings.salaryScales;
     const GradeDefinition = hrSettings.grades;
 
@@ -56,14 +52,17 @@ export default function SalaryScale() {
         },
     );
 
-    const [showConfigModal, setShowConfigModal] = useState(false);
-    const [showCellModal, setShowCellModal] = useState(false);
+    const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+    const [showCellModal, setShowCellModal] = useState<boolean>(false);
     const [editingCell, setEditingCell] = useState<{ row: number; column: number } | null>(null);
     const [cellSalary, setCellSalary] = useState<number>(0);
 
     const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
 
-    const [configForm, setConfigForm] = useState({
+    const [configForm, setConfigForm] = useState<{
+        numberOfSteps: number;
+        grades: string;
+    }>({
         numberOfSteps: currentScale.numberOfSteps,
         grades:
             Array.from(new Set(currentScale.scales.map(s => s.grade))).join(", ") ||

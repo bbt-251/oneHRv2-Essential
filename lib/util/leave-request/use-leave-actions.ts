@@ -1,19 +1,19 @@
 // useLeaveActions.ts
 
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/data-provider";
 import { useToast } from "@/context/toastContext";
 import { updateAttendance } from "@/lib/backend/api/attendance/attendance-service";
 import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
 import {
-    getLeaveManagementById,
-    updateLeaveManagement,
-} from "@/lib/backend/api/employee-management/leave-management-service";
+    getLeaveRequestByIdWithBackend,
+    updateLeaveRequestWithBackend,
+} from "@/lib/backend/client/leave-client";
 import getListOfDays, { months } from "@/lib/backend/functions/getListOfDays";
-import { AttendanceModel } from "@/lib/models/attendance";
+import { AttendanceModel, DailyAttendance } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
 import { LeaveCommentModel, LeaveModel } from "@/lib/models/leave";
-import getFullName from "@/lib/util/getEmployeeFullName";
+import { LeaveTypeModel } from "@/lib/models/hr-settings";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { sendNotification } from "../notification/send-notification";
@@ -22,7 +22,7 @@ export const useLeaveActions = (
     selectedLeave: LeaveModel,
     setIsLeaveDetailModalOpen: (open: boolean) => void,
 ) => {
-    const { activeEmployees, attendances, hrSettings } = useFirestore();
+    const { activeEmployees, attendances, ...hrSettings } = useData();
     const { showToast } = useToast();
     const { userData } = useAuth();
     const leaveTypes = hrSettings.leaveTypes;
@@ -38,15 +38,11 @@ export const useLeaveActions = (
     const handleRefuseLeaveRequest = async (leaveRequestId: string, comment: string) => {
         setIsRefuseLeaveLoading(true);
         try {
-            const existingLeave = await getLeaveManagementById(leaveRequestId);
+            const existingLeave = await getLeaveRequestByIdWithBackend(leaveRequestId);
             if (!existingLeave) {
                 showToast("Error", "Leave request not found", "error");
                 return;
             }
-
-            const employee = activeEmployees.find(
-                (emp: any) => emp.uid === existingLeave.employeeID,
-            );
 
             const newComment: LeaveCommentModel = {
                 by: userData?.employeeID || "",
@@ -57,16 +53,13 @@ export const useLeaveActions = (
                 ? [...existingLeave.comments, newComment]
                 : [newComment];
 
-            const result = await updateLeaveManagement(
-                {
-                    id: leaveRequestId,
-                    leaveStage: "Refused",
-                    leaveState: "Closed",
-                    comments: updatedComments,
-                },
-                userData?.uid,
-                getFullName(employee as EmployeeModel),
-            );
+            const response = await updateLeaveRequestWithBackend({
+                id: leaveRequestId,
+                leaveStage: "Refused",
+                leaveState: "Closed",
+                comments: updatedComments,
+            });
+            const result = Boolean(response);
 
             if (result) {
                 showToast("Leave Refused", "Leave request has been refused.", "success");
@@ -104,7 +97,7 @@ export const useLeaveActions = (
         setIsApproveLoading(true);
         try {
             const employee = activeEmployees.find(
-                (emp: any) => emp.uid === leaveRequest.employeeID,
+                (emp: EmployeeModel) => emp.uid === leaveRequest.employeeID,
             );
             if (!employee) {
                 showToast("Error", "Employee not found. Cannot process leave.", "error");
@@ -112,7 +105,7 @@ export const useLeaveActions = (
             }
 
             const leaveTypeDetails = leaveTypes.find(
-                (lt: any) => lt.name === leaveRequest.leaveType,
+                (lt: LeaveTypeModel) => lt.name === leaveRequest.leaveType,
             );
             let leaveAcronym =
                 leaveTypeDetails?.acronym ||
@@ -132,7 +125,7 @@ export const useLeaveActions = (
                 dayjs(leaveRequest.lastDayOfLeave),
             );
             const employeeAttendances = attendances.filter(
-                (doc: any) => doc.uid === leaveRequest.employeeID,
+                (doc: AttendanceModel) => doc.uid === leaveRequest.employeeID,
             );
             const updatedAttendancesMap = new Map<string, AttendanceModel>();
 
@@ -157,7 +150,7 @@ export const useLeaveActions = (
                         JSON.parse(JSON.stringify(originalAttendance));
                     daysInMonth.forEach(d => {
                         const dayAtt = attendanceToUpdate.values.find(
-                            (val: any) => val.day === d.date(),
+                            (val: DailyAttendance) => val.day === d.date(),
                         );
                         if (dayAtt) {
                             if (isHalfDay && isSameDay) {
@@ -189,11 +182,11 @@ export const useLeaveActions = (
                 updateAttendance(att, userData?.uid || ""),
             );
             updatePromises.push(
-                updateLeaveManagement(
-                    { id: leaveRequest.id, leaveStage: "Approved", leaveState: "Closed" },
-                    userData?.uid,
-                    getFullName(employee as EmployeeModel),
-                ),
+                updateLeaveRequestWithBackend({
+                    id: leaveRequest.id,
+                    leaveStage: "Approved",
+                    leaveState: "Closed",
+                }),
             );
             updatePromises.push(
                 updateEmployee({
@@ -249,7 +242,7 @@ export const useLeaveActions = (
         setIsAcceptRollbackLoading(true);
         try {
             const employee = activeEmployees.find(
-                (emp: any) => emp.uid === leaveRequest.employeeID,
+                (emp: EmployeeModel) => emp.uid === leaveRequest.employeeID,
             );
             if (!employee) {
                 showToast("Error", "Employee not found.", "error");
@@ -286,13 +279,13 @@ export const useLeaveActions = (
                         JSON.parse(JSON.stringify(originalAttendance));
                     daysInMonth.forEach(d => {
                         const dayAtt = attendanceToUpdate.values.find(
-                            (val: any) => val.day === d.date(),
+                            (val: DailyAttendance) => val.day === d.date(),
                         );
                         if (dayAtt) {
                             // For half-day, only reset if it matches the half-day code
                             if (isHalfDay && isSameDay && dayAtt.value) {
                                 const leaveTypeDetails = leaveTypes.find(
-                                    (lt: any) => lt.name === leaveRequest.leaveType,
+                                    (lt: LeaveTypeModel) => lt.name === leaveRequest.leaveType,
                                 );
                                 const leaveAcronym =
                                     leaveTypeDetails?.acronym ||
@@ -332,16 +325,12 @@ export const useLeaveActions = (
                 updateAttendance(att, userData?.uid || ""),
             );
             updatePromises.push(
-                updateLeaveManagement(
-                    {
-                        id: leaveRequest.id,
-                        leaveStage: "Cancelled",
-                        leaveState: "Closed",
-                        rollbackStatus: "Accepted",
-                    },
-                    userData?.uid,
-                    getFullName(employee as EmployeeModel),
-                ),
+                updateLeaveRequestWithBackend({
+                    id: leaveRequest.id,
+                    leaveStage: "Cancelled",
+                    leaveState: "Closed",
+                    rollbackStatus: "Accepted",
+                }),
             );
             updatePromises.push(
                 updateEmployee({
@@ -395,15 +384,11 @@ export const useLeaveActions = (
     const handleRefuseRollbackRequest = async (leaveRequestId: string, refuseComment: string) => {
         setIsRefuseRollbackLoading(true);
         try {
-            const existingLeave = await getLeaveManagementById(leaveRequestId);
+            const existingLeave = await getLeaveRequestByIdWithBackend(leaveRequestId);
             if (!existingLeave) {
                 showToast("Error", "Leave request not found", "error");
                 return;
             }
-
-            const employee = activeEmployees.find(
-                (emp: any) => emp.uid === existingLeave.employeeID,
-            );
 
             const newComment: LeaveCommentModel = {
                 by: userData?.employeeID || "",
@@ -414,15 +399,12 @@ export const useLeaveActions = (
                 ? [...existingLeave.comments, newComment]
                 : [newComment];
 
-            const result = await updateLeaveManagement(
-                {
-                    id: leaveRequestId,
-                    rollbackStatus: "Refused",
-                    comments: updatedComments,
-                },
-                userData?.uid,
-                getFullName(employee as EmployeeModel),
-            );
+            const response = await updateLeaveRequestWithBackend({
+                id: leaveRequestId,
+                rollbackStatus: "Refused",
+                comments: updatedComments,
+            });
+            const result = Boolean(response);
 
             if (result) {
                 showToast("Rollback Refused", "The leave request will remain active.", "success");

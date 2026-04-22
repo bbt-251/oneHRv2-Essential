@@ -16,12 +16,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DailyAttendance, WorkedHoursModel } from "@/lib/models/attendance";
-import { formatHour, getUserTimezone } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useState } from "react";
 
 interface ClockEntry {
     id: string;
@@ -38,7 +35,7 @@ interface AttendanceChangeFormProps {
         dailyAttendance: DailyAttendance;
     };
     onClose: () => void;
-    onSubmit: (data: any, comment: string) => Promise<void>;
+    onSubmit: (data: WorkedHoursModel[], comment: string) => Promise<void>;
 }
 
 const getTypeLabel = (type: string) => {
@@ -57,7 +54,13 @@ const getTypeLabel = (type: string) => {
 };
 
 export function AttendanceChangeForm({ day, onClose, onSubmit }: AttendanceChangeFormProps) {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        timestamp: string;
+        date: string;
+        workedHours: string;
+        status: string;
+        comment: string;
+    }>({
         timestamp: "",
         date: `${day.year}-${String(
             new Date(`${day.month} 1, ${day.year}`).getMonth() + 1,
@@ -66,14 +69,7 @@ export function AttendanceChangeForm({ day, onClose, onSubmit }: AttendanceChang
         status: "pending",
         comment: "",
     });
-    const [submitLoading, setSubmitLoading] = useState(false);
-    const [oldValues, setOldValues] = useState<WorkedHoursModel[]>([]);
-
-    // Get employee's stored timezone, fallback to current browser timezone
-    const { employees } = useFirestore();
-    const { userData } = useAuth();
-    const employeeData = employees.find(emp => emp.uid === userData?.uid);
-    const userTimezone = employeeData?.timezone || getUserTimezone();
+    const [submitLoading, setSubmitLoading] = useState<boolean>(false);
 
     const [newValues, setNewValues] = useState<WorkedHoursModel[]>([
         {
@@ -90,9 +86,9 @@ export function AttendanceChangeForm({ day, onClose, onSubmit }: AttendanceChang
         },
     ]);
 
-    useEffect(() => {
+    const oldValues = (() => {
         const workedHours = day?.dailyAttendance?.workedHours ?? [];
-        const sortedWorkedHours = [...workedHours].sort((a, b) => {
+        return [...workedHours].sort((a, b) => {
             const timeA = dayjs(a.timestamp);
             const timeB = dayjs(b.timestamp);
 
@@ -100,8 +96,7 @@ export function AttendanceChangeForm({ day, onClose, onSubmit }: AttendanceChang
             if (timeA.isAfter(timeB)) return 1;
             return 0;
         });
-        setOldValues(sortedWorkedHours);
-    }, []);
+    })();
 
     const handleSubmit = async (e: React.FormEvent) => {
         setSubmitLoading(true);
@@ -120,16 +115,6 @@ export function AttendanceChangeForm({ day, onClose, onSubmit }: AttendanceChang
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const addOldValue = () => {
-        const newEntry: WorkedHoursModel = {
-            id: crypto.randomUUID(),
-            type: "Clock In",
-            hour: "",
-            timestamp: "",
-        };
-        setOldValues(prev => [...prev, newEntry]);
     };
 
     const addNewValue = () => {

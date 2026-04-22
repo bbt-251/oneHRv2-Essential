@@ -14,7 +14,7 @@ import {
 import { Download, X, FileText, File } from "lucide-react";
 import type { EmployeeModel } from "@/lib/models/employee";
 import { ColumnConfig } from "@/lib/models/type";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import getEmployeeFullName from "@/lib/util/getEmployeeFullName";
 
 interface ExportModalProps {
@@ -24,7 +24,7 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ employees, columns, onClose }: ExportModalProps) {
-    const { hrSettings, employees: allEmployees } = useFirestore();
+    const { employees: allEmployees, ...hrSettings } = useData();
 
     const getName = (items: { id: string; name: string }[], id: string) =>
         items.find(item => item.id === id)?.name || "";
@@ -155,7 +155,7 @@ export function ExportModal({ employees, columns, onClose }: ExportModalProps) {
         columns.filter(col => col.visible).map(col => col.key),
     );
     const [exportFormat, setExportFormat] = useState<"csv" | "pdf">("csv");
-    const [fileName, setFileName] = useState("employees_export");
+    const [fileName, setFileName] = useState<string>("employees_export");
 
     const handleColumnToggle = (columnKey: string, checked: boolean) => {
         if (checked) {

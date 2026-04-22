@@ -2,9 +2,8 @@
 
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/data-provider";
 import { useToast } from "@/context/toastContext";
-import { getAuth } from "firebase/auth";
 import { generateAttendanceForEmployee } from "@/lib/backend/api/attendance/attendance-service";
 import {
     createEmployee,
@@ -28,7 +27,7 @@ import { DeleteEmployeeModal } from "./modals/delete-employee-modal";
 
 export default function EmployeeManagement() {
     const { showToast } = useToast();
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const { userData } = useAuth();
     const monthlyWorkingHours = hrSettings.payrollSettings?.at(0)?.monthlyWorkingHours ?? 173;
     const { theme } = useTheme();
@@ -98,100 +97,16 @@ export default function EmployeeManagement() {
         const salary: number = Number(employee.salary) ?? 0;
         const hourlyWage = await calculateHourlyWage(salary, monthlyWorkingHours);
 
-        // Remove password from employee data for database operations
-        const { password, ...employeeWithoutPassword } = employee;
-
         // Enable loading state for both edit and create operations
         setIsLoading(true);
 
         try {
             if (editingEmployee) {
-                // For editing, exclude password from database save
                 const updatedEmployee = {
-                    ...employeeWithoutPassword,
+                    ...employee,
                     id: editingEmployee.id,
                     hourlyWage,
                 } as EmployeeModel;
-
-                // Detect if companyEmail has changed to update Firebase Auth
-                // Use optional chaining to handle cases where companyEmail might be undefined
-                const currentEmail = (updatedEmployee.companyEmail ?? "").toLowerCase();
-                const originalEmail = (editingEmployee.companyEmail ?? "").toLowerCase();
-                const emailChanged = currentEmail !== originalEmail;
-
-                // First update Firebase Auth if email changed
-                if (emailChanged) {
-                    // Ensure we have a valid email before proceeding
-                    if (
-                        !updatedEmployee.companyEmail ||
-                        updatedEmployee.companyEmail.trim() === ""
-                    ) {
-                        showToast("Company email is required", "error", "error");
-                        setIsLoading(false);
-                        return;
-                    }
-
-                    interface PatchUserData {
-                        uid: string;
-                        role: string[];
-                        email: string;
-                    }
-
-                    const patchData: PatchUserData = {
-                        uid: updatedEmployee.uid,
-                        role: updatedEmployee.role,
-                        email: updatedEmployee.companyEmail,
-                    };
-
-                    const authRes = await fetch("/api/register-user", {
-                        method: "PATCH",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(patchData),
-                    });
-
-                    const authResult = await authRes.json();
-
-                    if (!authResult.success) {
-                        showToast(
-                            `Failed to update login email: ${authResult.message}`,
-                            "error",
-                            "error",
-                        );
-                        return; // Stop execution if Firebase Auth update fails
-                    }
-                } else {
-                    // Update only role if email hasn't changed
-                    interface PatchUserData {
-                        uid: string;
-                        role: string[];
-                    }
-
-                    const patchData: PatchUserData = {
-                        uid: updatedEmployee.uid,
-                        role: updatedEmployee.role,
-                    };
-
-                    const authRes = await fetch("/api/register-user", {
-                        method: "PATCH",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(patchData),
-                    });
-
-                    const authResult = await authRes.json();
-
-                    if (!authResult.success) {
-                        showToast(
-                            `Failed to update user role: ${authResult.message}`,
-                            "error",
-                            "error",
-                        );
-                        return; // Stop execution if role update fails
-                    }
-                }
 
                 // Then update the database record
                 const actualDocumentId = await getEmployeeDocumentId(updatedEmployee.uid);
@@ -205,10 +120,7 @@ export default function EmployeeManagement() {
                         ),
                     );
                     if (updateResult) {
-                        const successMessage = emailChanged
-                            ? "Employee updated successfully. Login email has been updated."
-                            : "Employee updated successfully.";
-                        showToast(successMessage, "success", "success");
+                        showToast("Employee updated successfully.", "success", "success");
                     } else {
                         showToast("Failed to update employee record", "error", "error");
                     }
@@ -222,67 +134,48 @@ export default function EmployeeManagement() {
                         ),
                     );
                     if (fallbackResult) {
-                        const successMessage = emailChanged
-                            ? "Employee updated successfully. Login email has been updated."
-                            : "Employee updated successfully.";
-                        showToast(successMessage, "success", "success");
+                        showToast("Employee updated successfully.", "success", "success");
                     } else {
                         showToast("Failed to find and update employee record", "error", "error");
                     }
                 }
             } else {
-                // 1. Register the user in Firebase Auth (includes password)
-                const res = await fetch("/api/register-user", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(employee),
-                });
+                const newEmployee = {
+                    ...employee,
+                    hourlyWage,
+                    trainingDetail: employee.trainingDetail ?? [],
+                    languageSkills: employee.languageSkills ?? [],
+                } as EmployeeModel;
 
-                const result = await res.json();
-                if (result.success) {
-                    // 2. Save to database without password
-                    const newEmployee = {
-                        ...employeeWithoutPassword,
-                        uid: result.uid,
-                        hourlyWage,
-                        trainingDetail: employeeWithoutPassword.trainingDetail ?? [],
-                        languageSkills: employeeWithoutPassword.languageSkills ?? [],
-                    } as EmployeeModel; // Type assertion to satisfy EmployeeModel type
-
-                    const res2 = await createEmployee(
-                        newEmployee,
+                const createdEmployee = await createEmployee(
+                    newEmployee,
+                    userData?.uid ?? "",
+                    EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_CREATED(
+                        `${newEmployee.firstName} ${newEmployee.surname}`,
+                    ),
+                );
+                if (createdEmployee) {
+                    showToast("Employee saved successfully", "success", "success");
+                    const res3 = await generateAttendanceForEmployee(
+                        createdEmployee.uid,
+                        createdEmployee.shiftType,
                         userData?.uid ?? "",
-                        EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_CREATED(
+                        ATTENDANCE_LOG_MESSAGES.GENERATED(
                             `${newEmployee.firstName} ${newEmployee.surname}`,
                         ),
                     );
-                    if (res2) {
-                        showToast("Employee saved successfully", "success", "success");
-                        const res3 = await generateAttendanceForEmployee(
-                            result.uid,
-                            newEmployee.shiftType,
-                            userData?.uid ?? "",
-                            ATTENDANCE_LOG_MESSAGES.GENERATED(
-                                `${newEmployee.firstName} ${newEmployee.surname}`,
-                            ),
-                        );
-                        if (res3.success) {
-                            showToast("Attendance generated successfully", "Success", "success");
-                        } else {
-                            showToast(
-                                "Error generating attendance, please remove the created employee and try again",
-                                "Error",
-                                "error",
-                                5000,
-                            );
-                        }
+                    if (res3.success) {
+                        showToast("Attendance generated successfully", "Success", "success");
                     } else {
-                        showToast("Error saving employee", "Error", "error");
+                        showToast(
+                            "Error generating attendance, please remove the created employee and try again",
+                            "Error",
+                            "error",
+                            5000,
+                        );
                     }
                 } else {
-                    showToast(result.message, "error", "error");
+                    showToast("Error saving employee", "Error", "error");
                 }
             }
 

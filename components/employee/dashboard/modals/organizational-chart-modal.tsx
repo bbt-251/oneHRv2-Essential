@@ -27,9 +27,8 @@ import {
     ChevronDown,
     ChevronUp,
 } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import { EmployeeModel } from "@/lib/models/employee";
-import { hr } from "date-fns/locale";
 
 interface OrganizationalChartModalProps {
     isOpen: boolean;
@@ -50,7 +49,7 @@ interface Employee {
 }
 
 export function OrganizationalChartModal({ isOpen, onClose }: OrganizationalChartModalProps) {
-    const { activeEmployees: firestoreEmployees, hrSettings } = useFirestore();
+    const { activeEmployees, hrSettings } = useAppData();
     const departmentsData = hrSettings?.departmentSettings || [];
     const positionsData = hrSettings?.positions || [];
 
@@ -78,12 +77,12 @@ export function OrganizationalChartModal({ isOpen, onClose }: OrganizationalChar
         };
     };
 
-    const employees = firestoreEmployees.map(transformEmployee);
+    const employees = activeEmployees.map(transformEmployee);
 
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const [zoomLevel, setZoomLevel] = useState(100);
+    const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+    const [zoomLevel, setZoomLevel] = useState<number>(100);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedLevels, setSelectedLevels] = useState<Set<string>>(
         new Set(["management", "team", "employee"]),
@@ -318,7 +317,7 @@ export function OrganizationalChartModal({ isOpen, onClose }: OrganizationalChar
                         <div className="relative w-full">
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-0.5 bg-gray-400"></div>
                             <div className="flex justify-center gap-8 pt-8">
-                                {directReports.map((report, index) => (
+                                {directReports.map(report => (
                                     <div
                                         key={report.uid}
                                         className="relative flex flex-col items-center"

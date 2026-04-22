@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { PayrollData } from "@/components/hr-manager/compensation-benefits/payroll-management/page";
 
 /** Treat tiny float noise as zero for OT pay visibility. */
@@ -76,7 +76,7 @@ export function usePayrollTabs(
     clearFilters: () => void,
 ) {
     const [activeTab, setActiveTab] = useState<string>("profile");
-    const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+    const [columnOverrides, setColumnOverrides] = useState<Record<string, boolean>>({});
 
     const overtimeCols = useMemo(
         () =>
@@ -116,15 +116,6 @@ export function usePayrollTabs(
         );
         return unique.filter(col => anyEmployeeHasOvertimePay(filteredData, col.key));
     }, [filteredData]);
-
-    const overtimePayColsKey = useMemo(
-        () =>
-            overtimePayCols
-                .map(c => c.key)
-                .sort()
-                .join(","),
-        [overtimePayCols],
-    );
 
     const paymentCols = useMemo(
         () =>
@@ -199,41 +190,26 @@ export function usePayrollTabs(
         [activeTab, overtimeCols, overtimePayCols, paymentCols, deductionCols, loanCols],
     );
 
-    const initializeVisibleColumns = useCallback(
-        (tab: string) => {
-            const columns = getCurrentColumns(tab);
-            const initialState: Record<string, boolean> = {};
-            columns.forEach(col => {
-                initialState[col.key] = true;
-            });
-            setVisibleColumns(initialState);
-        },
-        [getCurrentColumns],
-    );
-
     const handleTabChange = (tab: string) => {
         setActiveTab(tab);
-        initializeVisibleColumns(tab);
         clearFilters();
     };
 
     const toggleColumnVisibility = (columnKey: string) => {
-        setVisibleColumns(prev => ({
+        setColumnOverrides(prev => ({
             ...prev,
             [columnKey]: !prev[columnKey],
         }));
     };
 
-    useEffect(() => {
-        if (Object.keys(visibleColumns).length === 0) {
-            initializeVisibleColumns(activeTab);
-        }
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (activeTab !== "payments") return;
-        initializeVisibleColumns("payments");
-    }, [overtimePayColsKey, activeTab, initializeVisibleColumns]);
+    const visibleColumns = useMemo(() => {
+        const columns = getCurrentColumns(activeTab);
+        const nextVisibleColumns: Record<string, boolean> = {};
+        columns.forEach(column => {
+            nextVisibleColumns[column.key] = columnOverrides[column.key] ?? true;
+        });
+        return nextVisibleColumns;
+    }, [activeTab, columnOverrides, getCurrentColumns]);
 
     return {
         activeTab,

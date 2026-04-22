@@ -5,6 +5,7 @@ import { messages } from "./message-dictionary";
 
 const messageKeyTitles: Partial<Record<keyof typeof messages, string>> = {
     CLOCK_OUT: "Clock-Out Notification",
+    LEAVE_REQUEST: "Leave Request",
     LEAVE_REQUEST_SUBMITTED_TO_MANAGER: "Leave Request Submitted",
     ATTENDANCE_CHANGE_REFUSED_FOR_EMPLOYEE: "Attendance Change Request Refused",
     ATTENDANCE_CHANGE_REFUSED_FOR_MANAGER: "Attendance Change Request Refused",
@@ -20,21 +21,6 @@ const messageKeyTitles: Partial<Record<keyof typeof messages, string>> = {
     OT_REQUEST_REJECTED: "Overtime Request Rejected",
     ATTENDANCE_CHANGE_REQUEST_SUBMITTED: "Attendance Change Request Submitted",
     ATTENDANCE_CHANGE_REQUEST_APPROVED: "Attendance Change Request Approved",
-    TRAINING_MATERIAL_REQUESTED: "Training Material Requested",
-    TRAINING_MATERIAL_APPROVED: "Training Material Approved",
-    TRAINING_MATERIAL_PUBLISHED: "Training Material Published",
-    MANDATORY_TRAINING_ASSIGNED: "Mandatory Training Assigned",
-    HIRING_NEED_ISSUED_FOR_REVIEW: "Hiring Need Issued for Review",
-    HIRING_NEED_ISSUED_AWAITING_REVIEW: "Hiring Need Issued Awaiting Review",
-    HIRING_NEED_APPROVED_FOR_MANAGER: "Hiring Need Approved",
-    HIRING_NEED_APPROVED_FOR_HRM: "Hiring Need Approved",
-    JOB_POST_AVAILABLE_FOR_SHARING: "Job Post Available for Sharing",
-    JOB_POST_PUBLISHED: "Job Post Published",
-    EMPLOYEE_OBJECTIVE_SET: "Objective Set",
-    MANAGER_OBJECTIVE_ASSIGNED: "Objective Assigned",
-    TRANSFER_REQUESTED: "Transfer Request Submitted",
-    TRANSFER_APPROVED: "Transfer Request Approved",
-    TRANSFER_REFUSED: "Transfer Request Refused",
 };
 
 export function getTitleFromMessageKey(messageKey: keyof typeof messages): string {
@@ -108,7 +94,7 @@ export async function sendNotification<K extends keyof NotificationPayloads>({
                     try {
                         await sendEmail(user.email, emailSubject, emailBody);
                         channelStats.email.success++;
-                    } catch (error) {
+                    } catch {
                         channelStats.email.errors++;
                     }
                 }
@@ -119,7 +105,7 @@ export async function sendNotification<K extends keyof NotificationPayloads>({
                     try {
                         await sendTelegram(user.telegramChatID, telegramMessage);
                         channelStats.telegram.success++;
-                    } catch (error) {
+                    } catch {
                         channelStats.telegram.errors++;
                     }
                 }
@@ -130,7 +116,7 @@ export async function sendNotification<K extends keyof NotificationPayloads>({
                     try {
                         await sendInApp(user.uid, inAppMessage, title, action);
                         channelStats.inapp.success++;
-                    } catch (error) {
+                    } catch {
                         channelStats.inapp.errors++;
                     }
                 }

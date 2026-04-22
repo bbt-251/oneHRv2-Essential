@@ -13,15 +13,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import {
-    hrSettingsService,
-    HrSettingsType,
-    LocationModel,
-} from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService, LocationModel } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/context/authContext";
 import { LOCATION_LOG_MESSAGES } from "@/lib/log-descriptions/notification-location";
@@ -55,7 +50,9 @@ export function AddLocation({
     const { theme } = useTheme();
     const { userData } = useAuth();
 
-    const [locationTypesState, setLocationTypesState] = useState([
+    const [locationTypesState, setLocationTypesState] = useState<
+        { value: string; label: string }[]
+    >([
         { value: "country", label: "Country" },
         { value: "region", label: "Region/State" },
         { value: "city", label: "City" },
@@ -83,7 +80,7 @@ export function AddLocation({
             address: "",
         });
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<LocationModel>({
         name: "",
         type: "office",
         startDate: "",
@@ -132,7 +129,7 @@ export function AddLocation({
         return [];
     };
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const handleSubmit = async () => {
         if (isSubmitting) return;

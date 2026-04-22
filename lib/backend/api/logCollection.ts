@@ -1,18 +1,12 @@
 import { LogModel } from "@/lib/models/log";
 import { getTimestamp } from "@/lib/util/dayjs_format";
-import { doc, setDoc } from "firebase/firestore";
-import { logCollection } from "../firebase/collections";
+import { inMemoryStore, InMemoryRecord } from "@/lib/backend/persistence/in-memory-store";
 
-/**
- * LogInfo interface for creating activity logs
- */
 export interface LogInfo {
     title: string;
     description: string;
     module: string;
 }
-
-const collectionRef = logCollection;
 
 export async function createLog(
     logInfo: LogInfo,
@@ -20,8 +14,9 @@ export async function createLog(
     status: "Success" | "Failure",
 ): Promise<boolean> {
     try {
-        const docRef = doc(collectionRef);
-        const logData: Omit<LogModel, "id"> = {
+        const docRef = inMemoryStore.createDocument("logs", {});
+        const logData: LogModel = {
+            id: docRef.id,
             timestamp: getTimestamp(),
             module: logInfo.module,
             title: logInfo.title,
@@ -29,7 +24,7 @@ export async function createLog(
             status,
             actionBy,
         };
-        await setDoc(docRef, logData);
+        inMemoryStore.setDocument(`logs/${docRef.id}`, logData as unknown as InMemoryRecord);
         return true;
     } catch (error) {
         console.log("Error creating log", error);

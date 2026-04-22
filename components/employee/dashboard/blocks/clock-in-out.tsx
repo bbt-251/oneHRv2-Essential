@@ -7,7 +7,7 @@ import { useAttendance } from "@/hooks/use-attendance";
 import { AttendanceModel } from "@/lib/models/attendance";
 import dayjs from "dayjs";
 import { Clock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClockInModal } from "../../attendance-management/blocks/clock-in-modal";
 
 interface ClockInOutProps {
@@ -16,20 +16,14 @@ interface ClockInOutProps {
 
 export function ClockInOut({ variant = "header" }: ClockInOutProps) {
     const { attendance: attendances } = useAttendance({ role: "Employee" });
-    const [currentTime, setCurrentTime] = useState(new Date());
-    const [isClocked, setIsClocked] = useState(false);
-    const [clockInTime, setClockInTime] = useState<Date | null>(null);
-    const [currentMonthAttendance, setCurrentMonthAttendance] = useState<AttendanceModel | null>(
-        null,
+    const [currentTime, setCurrentTime] = useState<Date>(new Date());
+    const [isClocked] = useState<boolean>(false);
+    const [clockInTime] = useState<Date | null>(null);
+    const currentMonthAttendance = useMemo<AttendanceModel | null>(
+        () => attendances.find(a => a.month == dayjs().format("MMMM")) ?? null,
+        [attendances],
     );
-    const [isClockInModalOpen, setIsClockInModalOpen] = useState(false);
-
-    useEffect(() => {
-        const attendance = attendances.find(a => a.month == dayjs().format("MMMM"));
-        if (attendance) {
-            setCurrentMonthAttendance(attendance);
-        }
-    }, [attendances]);
+    const [isClockInModalOpen, setIsClockInModalOpen] = useState<boolean>(false);
 
     // Update time every second
     useEffect(() => {

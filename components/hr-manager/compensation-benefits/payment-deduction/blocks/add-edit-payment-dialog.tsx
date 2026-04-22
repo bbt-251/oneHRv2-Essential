@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,8 +32,17 @@ import { EmployeeModel } from "@/lib/models/employee";
 import { months } from "@/lib/backend/functions/getListOfDays";
 import { calculateSeverancePay } from "@/lib/backend/functions/calculateSeverancePay";
 import { calculateAnnualLeavePay } from "@/lib/backend/functions/calculateAnnualLeavePay";
-import { numberCommaSeparator } from "@/lib/backend/functions/numberCommaSeparator";
 import dayjs from "dayjs";
+
+interface PaymentTypeOption {
+    id: string;
+    paymentName?: string;
+    paymentType?: string;
+}
+
+interface TaxOption {
+    id: string;
+}
 
 interface PaymentEntry {
     id: string;
@@ -51,7 +60,7 @@ interface AddEditPaymentDialogProps {
     isAddDialogOpen: boolean;
     setIsAddDialogOpen: (open: boolean) => void;
     isEditMode: boolean;
-    editingPaymentId: string | null;
+    _editingPaymentId: string | null;
     newPayment: Partial<PaymentEntry>;
     setNewPayment: (payment: Partial<PaymentEntry>) => void;
     selectedEmployeesForForm: EmployeeModel[];
@@ -63,19 +72,19 @@ interface AddEditPaymentDialogProps {
     filteredEmployees: EmployeeModel[];
     handleEmployeeToggle: (employee: EmployeeModel) => void;
     removeEmployee: (id: string) => void;
-    paymentTypes: any[];
+    paymentTypes: PaymentTypeOption[];
     handleAddPayment: () => void;
     isAddEditLoading: boolean;
-    paymentsData: PaymentEntry[];
-    taxes?: any[];
-    hrSettings?: any;
+    _paymentsData: PaymentEntry[];
+    taxes?: TaxOption[];
+    _hrSettings?: unknown;
 }
 
 export function AddEditPaymentDialog({
     isAddDialogOpen,
     setIsAddDialogOpen,
     isEditMode,
-    editingPaymentId,
+    _editingPaymentId,
     newPayment,
     setNewPayment,
     selectedEmployeesForForm,
@@ -90,9 +99,9 @@ export function AddEditPaymentDialog({
     paymentTypes,
     handleAddPayment,
     isAddEditLoading,
-    paymentsData,
+    _paymentsData,
     taxes,
-    hrSettings,
+    _hrSettings,
 }: AddEditPaymentDialogProps) {
     // Check if selected payment type is Severance Pay or Annual Leave
     const selectedPaymentType = paymentTypes.find(pt => pt.id === newPayment.paymentTypeName);
@@ -109,6 +118,8 @@ export function AddEditPaymentDialog({
                 annualLeaveMonth: undefined,
             });
         }
+        // Resetting the draft intentionally uses the latest draft snapshot from props.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedEmployeesForForm]);
 
     // Calculate severance pay when conditions are met
@@ -479,6 +490,9 @@ export function AddEditPaymentDialog({
         if (isSeverancePay && selectedEmployeesForForm.length === 1 && newPayment.severanceMonth) {
             calculateAndSetSeverancePay();
         }
+        // The calculator closes over the current draft and intentionally only reruns on the
+        // severance-specific business inputs listed here.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedEmployeesForForm, newPayment.severanceMonth, isSeverancePay]);
 
     // Effect to calculate annual leave when conditions change
@@ -486,6 +500,9 @@ export function AddEditPaymentDialog({
         if (isAnnualLeave && selectedEmployeesForForm.length === 1 && newPayment.annualLeaveMonth) {
             calculateAndSetAnnualLeavePay();
         }
+        // The calculator closes over the current draft and intentionally only reruns on the
+        // annual-leave-specific business inputs listed here.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         selectedEmployeesForForm,
         newPayment.annualLeaveMonth,

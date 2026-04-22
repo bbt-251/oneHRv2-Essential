@@ -17,7 +17,7 @@ import type { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/context/toastContext";
 import getEmployeeFullName from "@/lib/util/getEmployeeFullName";
-import { getAuth } from "firebase/auth";
+import { cascadeDeleteEmployeeWithBackend } from "@/lib/backend/client/employee-client";
 
 interface DeleteEmployeeModalProps {
     open: boolean;
@@ -28,7 +28,7 @@ interface DeleteEmployeeModalProps {
 export function DeleteEmployeeModal({ open, onOpenChange, employee }: DeleteEmployeeModalProps) {
     const { theme } = useTheme();
     const { showToast } = useToast();
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleConfirmDelete = async () => {
@@ -38,32 +38,17 @@ export function DeleteEmployeeModal({ open, onOpenChange, employee }: DeleteEmpl
         setError(null);
 
         try {
-            const auth = getAuth();
-            const idToken = await auth.currentUser?.getIdToken();
-            if (!idToken) throw new Error("Authentication required.");
-
-            const response = await fetch("/api/employees/delete", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({ employeeId: employee.id }),
-            });
-
-            const result = await response.json();
+            const result = await cascadeDeleteEmployeeWithBackend(employee.uid);
 
             if (result.success) {
-                showToast(
-                    `Employee ${result.deletedEmployee.name} deleted successfully`,
-                    "success",
-                    "success",
-                );
+                showToast(`Employee ${employeeName} deleted successfully`, "success", "success");
                 onOpenChange(false);
             } else {
-                showToast(result.error || "Failed to delete employee", "error", "error");
+                const message = result.errors[0] || "Failed to delete employee";
+                setError(message);
+                showToast(message, "error", "error");
             }
-        } catch (error) {
+        } catch {
             showToast("An error occurred while deleting the employee", "error", "error");
         } finally {
             setIsDeleting(false);
@@ -185,10 +170,6 @@ export function DeleteEmployeeModal({ open, onOpenChange, employee }: DeleteEmpl
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <span>Dependents and related records</span>
                         </div>
-                        {/* <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <span>Firebase authentication account</span>
-                        </div> */}
                     </div>
 
                     {/* Authorization Notice */}

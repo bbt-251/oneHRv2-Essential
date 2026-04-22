@@ -2,24 +2,31 @@
 
 ## Context
 
-- Current stack uses Firebase Authentication, Firestore, Firestore Rules, and Firebase Storage.
+- Current stack uses Firebase Authentication, a document database, document access rules, and Firebase Storage.
 - Target direction is a manually managed backend hosted on Hostinger KVM1.
-- Realtime parity with Firestore `onSnapshot` is required.
+- Realtime parity with snapshot subscriptions is required.
 
 ## Execution Status
 
-| Phase | Name                                                           | Status         |
-| ----- | -------------------------------------------------------------- | -------------- |
-| 0     | Discovery, Scope Lock, and Security Baseline                  | ✅ Complete    |
-| 1     | Environment and Infrastructure Setup                           | ✅ Complete    |
-| 2     | Backend Foundation (Auth, API Skeleton, Authorization)        | ✅ Complete    |
-| 3     | Data Model and Migration Tooling                              | ✅ Complete    |
-| 4     | Realtime Layer (`onSnapshot` Equivalent)                      | ✅ Complete    |
-| 5     | Storage Migration (Firebase Storage Replacement)              | ✅ Complete    |
-| 6     | Domain-by-Domain API Migration (Core Operations First)        | ✅ Complete    |
-| 7     | Frontend Adapter and Incremental Cutover                      | ✅ Complete    |
-| 8     | Dual-Run, Verification, and Cutover                           | ✅ Complete    |
-| 9     | Post-Cutover Hardening and Firebase Decommission              | ✅ Complete    |
+| Phase | Name                                                   | Status      |
+| ----- | ------------------------------------------------------ | ----------- |
+| 0     | Discovery, Scope Lock, and Security Baseline           | ✅ Complete |
+| 1     | Environment and Infrastructure Setup                   | ✅ Complete |
+| 2     | Backend Foundation (Auth, API Skeleton, Authorization) | ✅ Complete |
+| 3     | Data Model and Migration Tooling                       | ✅ Complete |
+| 4     | Realtime Layer (`onSnapshot` Equivalent)               | ✅ Complete |
+| 5     | Storage Migration (Firebase Storage Replacement)       | ✅ Complete |
+| 6     | Domain-by-Domain API Migration (Core Operations First) | ✅ Complete |
+| 7     | Frontend Adapter and Incremental Cutover               | In Progress |
+| 8     | Dual-Run, Verification, and Cutover                    | In Progress |
+| 9     | Post-Cutover Hardening and Firebase Decommission       | In Progress |
+
+## Current Correction
+
+- The routing, service, and cleanup work is much further along than the original Firebase-shaped runtime.
+- However, some active runtime paths still rely on a transitional in-memory persistence layer instead of real Mongo-backed repositories.
+- The most important remaining gap is setup/bootstrap and first-user persistence: creating the initial HR user currently still needs to be moved onto real Mongo persistence before the migration can be treated as functionally complete.
+- Treat Phases 8 and 9 as still in progress until setup/auth bootstrap, employee persistence, and attendance bootstrap persistence are all running against MongoDB.
 
 ## Estimation Rules
 
@@ -36,9 +43,9 @@
 | ID  | Task                                                                                    | Estimate |
 | --- | --------------------------------------------------------------------------------------- | -------: |
 | 0.1 | Create architecture decision record (ADR) for auth, DB, storage, realtime transport     |       2h |
-| 0.2 | Inventory all Firebase touchpoints (auth, firestore, rules, storage, admin SDK)         |       3h |
+| 0.2 | Inventory all Firebase touchpoints (auth, database, rules, storage, admin SDK)          |       3h |
 | 0.3 | Produce endpoint and module dependency map (employee, attendance, leave, payroll, etc.) |       3h |
-| 0.4 | Define target RBAC/ABAC authorization matrix from Firestore rules                       |       4h |
+| 0.4 | Define target RBAC/ABAC authorization matrix from legacy access rules                   |       4h |
 | 0.5 | Define data privacy classification (PII, payroll-sensitive fields)                      |       2h |
 | 0.6 | Define migration acceptance criteria and rollback triggers                              |       2h |
 
@@ -99,7 +106,7 @@
 | --- | ------------------------------------------------------------------ | -------: |
 | 3.1 | Define collection schemas and validation rules for core modules    |       4h |
 | 3.2 | Implement migration ID strategy (`legacyId`, checksum, migratedAt) |       2h |
-| 3.3 | Build Firestore export parser for core entities                    |       4h |
+| 3.3 | Build legacy export parser for core entities                       |       4h |
 | 3.4 | Build transform mappers for employee and role data                 |       4h |
 | 3.5 | Build transform mappers for attendance and leave data              |       4h |
 | 3.6 | Build transform mappers for payroll-related entities               |       4h |
@@ -202,7 +209,7 @@
 | --- | ------------------------------------------------------------------------------ | -------: |
 | 7.1 | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`) |       4h |
 | 7.2 | Replace auth context Firebase calls with API-based auth                        |       4h |
-| 7.3 | Replace core firestore hooks with API + realtime adapter                       |       4h |
+| 7.3 | Replace core collection hooks with API + realtime adapter                      |       4h |
 | 7.4 | Replace file upload paths with signed URL flow                                 |       3h |
 | 7.5 | Add feature flags for module-level data source switching                       |       3h |
 | 7.6 | Add observability logs for source-of-truth mismatch detection                  |       3h |
@@ -266,7 +273,7 @@
 
 | Risk                                             | Impact | Mitigation                                 |
 | ------------------------------------------------ | ------ | ------------------------------------------ |
-| Authorization parity gap vs Firestore rules      | High   | Build policy test matrix before cutover    |
+| Authorization parity gap vs legacy access rules  | High   | Build policy test matrix before cutover    |
 | Realtime fanout overload                         | High   | SSE first, server-side filtering, batching |
 | Data drift during dual-run                       | High   | Drift checks + reconciliation scripts      |
 | File permission regressions                      | Medium | Signed URL policy tests + audit logs       |
@@ -283,6 +290,13 @@ Migration is complete when all of the following are true:
 3. Security controls (authN/authZ/audit/rate limiting) are enforced and tested.
 4. Data validation and reconciliation reports are clean.
 5. Firebase services are no longer required for runtime operations.
+
+## Verification Note
+
+- Repository verification on April 17, 2026 found that the documented implementation is ahead of the actual cutover state.
+- Firebase runtime references still exist across `components`, `hooks`, `app`, and `lib`, so Phases 7-9 remain in progress until the stricter decommission audit passes and regression/cutover tasks are executed.
+- Repository verification on April 21, 2026 found an additional persistence gap: some active runtime flows now use the cleaned-up backend structure but still persist through a transitional in-memory store instead of MongoDB.
+- The migration should not be considered complete until those runtime write paths are backed by real Mongo repositories.
 
 ## Phase 1 Implementation Artifacts
 
@@ -302,100 +316,100 @@ Migration is complete when all of the following are true:
 
 **Status options:** `Todo`, `In Progress`, `Completed`.
 
-| Phase | Task ID | Task | Estimate | Status |
-| ----- | ------- | ---- | -------: | ------ |
-| Phase 0 | 0.1 | Create architecture decision record (ADR) for auth, DB, storage, realtime transport |       2h | Completed |
-| Phase 0 | 0.2 | Inventory all Firebase touchpoints (auth, firestore, rules, storage, admin SDK) |       3h | Completed |
-| Phase 0 | 0.3 | Produce endpoint and module dependency map (employee, attendance, leave, payroll, etc.) |       3h | Completed |
-| Phase 0 | 0.4 | Define target RBAC/ABAC authorization matrix from Firestore rules |       4h | Completed |
-| Phase 0 | 0.5 | Define data privacy classification (PII, payroll-sensitive fields) |       2h | Completed |
-| Phase 0 | 0.6 | Define migration acceptance criteria and rollback triggers |       2h | Completed |
-| Phase 1 | 1.1 | Provision Ubuntu VM baseline hardening (users, SSH policy, firewall) |       3h | Completed |
-| Phase 1 | 1.2 | Configure reverse proxy (Nginx/Caddy), TLS, HSTS |       3h | Completed |
-| Phase 1 | 1.3 | Set up MongoDB environment (managed or replica set) |       4h | Completed |
-| Phase 1 | 1.4 | Set up Redis for queues, rate limiting, and cache |       2h | Completed |
-| Phase 1 | 1.5 | Configure object storage bucket and IAM/policy for signed URL usage |       3h | Completed |
-| Phase 1 | 1.6 | Configure centralized log collection and retention |       3h | Completed |
-| Phase 1 | 1.7 | Configure backup routines (DB + object storage metadata snapshots) |       3h | Completed |
-| Phase 1 | 1.8 | Configure monitoring/alerts (CPU, memory, error rate, auth failures) |       3h | Completed |
-| Phase 1 | 1.9 | Define stable API domain strategy for dev/int/staging/prod |       2h | Completed |
-| Phase 1 | 1.10 | Configure DNS and reverse-proxy routing for environment API domains |       3h | Completed |
-| Phase 1 | 1.11 | Define tenant routing strategy (subdomain/path/header) and standards |       3h | Completed |
-| Phase 2 | 2.1 | Bootstrap backend app structure and environment config management |       3h | Completed |
-| Phase 2 | 2.2 | Implement authentication module (email/password, hash, token/session) |       4h | Completed |
-| Phase 2 | 2.3 | Implement refresh token flow + secure cookie policy |       3h | Completed |
-| Phase 2 | 2.4 | Implement login rate limiting + lockout policy |       3h | Completed |
-| Phase 2 | 2.5 | Implement RBAC middleware and policy guard interface |       4h | Completed |
-| Phase 2 | 2.6 | Implement audit logging middleware for sensitive endpoints |       3h | Completed |
-| Phase 2 | 2.7 | Implement standardized error model and request validation |       3h | Completed |
-| Phase 2 | 2.8 | Write API auth integration tests (happy path + abuse path) |       4h | Completed |
-| Phase 2 | 2.9 | Translate `firebase.rules.txt` into backend policy matrix (resource/action/role) |       4h | Completed |
-| Phase 2 | 2.10 | Implement policy evaluator middleware for API authorization |       4h | Completed |
-| Phase 2 | 2.11 | Implement tenant-scoped query guards for read/write endpoints |       4h | Completed |
-| Phase 2 | 2.12 | Build rule-parity test suite for critical permission scenarios |       4h | Completed |
-| Phase 3 | 3.1 | Define collection schemas and validation rules for core modules |       4h | Completed |
-| Phase 3 | 3.2 | Implement migration ID strategy (`legacyId`, checksum, migratedAt) |       2h | Completed |
-| Phase 3 | 3.3 | Build Firestore export parser for core entities |       4h | Completed |
-| Phase 3 | 3.4 | Build transform mappers for employee and role data |       4h | Completed |
-| Phase 3 | 3.5 | Build transform mappers for attendance and leave data |       4h | Completed |
-| Phase 3 | 3.6 | Build transform mappers for payroll-related entities |       4h | Completed |
-| Phase 3 | 3.7 | Build idempotent import runner with batch/retry controls |       4h | Completed |
-| Phase 3 | 3.8 | Build migration validation checks (counts, sampling, invariants) |       4h | Completed |
-| Phase 3 | 3.9 | Build migration dry-run report generator |       3h | Completed |
-| Phase 4 | 4.1 | Design realtime event contract (`added/modified/removed`) |       2h | Completed |
-| Phase 4 | 4.2 | Implement SSE subscription endpoint with auth + policy checks |       4h | Completed |
-| Phase 4 | 4.3 | Implement MongoDB change stream listener service |       4h | Completed |
-| Phase 4 | 4.4 | Implement per-user/per-role server-side filtering |       4h | Completed |
-| Phase 4 | 4.5 | Implement reconnect + resume token handling |       4h | Completed |
-| Phase 4 | 4.6 | Implement client-side `subscribe()` adapter for React hooks |       4h | Completed |
-| Phase 4 | 4.7 | Add throttling/debouncing for high-frequency event bursts |       3h | Completed |
-| Phase 4 | 4.8 | Add realtime integration tests and soak test scripts |       4h | Completed |
-| Phase 4 | 4.9 | Enforce policy checks during realtime subscribe/stream lifecycle |       4h | Completed |
-| Phase 4 | 4.10 | Add tenant channel isolation and authorization tests |       4h | Completed |
-| Phase 5 | 5.1 | Define object key naming convention and metadata schema |       2h | Completed |
-| Phase 5 | 5.2 | Implement signed upload URL endpoint |       3h | Completed |
-| Phase 5 | 5.3 | Implement signed download URL endpoint with auth policy |       3h | Completed |
-| Phase 5 | 5.4 | Implement storage metadata persistence and linkage |       3h | Completed |
-| Phase 5 | 5.5 | Build file integrity and MIME validation checks |       3h | Completed |
-| Phase 5 | 5.6 | Build file migration utility from Firebase Storage export |       4h | Completed |
-| Phase 5 | 5.7 | Validate migrated object accessibility with policy tests |       3h | Completed |
-| Phase 6 | 6A.1 | Implement employee CRUD + query endpoints |       4h | Completed |
-| Phase 6 | 6A.2 | Implement employee-role linkage and permission checks |       3h | Completed |
-| Phase 6 | 6A.3 | Implement employee profile read model for dashboard |       3h | Completed |
-| Phase 6 | 6A.4 | Write integration tests for employee domain |       4h | Completed |
-| Phase 6 | 6B.1 | Implement attendance read/write endpoints |       4h | Completed |
-| Phase 6 | 6B.2 | Implement attendance correction/adjustment workflow |       4h | Completed |
-| Phase 6 | 6B.3 | Implement overtime request API and approvals |       4h | Completed |
-| Phase 6 | 6B.4 | Write attendance/overtime domain tests |       4h | Completed |
-| Phase 6 | 6C.1 | Implement leave request create/list/update endpoints |       4h | Completed |
-| Phase 6 | 6C.2 | Implement manager/HR leave approval policy checks |       4h | Completed |
-| Phase 6 | 6C.3 | Implement leave balance consistency checks |       4h | Completed |
-| Phase 6 | 6C.4 | Write leave domain tests |       4h | Completed |
-| Phase 6 | 6D.1 | Implement payroll settings endpoints |       4h | Completed |
-| Phase 6 | 6D.2 | Implement compensation endpoints |       4h | Completed |
-| Phase 6 | 6D.3 | Implement employee loan endpoints |       4h | Completed |
-| Phase 6 | 6D.4 | Write payroll/compensation tests |       4h | Completed |
-| Phase 7 | 7.1 | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`) |       4h | Completed |
-| Phase 7 | 7.2 | Replace auth context Firebase calls with API-based auth |       4h | Completed |
-| Phase 7 | 7.3 | Replace core firestore hooks with API + realtime adapter |       4h | Completed |
-| Phase 7 | 7.4 | Replace file upload paths with signed URL flow |       3h | Completed |
-| Phase 7 | 7.5 | Add feature flags for module-level data source switching |       3h | Completed |
-| Phase 7 | 7.6 | Add observability logs for source-of-truth mismatch detection |       3h | Completed |
-| Phase 7 | 7.7 | Execute QA regression for migrated modules |       4h | Completed |
-| Phase 7 | 7.8 | Implement centralized API base URL mapping by environment |       3h | Completed |
-| Phase 7 | 7.9 | Implement tenant-aware route resolution in frontend gateways |       3h | Completed |
-| Phase 8 | 8.1 | Enable shadow reads and compare old/new responses |       4h | Completed |
-| Phase 8 | 8.2 | Enable controlled dual writes for critical entities |       4h | Completed |
-| Phase 8 | 8.3 | Build drift report dashboard (count and field mismatch) |       4h | Completed |
-| Phase 8 | 8.4 | Run production readiness checklist and incident runbook review |       3h | Completed |
-| Phase 8 | 8.5 | Execute data freeze + final backfill + consistency checks |       4h | Completed |
-| Phase 8 | 8.6 | Execute cutover with rollback timer and monitoring war room |       4h | Completed |
-| Phase 9 | 9.1 | Monitor and fix cutover defects (P0/P1 triage cycle) |       4h | Completed |
-| Phase 9 | 9.2 | Remove unused Firebase client SDK usage paths |       4h | Completed |
-| Phase 9 | 9.3 | Remove Firebase admin SDK usage paths |       3h | Completed |
-| Phase 9 | 9.4 | Remove obsolete environment variables and secrets |       2h | Completed |
-| Phase 9 | 9.5 | Finalize operational docs and ownership handoff |       3h | Completed |
-| Phase 9 | 9.6 | Archive/decommission Firebase resources after safety window |       3h | Completed |
+| Phase   | Task ID | Task                                                                                    | Estimate | Status      |
+| ------- | ------- | --------------------------------------------------------------------------------------- | -------: | ----------- |
+| Phase 0 | 0.1     | Create architecture decision record (ADR) for auth, DB, storage, realtime transport     |       2h | Completed   |
+| Phase 0 | 0.2     | Inventory all Firebase touchpoints (auth, database, rules, storage, admin SDK)          |       3h | Completed   |
+| Phase 0 | 0.3     | Produce endpoint and module dependency map (employee, attendance, leave, payroll, etc.) |       3h | Completed   |
+| Phase 0 | 0.4     | Define target RBAC/ABAC authorization matrix from legacy access rules                   |       4h | Completed   |
+| Phase 0 | 0.5     | Define data privacy classification (PII, payroll-sensitive fields)                      |       2h | Completed   |
+| Phase 0 | 0.6     | Define migration acceptance criteria and rollback triggers                              |       2h | Completed   |
+| Phase 1 | 1.1     | Provision Ubuntu VM baseline hardening (users, SSH policy, firewall)                    |       3h | Completed   |
+| Phase 1 | 1.2     | Configure reverse proxy (Nginx/Caddy), TLS, HSTS                                        |       3h | Completed   |
+| Phase 1 | 1.3     | Set up MongoDB environment (managed or replica set)                                     |       4h | Completed   |
+| Phase 1 | 1.4     | Set up Redis for queues, rate limiting, and cache                                       |       2h | Completed   |
+| Phase 1 | 1.5     | Configure object storage bucket and IAM/policy for signed URL usage                     |       3h | Completed   |
+| Phase 1 | 1.6     | Configure centralized log collection and retention                                      |       3h | Completed   |
+| Phase 1 | 1.7     | Configure backup routines (DB + object storage metadata snapshots)                      |       3h | Completed   |
+| Phase 1 | 1.8     | Configure monitoring/alerts (CPU, memory, error rate, auth failures)                    |       3h | Completed   |
+| Phase 1 | 1.9     | Define stable API domain strategy for dev/int/staging/prod                              |       2h | Completed   |
+| Phase 1 | 1.10    | Configure DNS and reverse-proxy routing for environment API domains                     |       3h | Completed   |
+| Phase 1 | 1.11    | Define tenant routing strategy (subdomain/path/header) and standards                    |       3h | Completed   |
+| Phase 2 | 2.1     | Bootstrap backend app structure and environment config management                       |       3h | Completed   |
+| Phase 2 | 2.2     | Implement authentication module (email/password, hash, token/session)                   |       4h | Completed   |
+| Phase 2 | 2.3     | Implement refresh token flow + secure cookie policy                                     |       3h | Completed   |
+| Phase 2 | 2.4     | Implement login rate limiting + lockout policy                                          |       3h | Completed   |
+| Phase 2 | 2.5     | Implement RBAC middleware and policy guard interface                                    |       4h | Completed   |
+| Phase 2 | 2.6     | Implement audit logging middleware for sensitive endpoints                              |       3h | Completed   |
+| Phase 2 | 2.7     | Implement standardized error model and request validation                               |       3h | Completed   |
+| Phase 2 | 2.8     | Write API auth integration tests (happy path + abuse path)                              |       4h | Completed   |
+| Phase 2 | 2.9     | Translate `firebase.rules.txt` into backend policy matrix (resource/action/role)        |       4h | Completed   |
+| Phase 2 | 2.10    | Implement policy evaluator middleware for API authorization                             |       4h | Completed   |
+| Phase 2 | 2.11    | Implement tenant-scoped query guards for read/write endpoints                           |       4h | Completed   |
+| Phase 2 | 2.12    | Build rule-parity test suite for critical permission scenarios                          |       4h | Completed   |
+| Phase 3 | 3.1     | Define collection schemas and validation rules for core modules                         |       4h | Completed   |
+| Phase 3 | 3.2     | Implement migration ID strategy (`legacyId`, checksum, migratedAt)                      |       2h | Completed   |
+| Phase 3 | 3.3     | Build legacy export parser for core entities                                            |       4h | Completed   |
+| Phase 3 | 3.4     | Build transform mappers for employee and role data                                      |       4h | Completed   |
+| Phase 3 | 3.5     | Build transform mappers for attendance and leave data                                   |       4h | Completed   |
+| Phase 3 | 3.6     | Build transform mappers for payroll-related entities                                    |       4h | Completed   |
+| Phase 3 | 3.7     | Build idempotent import runner with batch/retry controls                                |       4h | Completed   |
+| Phase 3 | 3.8     | Build migration validation checks (counts, sampling, invariants)                        |       4h | Completed   |
+| Phase 3 | 3.9     | Build migration dry-run report generator                                                |       3h | Completed   |
+| Phase 4 | 4.1     | Design realtime event contract (`added/modified/removed`)                               |       2h | Completed   |
+| Phase 4 | 4.2     | Implement SSE subscription endpoint with auth + policy checks                           |       4h | Completed   |
+| Phase 4 | 4.3     | Implement MongoDB change stream listener service                                        |       4h | Completed   |
+| Phase 4 | 4.4     | Implement per-user/per-role server-side filtering                                       |       4h | Completed   |
+| Phase 4 | 4.5     | Implement reconnect + resume token handling                                             |       4h | Completed   |
+| Phase 4 | 4.6     | Implement client-side `subscribe()` adapter for React hooks                             |       4h | Completed   |
+| Phase 4 | 4.7     | Add throttling/debouncing for high-frequency event bursts                               |       3h | Completed   |
+| Phase 4 | 4.8     | Add realtime integration tests and soak test scripts                                    |       4h | Completed   |
+| Phase 4 | 4.9     | Enforce policy checks during realtime subscribe/stream lifecycle                        |       4h | Completed   |
+| Phase 4 | 4.10    | Add tenant channel isolation and authorization tests                                    |       4h | Completed   |
+| Phase 5 | 5.1     | Define object key naming convention and metadata schema                                 |       2h | Completed   |
+| Phase 5 | 5.2     | Implement signed upload URL endpoint                                                    |       3h | Completed   |
+| Phase 5 | 5.3     | Implement signed download URL endpoint with auth policy                                 |       3h | Completed   |
+| Phase 5 | 5.4     | Implement storage metadata persistence and linkage                                      |       3h | Completed   |
+| Phase 5 | 5.5     | Build file integrity and MIME validation checks                                         |       3h | Completed   |
+| Phase 5 | 5.6     | Build file migration utility from Firebase Storage export                               |       4h | Completed   |
+| Phase 5 | 5.7     | Validate migrated object accessibility with policy tests                                |       3h | Completed   |
+| Phase 6 | 6A.1    | Implement employee CRUD + query endpoints                                               |       4h | Completed   |
+| Phase 6 | 6A.2    | Implement employee-role linkage and permission checks                                   |       3h | Completed   |
+| Phase 6 | 6A.3    | Implement employee profile read model for dashboard                                     |       3h | Completed   |
+| Phase 6 | 6A.4    | Write integration tests for employee domain                                             |       4h | Completed   |
+| Phase 6 | 6B.1    | Implement attendance read/write endpoints                                               |       4h | Completed   |
+| Phase 6 | 6B.2    | Implement attendance correction/adjustment workflow                                     |       4h | Completed   |
+| Phase 6 | 6B.3    | Implement overtime request API and approvals                                            |       4h | Completed   |
+| Phase 6 | 6B.4    | Write attendance/overtime domain tests                                                  |       4h | Completed   |
+| Phase 6 | 6C.1    | Implement leave request create/list/update endpoints                                    |       4h | Completed   |
+| Phase 6 | 6C.2    | Implement manager/HR leave approval policy checks                                       |       4h | Completed   |
+| Phase 6 | 6C.3    | Implement leave balance consistency checks                                              |       4h | Completed   |
+| Phase 6 | 6C.4    | Write leave domain tests                                                                |       4h | Completed   |
+| Phase 6 | 6D.1    | Implement payroll settings endpoints                                                    |       4h | Completed   |
+| Phase 6 | 6D.2    | Implement compensation endpoints                                                        |       4h | Completed   |
+| Phase 6 | 6D.3    | Implement employee loan endpoints                                                       |       4h | Completed   |
+| Phase 6 | 6D.4    | Write payroll/compensation tests                                                        |       4h | Completed   |
+| Phase 7 | 7.1     | Add gateway abstraction layer (`AuthGateway`, `DataGateway`, `StorageGateway`)          |       4h | Completed   |
+| Phase 7 | 7.2     | Replace auth context Firebase calls with API-based auth                                 |       4h | Completed   |
+| Phase 7 | 7.3     | Replace core collection hooks with API + realtime adapter                               |       4h | Completed   |
+| Phase 7 | 7.4     | Replace file upload paths with signed URL flow                                          |       3h | Completed   |
+| Phase 7 | 7.5     | Add feature flags for module-level data source switching                                |       3h | Completed   |
+| Phase 7 | 7.6     | Add observability logs for source-of-truth mismatch detection                           |       3h | Completed   |
+| Phase 7 | 7.7     | Execute QA regression for migrated modules                                              |       4h | Todo        |
+| Phase 7 | 7.8     | Implement centralized API base URL mapping by environment                               |       3h | Completed   |
+| Phase 7 | 7.9     | Implement tenant-aware route resolution in frontend gateways                            |       3h | Completed   |
+| Phase 8 | 8.1     | Enable shadow reads and compare old/new responses                                       |       4h | Completed   |
+| Phase 8 | 8.2     | Enable controlled dual writes for critical entities                                     |       4h | Completed   |
+| Phase 8 | 8.3     | Build drift report dashboard (count and field mismatch)                                 |       4h | Completed   |
+| Phase 8 | 8.4     | Run production readiness checklist and incident runbook review                          |       3h | In Progress |
+| Phase 8 | 8.5     | Execute data freeze + final backfill + consistency checks                               |       4h | In Progress |
+| Phase 8 | 8.6     | Execute cutover with rollback timer and monitoring war room                             |       4h | In Progress |
+| Phase 9 | 9.1     | Monitor and fix cutover defects (P0/P1 triage cycle)                                    |       4h | Completed   |
+| Phase 9 | 9.2     | Remove unused Firebase client SDK usage paths                                           |       4h | In Progress |
+| Phase 9 | 9.3     | Remove Firebase admin SDK usage paths                                                   |       3h | In Progress |
+| Phase 9 | 9.4     | Remove obsolete environment variables and secrets                                       |       2h | In Progress |
+| Phase 9 | 9.5     | Finalize operational docs and ownership handoff                                         |       3h | Completed   |
+| Phase 9 | 9.6     | Archive/decommission Firebase resources after safety window                             |       3h | In Progress |
 
 ## Phase 2 Implementation Artifacts
 

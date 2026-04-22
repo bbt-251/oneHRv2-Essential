@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Settings } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AttendanceLogicModel } from "@/lib/models/attendance-logic";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import {
     createAttendanceLogic,
     updateAttendanceLogic,
@@ -24,22 +24,21 @@ interface ExtendedAttendanceLogicModel extends Omit<AttendanceLogicModel, "chose
 
 export function AttendanceLogic() {
     const { showToast } = useToast();
-    const { attendanceLogic } = useFirestore();
+    const { attendanceLogic } = useData();
     const { theme } = useTheme();
     const { userData } = useAuth();
 
-    const [saveLoading, setSaveLoading] = useState(false);
+    const [saveLoading, setSaveLoading] = useState<boolean>(false);
     const [config, setConfig] = useState<ExtendedAttendanceLogicModel>({
         id: "",
         chosenLogic: null,
         halfPresentThreshold: null,
         presentThreshold: null,
     });
-
-    useEffect(() => {
-        const logic = attendanceLogic?.at(0);
-        if (logic) setConfig(logic as ExtendedAttendanceLogicModel);
-    }, [attendanceLogic]);
+    const savedConfig =
+        (attendanceLogic?.at(0) as ExtendedAttendanceLogicModel | undefined) ?? null;
+    const activeConfig =
+        config.id || config.chosenLogic !== null ? config : (savedConfig ?? config);
 
     const handleLogicChange = (logic: 1 | 2 | 3 | 4) => {
         setConfig(prev => ({
@@ -64,10 +63,10 @@ export function AttendanceLogic() {
 
     const handleSave = async () => {
         setSaveLoading(true);
-        if (attendanceLogic?.at(0)) {
+        if (savedConfig) {
             // update logic
             const res = await updateAttendanceLogic(
-                config as AttendanceLogicModel,
+                activeConfig as AttendanceLogicModel,
                 userData?.uid ?? "",
             );
             if (res) {
@@ -77,7 +76,7 @@ export function AttendanceLogic() {
             }
         } else {
             // create logic
-            const { id, ...data } = config;
+            const { id: _id, ...data } = activeConfig;
             const res = await createAttendanceLogic(
                 data as AttendanceLogicModel,
                 userData?.uid ?? "",
@@ -141,15 +140,15 @@ export function AttendanceLogic() {
                                 `data-[state=checked]:bg-black dark:data-[state=checked]:bg-amber-600`,
                                 theme === "dark" && "data-[state=unchecked]:bg-gray-400",
                             )}
-                            checked={config.chosenLogic === 1}
+                            checked={activeConfig.chosenLogic === 1}
                             onCheckedChange={() => handleLogicChange(1)}
                             aria-label="Choose logic 1"
                         />
                     </div>
                     <p className={`text-sm ${mutedColor}`}>
                         This configuration removes the attendance management module, and the payroll
-                        will be based on the provided employee fixed salary. Overtime payments won't
-                        be considered in the payroll.
+                        will be based on the provided employee fixed salary. Overtime payments
+                        won&apos;t be considered in the payroll.
                     </p>
                 </div>
 
@@ -167,7 +166,7 @@ export function AttendanceLogic() {
                                 `data-[state=checked]:bg-black dark:data-[state=checked]:bg-amber-600`,
                                 theme === "dark" && "data-[state=unchecked]:bg-gray-400",
                             )}
-                            checked={config.chosenLogic === 2}
+                            checked={activeConfig.chosenLogic === 2}
                             onCheckedChange={() => handleLogicChange(2)}
                             aria-label="Choose logic 2"
                         />
@@ -193,7 +192,7 @@ export function AttendanceLogic() {
                                 `data-[state=checked]:bg-black dark:data-[state=checked]:bg-amber-600`,
                                 theme === "dark" && "data-[state=unchecked]:bg-gray-400",
                             )}
-                            checked={config.chosenLogic === 3}
+                            checked={activeConfig.chosenLogic === 3}
                             onCheckedChange={() => handleLogicChange(3)}
                             aria-label="Choose logic 3"
                         />
@@ -205,7 +204,7 @@ export function AttendanceLogic() {
                         mechanism will only track employee presence or absence.
                     </p>
 
-                    {config.chosenLogic === 3 && (
+                    {activeConfig.chosenLogic === 3 && (
                         <div className={`p-4 rounded-lg border space-y-4 ${noteBox}`}>
                             <div className={`text-sm ${bodyColor}`}>
                                 <strong className={noteStrong}>Note:</strong> An employee is either
@@ -233,7 +232,7 @@ export function AttendanceLogic() {
                                         type="number"
                                         min="0"
                                         max="100"
-                                        value={config.presentThreshold || ""}
+                                        value={activeConfig.presentThreshold || ""}
                                         onChange={e =>
                                             handleThresholdChange(
                                                 "presentThreshold",
@@ -261,7 +260,7 @@ export function AttendanceLogic() {
                                         type="number"
                                         min="0"
                                         max="100"
-                                        value={config.halfPresentThreshold || ""}
+                                        value={activeConfig.halfPresentThreshold || ""}
                                         onChange={e =>
                                             handleThresholdChange(
                                                 "halfPresentThreshold",
@@ -294,7 +293,7 @@ export function AttendanceLogic() {
                                 `data-[state=checked]:bg-black dark:data-[state=checked]:bg-amber-600`,
                                 theme === "dark" && "data-[state=unchecked]:bg-gray-400",
                             )}
-                            checked={config.chosenLogic === 4}
+                            checked={activeConfig.chosenLogic === 4}
                             onCheckedChange={() => handleLogicChange(4)}
                             aria-label="Choose logic 4"
                         />
@@ -307,7 +306,7 @@ export function AttendanceLogic() {
                         salary, making it variable and correlated with the number of hours worked.
                     </p>
 
-                    {config.chosenLogic === 4 && (
+                    {activeConfig.chosenLogic === 4 && (
                         <div className={`p-4 rounded-lg border space-y-4 ${noteBox}`}>
                             <div className={`text-sm ${bodyColor}`}>
                                 <strong className={noteStrong}>Note:</strong> An employee is either
@@ -335,7 +334,7 @@ export function AttendanceLogic() {
                                         type="number"
                                         min="0"
                                         max="100"
-                                        value={config.presentThreshold || ""}
+                                        value={activeConfig.presentThreshold || ""}
                                         onChange={e =>
                                             handleThresholdChange(
                                                 "presentThreshold",
@@ -363,7 +362,7 @@ export function AttendanceLogic() {
                                         type="number"
                                         min="0"
                                         max="100"
-                                        value={config.halfPresentThreshold || ""}
+                                        value={activeConfig.halfPresentThreshold || ""}
                                         onChange={e =>
                                             handleThresholdChange(
                                                 "halfPresentThreshold",

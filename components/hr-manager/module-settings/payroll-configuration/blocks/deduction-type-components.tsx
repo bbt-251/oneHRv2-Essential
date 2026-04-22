@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { DeductionTypeModel } from "@/lib/models/hr-settings";
 import { Loader2 } from "lucide-react";
 
+type DeductionFieldValue = DeductionTypeModel[keyof DeductionTypeModel];
+
 interface DeductionTypeFormProps {
     data?: DeductionTypeModel;
     isAddEditLoading: boolean;
@@ -50,7 +52,7 @@ export function DeductionTypeForm({
         }
     };
 
-    const handleInputChange = (field: keyof DeductionTypeModel, value: any) => {
+    const handleInputChange = (field: keyof DeductionTypeModel, value: DeductionFieldValue) => {
         setFormData({ ...formData, [field]: value });
         if (errors[field]) {
             setErrors({ ...errors, [field]: "" });

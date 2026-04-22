@@ -6,14 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
-import uploadFile from "@/lib/backend/firebase/upload/uploadFile";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import uploadFile from "@/lib/backend/upload/upload-file";
 import { COMPANY_INFO_LOG_MESSAGES } from "@/lib/log-descriptions/company-info";
 import { CompanyInfoModel } from "@/lib/models/companyInfo";
 import { Building2, Edit, Globe, Loader2, Mail, MapPin, Phone, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
 import EditInfoModal from "./modals/edit-info";
 
 export function BasicInfo({
@@ -26,9 +27,46 @@ export function BasicInfo({
     disableInputs?: boolean;
 }) {
     const { showToast } = useToast();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { theme } = useTheme();
     const { userData } = useAuth();
+    const companyInfo = hrSettings.companyInfo?.[0];
+
+    const persistedCompanyData = useMemo<Partial<CompanyInfoModel>>(
+        () => ({
+            mission: companyInfo?.mission ?? "",
+            vision: companyInfo?.vision ?? "",
+            values: companyInfo?.values ?? {
+                qualityExcellence: "",
+                sustainability: "",
+            },
+        }),
+        [companyInfo],
+    );
+
+    const persistedBasicInfo = useMemo<Partial<CompanyInfoModel>>(
+        () => ({
+            companyName: companyInfo?.companyName ?? "",
+            postalAddress: companyInfo?.postalAddress ?? "",
+            companyUrl: companyInfo?.companyUrl ?? "",
+            telNo: companyInfo?.telNo ?? "",
+            contactPerson: companyInfo?.contactPerson ?? "",
+            emailAddress: companyInfo?.emailAddress ?? "",
+            managingDirector: companyInfo?.managingDirector ?? "",
+            legalRepresentative: companyInfo?.legalRepresentative ?? "",
+            yearsInBusiness: companyInfo?.yearsInBusiness ?? "",
+            companySize: companyInfo?.companySize ?? "",
+            companySector: companyInfo?.companySector ?? "",
+            tinNumber: companyInfo?.tinNumber ?? "",
+            faxNumber: companyInfo?.faxNumber ?? "",
+            houseNumber: companyInfo?.houseNumber ?? "",
+            capital: companyInfo?.capital ?? "",
+            totalAnnualRevenue: companyInfo?.totalAnnualRevenue ?? "",
+            companyProfile: companyInfo?.companyProfile ?? "",
+            companyLogoURL: companyInfo?.companyLogoURL ?? "",
+        }),
+        [companyInfo],
+    );
 
     const [showBasicInfoModal, setShowBasicInfoModal] = useState<boolean>(false);
     const [companyData, setCompanyData] = useState<Partial<CompanyInfoModel>>({
@@ -60,42 +98,26 @@ export function BasicInfo({
         companyProfile: "",
     });
 
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [infoSubmitLoading, setInfoSubmitLoading] = useState(false);
-    const [saveLoading, setSaveLoading] = useState(false);
+    const currentCompanyData = useMemo<Partial<CompanyInfoModel>>(
+        () => ({
+            ...persistedCompanyData,
+            ...companyData,
+            values: {
+                ...persistedCompanyData.values,
+                ...companyData.values,
+            },
+        }),
+        [companyData, persistedCompanyData],
+    );
 
-    useEffect(() => {
-        const companyInfo = hrSettings.companyInfo?.[0];
-        if (companyInfo) {
-            const companyData = {
-                mission: companyInfo.mission ?? "",
-                vision: companyInfo.vision ?? "",
-                values: companyInfo.values ?? {},
-            };
-            const basicInfo = {
-                companyName: companyInfo.companyName ?? "",
-                postalAddress: companyInfo.postalAddress ?? "",
-                companyUrl: companyInfo.companyUrl ?? "",
-                telNo: companyInfo.telNo ?? "",
-                contactPerson: companyInfo.contactPerson ?? "",
-                emailAddress: companyInfo.emailAddress ?? "",
-                managingDirector: companyInfo.managingDirector ?? "",
-                legalRepresentative: companyInfo.legalRepresentative ?? "",
-                yearsInBusiness: companyInfo.yearsInBusiness ?? "",
-                companySize: companyInfo.companySize ?? "",
-                companySector: companyInfo.companySector ?? "",
-                tinNumber: companyInfo.tinNumber ?? "",
-                faxNumber: companyInfo.faxNumber ?? "",
-                houseNumber: companyInfo.houseNumber ?? "",
-                capital: companyInfo.capital ?? "",
-                totalAnnualRevenue: companyInfo.totalAnnualRevenue ?? "",
-                companyProfile: companyInfo.companyProfile ?? "",
-                companyLogoURL: companyInfo.companyLogoURL ?? "",
-            };
-            setBasicInfo(basicInfo);
-            setCompanyData(companyData);
-        }
-    }, [hrSettings.companyInfo]);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [infoSubmitLoading, setInfoSubmitLoading] = useState<boolean>(false);
+    const [saveLoading, setSaveLoading] = useState<boolean>(false);
+
+    const openBasicInfoModal = () => {
+        setBasicInfo(persistedBasicInfo);
+        setShowBasicInfoModal(true);
+    };
 
     const handleSave = async () => {
         setSaveLoading(true);
@@ -105,23 +127,23 @@ export function BasicInfo({
             res = await hrSettingsService.update(
                 "companyInfo",
                 companyInfo[0]?.id ?? "",
-                companyData,
+                currentCompanyData,
                 userData?.uid ?? "",
                 COMPANY_INFO_LOG_MESSAGES.MISSION_VISION_UPDATED({
                     id: companyInfo[0]?.id ?? "",
-                    mission: companyData.mission,
-                    vision: companyData.vision,
+                    mission: currentCompanyData.mission,
+                    vision: currentCompanyData.vision,
                 }),
             );
         } else {
             res = await hrSettingsService.create(
                 "companyInfo",
-                { ...companyData, ...basicInfo } as CompanyInfoModel,
+                { ...currentCompanyData, ...basicInfo } as CompanyInfoModel,
                 userData?.uid ?? "",
                 COMPANY_INFO_LOG_MESSAGES.CREATED({
                     companyName: basicInfo.companyName || "",
-                    mission: companyData.mission,
-                    vision: companyData.vision,
+                    mission: currentCompanyData.mission,
+                    vision: currentCompanyData.vision,
                 }),
             );
         }
@@ -165,12 +187,12 @@ export function BasicInfo({
         else
             res = await hrSettingsService.create(
                 "companyInfo",
-                { ...companyData, ...basicInfo, ...logo } as CompanyInfoModel,
+                { ...currentCompanyData, ...basicInfo, ...logo } as CompanyInfoModel,
                 userData?.uid ?? "",
                 COMPANY_INFO_LOG_MESSAGES.CREATED({
                     companyName: basicInfo.companyName || "",
-                    mission: companyData.mission,
-                    vision: companyData.vision,
+                    mission: currentCompanyData.mission,
+                    vision: currentCompanyData.vision,
                 }),
             );
 
@@ -200,7 +222,7 @@ export function BasicInfo({
                 <div>
                     <h1 className={`text-2xl font-bold ${textColor}`}>Company Profile</h1>
                     <p className={`${subTextColor} mt-1`}>
-                        Manage your company's profile information and branding
+                        Manage your company&apos;s profile information and branding
                     </p>
                 </div>
             </div>
@@ -217,7 +239,7 @@ export function BasicInfo({
                             variant="outline"
                             size="sm"
                             className={`flex items-center gap-2 bg-transparent ${theme == "dark" ? "text-white border-white" : ""}`}
-                            onClick={() => setShowBasicInfoModal(true)}
+                            onClick={openBasicInfoModal}
                         >
                             <Edit className="h-4 w-4" />
                             Edit Basic Info
@@ -238,12 +260,15 @@ export function BasicInfo({
 
                 <CardContent>
                     <div className="mb-4">
-                        {basicInfo.companyLogoURL && (
+                        {persistedBasicInfo.companyLogoURL && (
                             <div className="flex items-center gap-3">
-                                <img
-                                    src={basicInfo.companyLogoURL}
+                                <Image
+                                    src={persistedBasicInfo.companyLogoURL}
                                     alt="Company Logo"
-                                    className="h-28 object-cover rounded-md border"
+                                    width={112}
+                                    height={112}
+                                    unoptimized
+                                    className="h-28 w-auto object-cover rounded-md border"
                                 />
                             </div>
                         )}
@@ -257,24 +282,36 @@ export function BasicInfo({
                             {
                                 icon: Building2,
                                 label: "Company Name",
-                                value: basicInfo.companyName,
+                                value: persistedBasicInfo.companyName,
                             },
-                            { icon: MapPin, label: "Address", value: basicInfo.postalAddress },
-                            { icon: Globe, label: "Website", value: basicInfo.companyUrl },
-                            { icon: Phone, label: "Phone", value: basicInfo.telNo },
-                            { icon: Mail, label: "Email", value: basicInfo.emailAddress },
-                            { icon: User, label: "Contact Person", value: basicInfo.contactPerson },
+                            {
+                                icon: MapPin,
+                                label: "Address",
+                                value: persistedBasicInfo.postalAddress,
+                            },
+                            { icon: Globe, label: "Website", value: persistedBasicInfo.companyUrl },
+                            { icon: Phone, label: "Phone", value: persistedBasicInfo.telNo },
+                            { icon: Mail, label: "Email", value: persistedBasicInfo.emailAddress },
+                            {
+                                icon: User,
+                                label: "Contact Person",
+                                value: persistedBasicInfo.contactPerson,
+                            },
                             {
                                 icon: User,
                                 label: "Managing Director",
-                                value: basicInfo.managingDirector,
+                                value: persistedBasicInfo.managingDirector,
                             },
                             {
                                 icon: Building2,
                                 label: "Company Size",
-                                value: basicInfo.companySize,
+                                value: persistedBasicInfo.companySize,
                             },
-                            { icon: Building2, label: "Sector", value: basicInfo.companySector },
+                            {
+                                icon: Building2,
+                                label: "Sector",
+                                value: persistedBasicInfo.companySector,
+                            },
                         ].map((item, idx) => (
                             <div key={idx} className="space-y-4">
                                 <div className="flex items-center gap-3">
@@ -288,13 +325,13 @@ export function BasicInfo({
                         ))}
                     </div>
 
-                    {basicInfo.companyProfile && (
+                    {persistedBasicInfo.companyProfile && (
                         <div
                             className={`mt-6 pt-6 border-t ${theme == "dark" ? "border-gray-700" : "border-gray-200"}`}
                         >
                             <h4 className={`font-medium ${textColor} mb-2`}>Company Profile</h4>
                             <p className={`${subTextColor} leading-relaxed`}>
-                                {basicInfo.companyProfile}
+                                {persistedBasicInfo.companyProfile}
                             </p>
                         </div>
                     )}
@@ -308,8 +345,8 @@ export function BasicInfo({
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {[
-                        { id: "mission", label: "Mission", value: companyData.mission },
-                        { id: "vision", label: "Vision", value: companyData.vision },
+                        { id: "mission", label: "Mission", value: currentCompanyData.mission },
+                        { id: "vision", label: "Vision", value: currentCompanyData.vision },
                     ].map(item => (
                         <div key={item.id}>
                             <Label htmlFor={item.id} className={`text-sm font-medium ${textColor}`}>
@@ -336,12 +373,12 @@ export function BasicInfo({
                                 {
                                     id: "qualityExcellence",
                                     label: "Quality Excellence",
-                                    value: companyData?.values?.qualityExcellence,
+                                    value: currentCompanyData?.values?.qualityExcellence,
                                 },
                                 {
                                     id: "sustainability",
                                     label: "Sustainability",
-                                    value: companyData?.values?.sustainability,
+                                    value: currentCompanyData?.values?.sustainability,
                                 },
                             ].map(item => (
                                 <div key={item.id}>
@@ -359,7 +396,7 @@ export function BasicInfo({
                                                     ...companyData.values,
                                                     [item.id]: e.target.value,
                                                 },
-                                            } as any)
+                                            })
                                         }
                                         className={`mt-1 ${inputClass}`}
                                         disabled={disableInputs}

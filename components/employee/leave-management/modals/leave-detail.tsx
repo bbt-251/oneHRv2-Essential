@@ -2,11 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LeaveModel } from "@/lib/models/leave";
 import { X } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useState } from "react";
 import { EditLeaveRequestModal } from "./edit-leave-request-modal";
 import { Card } from "@/components/ui/card";
 import { annualLeaveType, unpaidLeaveType } from "./add-leave-request-modal";
+import { EmployeeModel } from "@/lib/models/employee";
 
 interface LeaveDetailProps {
     theme: string;
@@ -34,7 +35,7 @@ export default function LeaveDetail({
     selectedLeave,
     setIsLeaveModalOpen,
 }: LeaveDetailProps) {
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useData();
 
     const sections = hrSettings.sectionSettings;
     const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
@@ -53,12 +54,12 @@ export default function LeaveDetail({
         const leaveType = leaveTypes.find(leaveType => leaveType.id === leaveTypeId);
         return leaveType?.name || "Unknown";
     };
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
     if (!selectedLeave) {
         return null;
     }
-    const employee = employees.find((emp: any) => emp.uid === selectedLeave.employeeID);
+    const employee = employees.find((emp: EmployeeModel) => emp.uid === selectedLeave.employeeID);
     const handleEditLeave = () => {
         const canEdit = selectedLeave.leaveState === "Requested";
         if (canEdit) {

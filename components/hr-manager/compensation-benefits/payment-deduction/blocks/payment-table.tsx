@@ -14,11 +14,17 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { EmployeeModel } from "@/lib/models/employee";
+
+interface PaymentTypeOption {
+    id: string;
+    paymentName?: string;
+}
 
 interface PaymentEntry {
     id: string;
     timestamp: string;
-    employees: any[];
+    employees: EmployeeModel[];
     paymentTypeName: string;
     paymentAmount: number;
     monthlyAmounts: { [month: string]: number };
@@ -26,8 +32,8 @@ interface PaymentEntry {
 
 interface PaymentTableProps {
     paymentsData: PaymentEntry[];
-    paymentTypes: any[];
-    openEmployeeModal: (employees: any[]) => void;
+    paymentTypes: PaymentTypeOption[];
+    openEmployeeModal: (employees: EmployeeModel[]) => void;
     openAmountModal: (amounts: { [month: string]: number }) => void;
     openEditDialog: (payment: PaymentEntry) => void;
     handleDelete: (id: string) => void;

@@ -25,33 +25,30 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import {
-    hrSettingsService,
-    OvertimeConfigurationModel,
-} from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService, OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { saveBackendPayrollSettings } from "@/lib/backend/client/payroll-settings-client";
 import { timestampFormat } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import { Edit, Loader2, Plus, Timer, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/authContext";
 import { OVERTIME_CONFIGURATION_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function OvertimeConfiguration() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const payrollSettingsDoc = hrSettings.payrollSettings?.at(0) ?? null;
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { theme } = useTheme();
     const { userData } = useAuth();
 
-    const [overtimeConfigs, setOvertimeConfigs] = useState<OvertimeConfigurationModel[]>([]);
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
     const [editingConfig, setEditingConfig] = useState<OvertimeConfigurationModel | null>(null);
     const [formData, setFormData] = useState<Partial<OvertimeConfigurationModel>>({
         overtimeType: "",
@@ -59,14 +56,14 @@ export function OvertimeConfiguration() {
         active: "Yes",
     });
 
-    const [standardMonthlyWorkingHours, setStandardMonthlyWorkingHours] = useState<number>(
-        payrollSettingsDoc?.monthlyWorkingHours ?? 173,
-    );
+    const standardMonthlyWorkingHours = payrollSettingsDoc?.monthlyWorkingHours ?? 173;
     const [standardMonthlyWorkingHoursDraft, setStandardMonthlyWorkingHoursDraft] =
         useState<number>(payrollSettingsDoc?.monthlyWorkingHours ?? 173);
     const [isSavingStandardMonthlyWorkingHours, setIsSavingStandardMonthlyWorkingHours] =
-        useState(false);
-    const [showSetMonthlyWorkingHoursDialog, setShowSetMonthlyWorkingHoursDialog] = useState(false);
+        useState<boolean>(false);
+    const [showSetMonthlyWorkingHoursDialog, setShowSetMonthlyWorkingHoursDialog] =
+        useState<boolean>(false);
+    const overtimeConfigs: OvertimeConfigurationModel[] = hrSettings.overtimeTypes;
 
     const isWholeNumberPercent = (value: number) =>
         Number.isFinite(value) && Number.isInteger(value) && value > 0;
@@ -94,16 +91,6 @@ export function OvertimeConfiguration() {
             : "bg-green-100 text-green-800";
     const badgeNo =
         theme === "dark" ? "bg-black text-gray-400 border-gray-600" : "bg-gray-100 text-gray-800";
-
-    useEffect(() => {
-        setOvertimeConfigs(hrSettings.overtimeTypes);
-    }, [hrSettings.overtimeTypes]);
-
-    useEffect(() => {
-        setStandardMonthlyWorkingHours(payrollSettingsDoc?.monthlyWorkingHours ?? 173);
-        setStandardMonthlyWorkingHoursDraft(payrollSettingsDoc?.monthlyWorkingHours ?? 173);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [payrollSettingsDoc?.id]);
 
     async function runHourlyWageMigration(nextHours: number) {
         try {
@@ -148,20 +135,13 @@ export function OvertimeConfiguration() {
         setIsSavingStandardMonthlyWorkingHours(true);
         try {
             const existingDoc = hrSettings.payrollSettings?.at(0) ?? null;
-            const log = OVERTIME_CONFIGURATION_LOG_MESSAGES.MONTHLY_WORKING_HOURS_UPDATED({
-                monthlyWorkingHours: nextValue,
-            });
-
             let saved = false;
 
             if (existingDoc?.id) {
-                const res = await hrSettingsService.update(
-                    "payrollSettings",
-                    existingDoc.id,
-                    { monthlyWorkingHours: nextValue },
-                    userData?.uid ?? "",
-                    log,
-                );
+                const res = await saveBackendPayrollSettings({
+                    ...existingDoc,
+                    monthlyWorkingHours: nextValue,
+                });
 
                 if (res) {
                     saved = true;
@@ -170,16 +150,11 @@ export function OvertimeConfiguration() {
                 }
             } else {
                 const baseCurrency = hrSettings.currencies?.at(0)?.name ?? "USD";
-                const res = await hrSettingsService.create(
-                    "payrollSettings",
-                    {
-                        baseCurrency,
-                        taxRate: 0,
-                        monthlyWorkingHours: nextValue,
-                    },
-                    userData?.uid ?? "",
-                    log,
-                );
+                const res = await saveBackendPayrollSettings({
+                    baseCurrency,
+                    taxRate: 0,
+                    monthlyWorkingHours: nextValue,
+                });
 
                 if (res) {
                     saved = true;
@@ -236,7 +211,7 @@ export function OvertimeConfiguration() {
         };
 
         if (editingConfig) {
-            const { id, ...data } = formData;
+            const { id: _id, ...data } = formData;
             const res = await hrSettingsService.update(
                 "overtimeTypes",
                 editingConfig.id,

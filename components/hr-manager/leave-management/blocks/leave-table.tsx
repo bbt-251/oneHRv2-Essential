@@ -14,9 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/theme-provider";
 
 import { FileText, Eye } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 
 import { LeaveModel } from "@/lib/models/leave";
+import { EmployeeModel } from "@/lib/models/employee";
 import LeaveDetail from "../modals/leave-detail";
 import {
     annualLeaveType,
@@ -26,29 +27,27 @@ import {
 // Helper hook to get effective theme (handles "system" option)
 function useEffectiveTheme() {
     const { theme } = useTheme();
-    const [effectiveTheme, setEffectiveTheme] = useState<"light" | "dark">("light");
+    const isSystemDark =
+        typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const [systemTheme, setSystemTheme] = useState<"light" | "dark">(
+        isSystemDark ? "dark" : "light",
+    );
 
     useEffect(() => {
-        if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-            setEffectiveTheme(systemTheme);
-
-            const listener = (e: MediaQueryListEvent) => {
-                setEffectiveTheme(e.matches ? "dark" : "light");
-            };
-            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", listener);
-            return () =>
-                window
-                    .matchMedia("(prefers-color-scheme: dark)")
-                    .removeEventListener("change", listener);
-        } else {
-            setEffectiveTheme(theme as "light" | "dark");
+        if (theme !== "system") {
+            return;
         }
+
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const listener = (e: MediaQueryListEvent) => {
+            setSystemTheme(e.matches ? "dark" : "light");
+        };
+
+        mediaQuery.addEventListener("change", listener);
+        return () => mediaQuery.removeEventListener("change", listener);
     }, [theme]);
 
-    return effectiveTheme;
+    return theme === "system" ? systemTheme : (theme as "light" | "dark");
 }
 
 const getStatusColor = (status: string) => {
@@ -73,7 +72,7 @@ interface LeaveTableProps {
 
 export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: LeaveTableProps) {
     const theme = useEffectiveTheme();
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
 
     const departments = hrSettings.departmentSettings;
@@ -85,6 +84,8 @@ export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: Lea
         const department = departments.find(department => department.id === departmentId);
         return department?.name || "Unknown";
     };
+    const getEmployee = (employeeId: string): EmployeeModel | undefined =>
+        employees.find((employee: EmployeeModel) => employee.uid === employeeId);
 
     const [selectedLeave, setSelectedLeave] = useState<LeaveModel | null>(null);
     const [isLeaveDetailModalOpen, setIsLeaveDetailModalOpen] = useState<boolean>(false);
@@ -253,11 +254,7 @@ export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: Lea
                                                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
                                                 style={{ backgroundColor: "#3f3d56" }}
                                             >
-                                                {employees
-                                                    .find(
-                                                        (emp: any) =>
-                                                            emp.uid === request.employeeID,
-                                                    )
+                                                {getEmployee(request.employeeID)
                                                     ?.firstName.split(" ")
                                                     .map((n: string) => n[0])
                                                     .join("")}
@@ -266,27 +263,15 @@ export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: Lea
                                                 <div
                                                     className={`font-semibold ${theme === "dark" ? "text-slate-100" : "text-slate-800"}`}
                                                 >
-                                                    {
-                                                        employees.find(
-                                                            (emp: any) =>
-                                                                emp.uid === request.employeeID,
-                                                        )?.firstName
-                                                    }{" "}
-                                                    {
-                                                        employees.find(
-                                                            (emp: any) =>
-                                                                emp.uid === request.employeeID,
-                                                        )?.surname
-                                                    }
+                                                    {getEmployee(request.employeeID)?.firstName}{" "}
+                                                    {getEmployee(request.employeeID)?.surname}
                                                 </div>
                                                 <div
                                                     className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-slate-500"}`}
                                                 >
                                                     {getDepartmentName(
-                                                        employees.find(
-                                                            (emp: any) =>
-                                                                emp.uid === request.employeeID,
-                                                        )?.department || "",
+                                                        getEmployee(request.employeeID)
+                                                            ?.department || "",
                                                     )}
                                                 </div>
                                             </div>
@@ -298,9 +283,7 @@ export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: Lea
                                         className={`py-6 font-medium ${theme === "dark" ? "text-slate-300" : "text-slate-600"}`}
                                     >
                                         {getDepartmentName(
-                                            employees.find(
-                                                (emp: any) => emp.uid === request.employeeID,
-                                            )?.department || "",
+                                            getEmployee(request.employeeID)?.department || "",
                                         )}
                                     </TableCell>
                                 )}
@@ -348,16 +331,8 @@ export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: Lea
                                     <TableCell
                                         className={`py-6 font-medium ${theme === "dark" ? "text-slate-300" : "text-slate-600"}`}
                                     >
-                                        {
-                                            employees.find(
-                                                (emp: any) => emp.uid === request.standIn,
-                                            )?.firstName
-                                        }{" "}
-                                        {
-                                            employees.find(
-                                                (emp: any) => emp.uid === request.standIn,
-                                            )?.surname
-                                        }
+                                        {getEmployee(request.standIn)?.firstName}{" "}
+                                        {getEmployee(request.standIn)?.surname}
                                     </TableCell>
                                 )}
                                 {hrVisibleColumns.authorizedDays && (

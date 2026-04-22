@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -15,10 +14,10 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function useConfirm() {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
     const [callback, setCallback] = useState<(() => Promise<void> | void) | null>(null);
     const [message, setMessage] = useState<string>("Are you sure?");
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const confirm = (
         message: string,

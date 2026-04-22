@@ -9,7 +9,7 @@ import {
     TableRow,
     TableCell,
 } from "@/components/ui/table";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { EmployeeModel } from "@/lib/models/employee";
 
 type EmployeesListModalProps = {
@@ -27,7 +27,7 @@ export function EmployeesListModal({
     employeeUids,
     title = "Employees",
 }: EmployeesListModalProps) {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const departments = hrSettings?.departmentSettings;
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

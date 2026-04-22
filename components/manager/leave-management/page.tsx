@@ -16,11 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Columns, Filter, X } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/data-provider";
 import LeaveTable from "./blocks/leave-table";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/context/authContext";
-import { useDelegation } from "@/hooks/use-delegation";
+import { EmployeeModel } from "@/lib/models/employee";
+import { LeaveModel } from "@/lib/models/leave";
 
 // Column definitions for manager view
 const managerColumnDefinitions = [
@@ -45,29 +46,22 @@ export default function ManagerLeaveManagement() {
     const { user } = useAuth();
 
     const { theme } = useTheme();
-    const { leaveManagements, employees } = useFirestore();
-
-    // Use the delegation hook to get delegated reportees
-    const { allReportees, delegatedReportees } = useDelegation();
+    const { leaveManagements, employees } = useData();
 
     const getReporteeIds = (managerId: string): string[] => {
-        const directReports = employees.filter(emp => emp.reportingLineManager === managerId);
+        const directReports = employees.filter(
+            (emp: EmployeeModel) => emp.reportingLineManager === managerId,
+        );
 
-        return [...directReports.map(r => r.uid)];
+        return [...directReports.map((r: EmployeeModel) => r.uid)];
     };
     const myReportees = user?.uid ? getReporteeIds(user.uid) : [];
 
-    // Combine own reportees with delegated reportees
-    const combinedReportees = useMemo(() => {
-        const allReporteeSet = new Set([...myReportees, ...allReportees]);
-        return Array.from(allReporteeSet);
-    }, [myReportees, allReportees]);
-
-    const leaveRequests = leaveManagements.filter(request =>
-        combinedReportees.includes(request.employeeID),
+    const leaveRequests = leaveManagements.filter((request: LeaveModel) =>
+        myReportees.includes(request.employeeID),
     );
 
-    const [managerFilters, setManagerFilters] = useState({
+    const [managerFilters, setManagerFilters] = useState<{ [key: string]: string }>({
         employee: "",
         department: "",
         leaveRequestId: "",
@@ -100,13 +94,15 @@ export default function ManagerLeaveManagement() {
     };
 
     // Column visibility state for manager view
-    const [managerVisibleColumns, setManagerVisibleColumns] = useState(() => {
-        const initial: Record<string, boolean> = {};
-        managerColumnDefinitions.forEach(col => {
-            initial[col.key] = col.defaultVisible;
-        });
-        return initial;
-    });
+    const [managerVisibleColumns, setManagerVisibleColumns] = useState<Record<string, boolean>>(
+        () => {
+            const initial: Record<string, boolean> = {};
+            managerColumnDefinitions.forEach(col => {
+                initial[col.key] = col.defaultVisible;
+            });
+            return initial;
+        },
+    );
 
     // Toggle column visibility for manager view
     const toggleManagerColumn = (columnKey: string) => {
@@ -118,11 +114,11 @@ export default function ManagerLeaveManagement() {
 
     // Filter all leave requests for manager view
     const filteredManagerRequests = useMemo(() => {
-        return leaveRequests.filter(request => {
+        return leaveRequests.filter((request: LeaveModel) => {
             const matchesEmployee =
                 !managerFilters.employee ||
                 employees
-                    .find((emp: any) => emp.id === request.employeeID)
+                    .find((emp: EmployeeModel) => emp.uid === request.employeeID)
                     ?.firstName.toLowerCase()
                     .includes(managerFilters.employee.toLowerCase());
 
@@ -130,7 +126,7 @@ export default function ManagerLeaveManagement() {
                 !managerFilters.department ||
                 managerFilters.department === "all" ||
                 employees
-                    .find((emp: any) => emp.id === request.employeeID)
+                    .find((emp: EmployeeModel) => emp.uid === request.employeeID)
                     ?.department.toLowerCase()
                     .includes(managerFilters.department.toLowerCase());
 
@@ -191,7 +187,7 @@ export default function ManagerLeaveManagement() {
                 matchesRollback
             );
         });
-    }, [managerFilters, myReportees, leaveManagements]);
+    }, [managerFilters, employees, leaveRequests]);
     // Count active filters for manager view
     const activeManagerFiltersCount = Object.values(managerFilters).filter(
         value => value !== "" && value !== "all",
@@ -214,11 +210,6 @@ export default function ManagerLeaveManagement() {
                             </h2>
                             <p className="text-slate-500 font-medium mt-1">
                                 {filteredManagerRequests.length} of {leaveRequests.length} requests
-                                {delegatedReportees.length > 0 && (
-                                    <span className="ml-2 text-blue-600">
-                                        ({delegatedReportees.length} delegated reportees)
-                                    </span>
-                                )}
                                 {activeManagerFiltersCount > 0 &&
                                     ` (${activeManagerFiltersCount} filters applied)`}
                             </p>

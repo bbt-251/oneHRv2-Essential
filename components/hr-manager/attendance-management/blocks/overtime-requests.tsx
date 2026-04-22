@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import { ModalState } from "../page";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import { useAuth } from "@/context/authContext";
@@ -97,7 +97,7 @@ export const OvertimeRequests = ({
         }));
     };
 
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState<boolean>(false);
     const [employeesModalRequest, setEmployeesModalRequest] = useState<OvertimeRequestModel | null>(
         null,
     );
@@ -281,7 +281,6 @@ export const OvertimeRequests = ({
             {filteredOvertimeRequests.length > 0 ? (
                 <div className="space-y-4">
                     {filteredOvertimeRequests.map(request => {
-                        const type = overtimeTypes.find(ot => ot.id == request.overtimeType);
                         const employee = getPrimaryOvertimeEmployee(request, employees);
                         return (
                             <Card

@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar, Clock, Users, Filter, ChevronDown, X } from "lucide-react";
 import { EmployeeModel } from "@/lib/models/employee";
 import getFullName from "@/lib/util/getEmployeeFullName";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 
 interface ManagerOvertimeFilterProps {
     employees: EmployeeModel[];
@@ -32,15 +32,6 @@ interface ManagerOvertimeFilterProps {
     onClearFilters: () => void;
 }
 
-const overtimeTypes = [
-    "Regular Overtime",
-    "Weekend Overtime",
-    "Holiday Overtime",
-    "Emergency Overtime",
-    "Project Deadline",
-    "Client Request",
-];
-
 export function OvertimeFilter({
     employees,
     selectedEmployees,
@@ -59,8 +50,8 @@ export function OvertimeFilter({
     onClearFilters,
 }: ManagerOvertimeFilterProps) {
     const { theme } = useTheme();
-    const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
-    const [typePopoverOpen, setTypePopoverOpen] = useState(false);
+    const [employeePopoverOpen, setEmployeePopoverOpen] = useState<boolean>(false);
+    const [typePopoverOpen, setTypePopoverOpen] = useState<boolean>(false);
 
     const handleEmployeeToggle = (employeeUid: string) => {
         onEmployeesChange(

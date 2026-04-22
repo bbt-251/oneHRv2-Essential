@@ -1,19 +1,13 @@
 "use client";
 
 import * as React from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/components/theme-provider";
-import { Edit, X, Upload, FileText, Loader2 } from "lucide-react";
+import { X, Upload, FileText, Loader2 } from "lucide-react";
 import { CompanyInfoModel } from "@/lib/models/companyInfo";
 
 interface EditInfoModalProps {

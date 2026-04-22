@@ -7,12 +7,18 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { EmployeeModel } from "@/lib/models/employee";
+
+interface PositionOption {
+    id: string;
+    name: string;
+}
 
 interface EmployeeModalProps {
     isEmployeeModalOpen: boolean;
     setIsEmployeeModalOpen: (open: boolean) => void;
-    selectedEmployees: any[];
-    positions: any[];
+    selectedEmployees: EmployeeModel[];
+    positions: PositionOption[];
 }
 
 export function EmployeeModal({

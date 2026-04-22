@@ -51,7 +51,7 @@ export const stringToHtml = (jsonString: string): string => {
 
         // If it's not our expected format, treat as legacy plain text
         return jsonString;
-    } catch (error) {
+    } catch {
         // If JSON parsing fails, it's likely legacy plain text content
         // Return as-is for backward compatibility
         return jsonString;
@@ -260,7 +260,7 @@ export const validateHtmlContent = (
                 warnings.push(`Image ${index + 1} may have invalid URL: ${src}`);
             }
         });
-    } catch (error) {
+    } catch {
         errors.push("Invalid HTML structure");
     }
 

@@ -14,11 +14,17 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { EmployeeModel } from "@/lib/models/employee";
+
+interface DeductionTypeOption {
+    id: string;
+    deductionName?: string;
+}
 
 interface DeductionEntry {
     timestamp: string;
     id: string;
-    employees: any[];
+    employees: EmployeeModel[];
     deductionTypeName: string;
     deductionAmount: number;
     monthlyAmounts: { [month: string]: number };
@@ -26,8 +32,8 @@ interface DeductionEntry {
 
 interface DeductionTableProps {
     deductionsData: DeductionEntry[];
-    deductionTypes: any[];
-    openEmployeeModal: (employees: any[]) => void;
+    deductionTypes: DeductionTypeOption[];
+    openEmployeeModal: (employees: EmployeeModel[]) => void;
     openAmountModal: (amounts: { [month: string]: number }) => void;
     openEditDeductionDialog: (deduction: DeductionEntry) => void;
     handleDelete: (id: string) => void;

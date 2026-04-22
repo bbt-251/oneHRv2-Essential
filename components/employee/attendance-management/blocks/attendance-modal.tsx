@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { requestAttendanceModification } from "@/lib/backend/api/attendance/request-modification";
 import {
@@ -26,7 +26,7 @@ import { getNotificationRecipients } from "@/lib/util/notification/recipients";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { AttendanceChangeForm } from "./attendance-change-form";
 import { ChangeRequest } from "./attendance-modal/change-request";
 import { ClaimedOvertime } from "./attendance-modal/claimed-overtime";
@@ -51,54 +51,55 @@ interface AttendanceModalProps {
 export function AttendanceModal({ day, attendance, onClose }: AttendanceModalProps) {
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const { requestModifications, overtimeRequests, hrSettings, employees } = useFirestore();
+    const { requestModifications, overtimeRequests, employees, ...hrSettings } = useData();
     const overtimeTypes = hrSettings.overtimeTypes;
-    const [filteredOTs, setFilteredOTs] = useState<OvertimeRequestModel[]>([]);
-    const [claimedOTs, setClaimedOTs] = useState<OvertimeRequestModel[]>([]);
-    const [employeeOTRequests, setEmployeeOTRequests] = useState<OvertimeRequestModel[]>([]);
-    const [filteredRMs, setFilteredRMs] = useState<RequestModificationModel[]>([]);
-    const [activeTab, setActiveTab] = useState("clockinout");
-    const [showChangeForm, setShowChangeForm] = useState(false);
-    const [showOvertimeForm, setShowOvertimeForm] = useState(false);
-    const [showOTRequestForm, setShowOTRequestForm] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>("clockinout");
+    const [showChangeForm, setShowChangeForm] = useState<boolean>(false);
+    const [showOvertimeForm, setShowOvertimeForm] = useState<boolean>(false);
+    const [showOTRequestForm, setShowOTRequestForm] = useState<boolean>(false);
     const [editingOTRequest, setEditingOTRequest] = useState<OvertimeRequestModel | null>(null);
 
     // Get employee's stored timezone, fallback to current browser timezone
     const employeeData = employees.find(emp => emp.uid === userData?.uid);
     const userTimezone = employeeData?.timezone || getUserTimezone();
-
-    useEffect(() => {
-        // Filter overtime by employee and date
-        const attendanceDate = dayjs(`${day.month} ${day.day}, ${day.year}`, "MMMM D, YYYY");
-        const filteredOts = overtimeRequests.filter(
-            ot =>
-                ot.employeeUids.includes(userData?.uid ?? "") &&
-                attendanceDate.isSame(dayjs(ot.overtimeDate, dateFormat), "day") &&
-                ot.status === "approved" &&
-                !userData?.claimedOvertimes?.includes(ot.id),
-        );
-
-        setFilteredOTs(filteredOts);
-        setClaimedOTs(
+    const attendanceDate = useMemo(
+        () => dayjs(`${day.month} ${day.day}, ${day.year}`, "MMMM D, YYYY"),
+        [day.day, day.month, day.year],
+    );
+    const filteredOTs = useMemo(
+        () =>
+            overtimeRequests.filter(
+                ot =>
+                    ot.employeeUids.includes(userData?.uid ?? "") &&
+                    attendanceDate.isSame(dayjs(ot.overtimeDate, dateFormat), "day") &&
+                    ot.status === "approved" &&
+                    !userData?.claimedOvertimes?.includes(ot.id),
+            ),
+        [attendanceDate, overtimeRequests, userData?.claimedOvertimes, userData?.uid],
+    );
+    const claimedOTs = useMemo(
+        () =>
             overtimeRequests.filter(
                 ot =>
                     ot.employeeUids.includes(userData?.uid ?? "") &&
                     attendanceDate.isSame(dayjs(ot.overtimeDate, dateFormat), "day") &&
                     userData?.claimedOvertimes?.includes(ot.id),
             ),
-        );
-        setEmployeeOTRequests(
+        [attendanceDate, overtimeRequests, userData?.claimedOvertimes, userData?.uid],
+    );
+    const employeeOTRequests = useMemo(
+        () =>
             overtimeRequests.filter(
                 ot =>
                     ot.employeeUids.includes(userData?.uid ?? "") &&
                     attendanceDate.isSame(dayjs(ot.overtimeDate, dateFormat), "day"),
             ),
-        );
-    }, [userData?.uid, userData?.claimedOvertimes, overtimeRequests, day]);
-
-    useEffect(() => {
-        setFilteredRMs(requestModifications.filter(rm => rm.day == day.day));
-    }, [requestModifications, day]);
+        [attendanceDate, overtimeRequests, userData?.uid],
+    );
+    const filteredRMs = useMemo(
+        () => requestModifications.filter(rm => rm.day == day.day),
+        [day.day, requestModifications],
+    );
 
     const handleChangeRequestSubmit = async (values: WorkedHoursModel[], comment?: string) => {
         if (attendance) {
@@ -130,7 +131,7 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
                     }
                 }
 
-                newWorkedHours.map((workedHour: WorkedHoursModel | any) => {
+                newWorkedHours.forEach((workedHour: WorkedHoursModel & Record<string, unknown>) => {
                     const keys: string[] = Object.keys(workedHour);
                     keys.forEach(key => {
                         if (workedHour[key] === undefined) workedHour[key] = null;
@@ -176,10 +177,6 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
                             showToast("Change requested successfully", "Success", "success");
 
                             setShowChangeForm(false);
-
-                            const manager = employees.find(
-                                e => e.uid === userData?.reportingLineManager,
-                            );
 
                             // send notification using the new notification system
                             const validRecipients = getNotificationRecipients(
@@ -231,8 +228,7 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
                             return;
                         }
                     })
-                    .catch((err: any) => {
-                        console.log("error: ", err);
+                    .catch(() => {
                         showToast("Something went wrong, please try again", "Error", "error");
                     });
             } else if (length > 1 && length % 2 != 0) {

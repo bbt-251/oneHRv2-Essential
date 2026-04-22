@@ -28,9 +28,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Calendar, Clock, Settings, Plus, Edit, Trash2 } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
-import { hrSettingsService, LeaveTypeModel } from "@/lib/backend/firebase/hrSettingsService";
+import { FileText, Plus, Edit } from "lucide-react";
+import { useData } from "@/context/app-data-context";
+import { hrSettingsService, LeaveTypeModel } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ import { useAuth } from "@/context/authContext";
 // Leave Types Component
 
 export default function LeaveTypes() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { userData } = useAuth();
@@ -49,7 +49,8 @@ export default function LeaveTypes() {
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [editingLeaveType, setEditingLeaveType] = useState<LeaveTypeModel | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<LeaveTypeModel>({
+        id: "",
         name: "",
         authorizedDays: 0,
         acronym: "",
@@ -59,6 +60,7 @@ export default function LeaveTypes() {
     const handleAdd = () => {
         setEditingLeaveType(null);
         setFormData({
+            id: "",
             name: "",
             authorizedDays: 0,
             acronym: "",

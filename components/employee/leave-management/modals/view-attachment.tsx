@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     X,
     Download,
@@ -13,6 +13,7 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
+import { getBackendStorageDownloadUrl } from "@/lib/backend/client/storage-client";
 
 interface ViewAttachmentProps {
     attachments: string[];
@@ -20,23 +21,60 @@ interface ViewAttachmentProps {
 }
 
 const FIREBASE_STORAGE_URL_PREFIX = "https://firebasestorage.googleapis.com/";
+const GOOGLE_STORAGE_URL_PREFIX = "https://storage.googleapis.com";
 
 export default function ViewAttachment({
     attachments,
     setIsAttachmentModalOpen,
 }: ViewAttachmentProps) {
     const { theme } = useTheme();
-    const [zoom, setZoom] = useState(74);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [zoom, setZoom] = useState<number>(74);
+    const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+    const [resolvedAttachmentUrl, setResolvedAttachmentUrl] = useState<string | null>(null);
+    const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
-    const isValidAttachment =
-        (attachments &&
-            attachments.length > 0 &&
-            typeof attachments[0] === "string" &&
-            attachments[0].startsWith(FIREBASE_STORAGE_URL_PREFIX)) ||
-        attachments[0].startsWith("https://storage.googleapis.com");
+    const firstAttachment = attachments?.[0];
+    const isDirectUrl =
+        typeof firstAttachment === "string" &&
+        (firstAttachment.startsWith(FIREBASE_STORAGE_URL_PREFIX) ||
+            firstAttachment.startsWith(GOOGLE_STORAGE_URL_PREFIX) ||
+            firstAttachment.startsWith("http://") ||
+            firstAttachment.startsWith("https://"));
+    const hasAttachment = typeof firstAttachment === "string" && firstAttachment.length > 0;
 
-    const pdfUrl = isValidAttachment ? attachments[0] : null;
+    useEffect(() => {
+        let active = true;
+
+        if (!hasAttachment || isDirectUrl) {
+            return;
+        }
+
+        getBackendStorageDownloadUrl(firstAttachment)
+            .then(downloadUrl => {
+                if (!active) {
+                    return;
+                }
+
+                setResolvedAttachmentUrl(downloadUrl);
+                setAttachmentError(null);
+            })
+            .catch(error => {
+                if (!active) {
+                    return;
+                }
+
+                console.error("Failed to resolve attachment download URL:", error);
+                setResolvedAttachmentUrl(null);
+                setAttachmentError("Failed to resolve attachment.");
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [firstAttachment, hasAttachment, isDirectUrl]);
+
+    const pdfUrl = isDirectUrl ? firstAttachment : resolvedAttachmentUrl;
+    const isValidAttachment = Boolean(pdfUrl);
 
     const handleClose = () => {
         setIsAttachmentModalOpen(false);
@@ -107,7 +145,8 @@ export default function ViewAttachment({
                         <p
                             className={`text-gray-500 mt-2 ${theme === "dark" ? "text-gray-200" : "text-gray-500"}`}
                         >
-                            There is no valid attachment to display for this request.
+                            {attachmentError ||
+                                "There is no valid attachment to display for this request."}
                         </p>
                     </div>
                 ) : (

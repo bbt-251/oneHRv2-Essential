@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { X, Calendar, Clock, Info } from "lucide-react";
+import { X, Calendar, Info } from "lucide-react";
 import {
     calculateLeaveBalanceBreakdown,
     BalanceBreakdownResult,

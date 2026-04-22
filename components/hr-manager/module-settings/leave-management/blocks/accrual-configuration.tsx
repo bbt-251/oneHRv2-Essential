@@ -7,18 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import {
-    AccrualConfigurationModel,
-    hrSettingsService,
-} from "@/lib/backend/firebase/hrSettingsService";
+import { AccrualConfigurationModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { LEAVE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/leave-management";
 import { useAuth } from "@/context/authContext";
 
 export default function AccrualConfiguration() {
     const { theme } = useTheme();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { userData } = useAuth();
     const accrualConfiguration = hrSettings.accrualConfigurations;

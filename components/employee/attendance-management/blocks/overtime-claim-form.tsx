@@ -23,7 +23,7 @@ import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import dayjs from "dayjs";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 
 interface OvertimeClaimFormProps {
     day: {
@@ -49,7 +49,14 @@ export function OvertimeClaimForm({
     const isDark = theme === "dark";
     const [claimLoading, setClaimLoading] = useState<boolean>(false);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        overtime: string;
+        overtimeDate: string;
+        overtimeStartTime: string;
+        overtimeEndTime: string;
+        overtimeDuration: string;
+        overtimeType: string;
+    }>({
         overtime: "",
         overtimeDate: `${day.year}-${String(
             new Date(`${day.month} 1, ${day.year}`).getMonth() + 1,
@@ -139,12 +146,14 @@ export function OvertimeClaimForm({
                                             ot => ot.id == value,
                                         );
 
+                                        const selectedOvertime = selectedOT;
+
                                         [
                                             "overtimeDate",
                                             "overtimeStartTime",
                                             "overtimeEndTime",
                                             "overtimeType",
-                                        ].map(key => {
+                                        ].forEach(key => {
                                             if (
                                                 [
                                                     "overtimeDate",
@@ -155,12 +164,20 @@ export function OvertimeClaimForm({
                                                 handleInputChange(
                                                     key,
                                                     dayjs(
-                                                        (selectedOT as any)[key],
+                                                        selectedOvertime?.[
+                                                            key as
+                                                                | "overtimeDate"
+                                                                | "overtimeStartTime"
+                                                                | "overtimeEndTime"
+                                                        ] ?? "",
                                                         "hh:mm A",
                                                     ).format("HH:mm"),
                                                 );
                                             } else {
-                                                handleInputChange(key, (selectedOT as any)[key]);
+                                                handleInputChange(
+                                                    key,
+                                                    selectedOvertime?.overtimeType ?? "",
+                                                );
                                             }
                                         });
 

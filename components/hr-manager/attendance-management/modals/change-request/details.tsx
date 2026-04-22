@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
 import { AttendanceChangeRequest } from "../../page";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { EmployeeModel } from "@/lib/models/employee";
 
@@ -31,7 +31,7 @@ export function HRAttendanceDetailModal({
     onClose,
     request,
 }: HRAttendanceDetailModalProps) {
-    const { employees } = useFirestore();
+    const { employees } = useData();
     if (!request) return null;
 
     const getStatusBadge = (status: string) => {

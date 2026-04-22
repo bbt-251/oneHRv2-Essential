@@ -16,8 +16,8 @@ interface ColumnSelectorProps {
 
 export function ColumnSelector({ columns, onColumnToggle }: ColumnSelectorProps) {
     const { theme } = useTheme();
-    const [open, setOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [open, setOpen] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState<string>("");
 
     // Define base classes for reuse
     const buttonClasses =

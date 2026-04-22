@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bell, CheckCircle, Clock, AlertTriangle, Info, Calendar } from "lucide-react";
+import { Bell, Calendar } from "lucide-react";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
 import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExtendedNotificationModel } from "@/components/header";
 import { useRouter } from "next/navigation";
 
@@ -27,7 +27,8 @@ export function NotificationsModal({
     const { showToast } = useToast();
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
     const router = useRouter();
-    const [localNotifications, setLocalNotifications] = useState<any[]>(userNotifications);
+    const [localNotifications, setLocalNotifications] =
+        useState<ExtendedNotificationModel[]>(userNotifications);
 
     // Sync local state with props when they change
     useEffect(() => {
@@ -52,10 +53,9 @@ export function NotificationsModal({
             const currentNotifications = userData.notifications || [];
             const existingIndex = currentNotifications.findIndex(n => n.id === notificationId);
 
-            let updatedNotifications;
+            let updatedNotifications = [...currentNotifications];
             if (existingIndex >= 0) {
                 // Update existing entry
-                updatedNotifications = [...currentNotifications];
                 updatedNotifications[existingIndex] = {
                     ...updatedNotifications[existingIndex],
                     isRead: true,
@@ -71,7 +71,7 @@ export function NotificationsModal({
                         action: null,
                         timestamp: new Date().toISOString(),
                         isRead: true,
-                    } as any,
+                    },
                 ];
             }
 
@@ -93,7 +93,7 @@ export function NotificationsModal({
                 );
                 showToast("Failed to mark notification as read", "error", "error");
             }
-        } catch (error) {
+        } catch {
             // Revert optimistic update on error
             setLocalNotifications(prev =>
                 prev.map(notification =>
@@ -102,7 +102,6 @@ export function NotificationsModal({
                         : notification,
                 ),
             );
-            console.error("Error marking notification as read:", error);
             showToast("Failed to mark notification as read", "error", "error");
         } finally {
             setUpdatingIds(prev => {
@@ -116,7 +115,7 @@ export function NotificationsModal({
     const markAllAsRead = async () => {
         if (!userData) return;
 
-        const unreadNotifications = localNotifications.filter((n: any) => !n.isRead);
+        const unreadNotifications = localNotifications.filter(notification => !notification.isRead);
         if (unreadNotifications.length === 0) return;
 
         setUpdatingIds(prev => new Set([...prev, ...unreadNotifications.map(n => n.id ?? "")]));
@@ -145,7 +144,7 @@ export function NotificationsModal({
                         action: notification.action || null,
                         timestamp: notification.timestamp,
                         isRead: true,
-                    } as any);
+                    });
                 }
             });
 
@@ -161,30 +160,12 @@ export function NotificationsModal({
                 setLocalNotifications(userNotifications);
                 showToast("Failed to mark all notifications as read", "error", "error");
             }
-        } catch (error) {
+        } catch {
             // Revert optimistic update on error
             setLocalNotifications(userNotifications);
-            console.error("Error marking all notifications as read:", error);
             showToast("Failed to mark all notifications as read", "error", "error");
         } finally {
             setUpdatingIds(new Set());
-        }
-    };
-
-    const getNotificationIcon = (type: string) => {
-        switch (type) {
-            case "approval":
-                return <CheckCircle className="h-5 w-5 text-success-600" />;
-            case "reminder":
-                return <Clock className="h-5 w-5 text-warning-600" />;
-            case "info":
-                return <Info className="h-5 w-5 text-brand-600" />;
-            case "warning":
-                return <AlertTriangle className="h-5 w-5 text-danger-600" />;
-            case "success":
-                return <CheckCircle className="h-5 w-5 text-success-600" />;
-            default:
-                return <Bell className="h-5 w-5 text-brand-600" />;
         }
     };
 
@@ -205,7 +186,14 @@ export function NotificationsModal({
         }
     };
 
-    const unreadCount = localNotifications.filter((not: any) => !not.isRead).length;
+    const unreadCount = localNotifications.filter(notification => !notification.isRead).length;
+    const sortedNotifications = useMemo(
+        () =>
+            [...localNotifications].sort(
+                (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+            ),
+        [localNotifications],
+    );
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -223,106 +211,95 @@ export function NotificationsModal({
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    {localNotifications
-                        .sort(
-                            (a: any, b: any) =>
-                                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-                        )
-                        .map((notification: any) => (
-                            <Card
-                                key={notification.id}
-                                className={`border transition-all duration-200 hover:shadow-md ${
-                                    notification.isRead
-                                        ? "border-accent-200 bg-white"
-                                        : "border-accent-300 bg-accent-50"
-                                }`}
-                            >
-                                <CardContent className="p-6">
-                                    <div className="flex items-start gap-4">
-                                        {/* <div className={`p-3 rounded-xl ${getNotificationColor(notification.type)}`}>
+                    {sortedNotifications.map(notification => (
+                        <Card
+                            key={notification.id}
+                            className={`border transition-all duration-200 hover:shadow-md ${
+                                notification.isRead
+                                    ? "border-accent-200 bg-white"
+                                    : "border-accent-300 bg-accent-50"
+                            }`}
+                        >
+                            <CardContent className="p-6">
+                                <div className="flex items-start gap-4">
+                                    {/* <div className={`p-3 rounded-xl ${getNotificationColor(notification.type)}`}>
                                         {getNotificationIcon(notification.type)}
                                     </div> */}
 
-                                        <div className="flex-1 space-y-3">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div>
-                                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                                        {notification.title}
-                                                        {!notification.isRead && (
-                                                            <div className="w-2 h-2 bg-danger-500 rounded-full"></div>
-                                                        )}
-                                                    </h3>
-                                                    <p className="text-brand-700 mt-1">
-                                                        {notification.message}
-                                                    </p>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    {notification.action && (
-                                                        <Badge className="bg-warning-100 text-warning-700 border-warning-200">
-                                                            Action Required
-                                                        </Badge>
+                                    <div className="flex-1 space-y-3">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <h3 className="font-bold text-lg flex items-center gap-2">
+                                                    {notification.title}
+                                                    {!notification.isRead && (
+                                                        <div className="w-2 h-2 bg-danger-500 rounded-full"></div>
                                                     )}
-                                                    <Badge
-                                                        className={`text-xs px-2 py-1 border ${getNotificationColor(notification.title)}`}
-                                                    >
-                                                        {notification.title}
-                                                    </Badge>
-                                                </div>
+                                                </h3>
+                                                <p className="text-brand-700 mt-1">
+                                                    {notification.message}
+                                                </p>
                                             </div>
 
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-1 text-sm text-brand-500">
-                                                    <Calendar className="h-3 w-3" />
-                                                    <span>
-                                                        {new Date(
-                                                            notification.timestamp,
-                                                        ).toLocaleString()}
-                                                    </span>
-                                                </div>
+                                            <div className="flex items-center gap-2">
+                                                {notification.action && (
+                                                    <Badge className="bg-warning-100 text-warning-700 border-warning-200">
+                                                        Action Required
+                                                    </Badge>
+                                                )}
+                                                <Badge
+                                                    className={`text-xs px-2 py-1 border ${getNotificationColor(notification.title)}`}
+                                                >
+                                                    {notification.title}
+                                                </Badge>
+                                            </div>
+                                        </div>
 
-                                                <div className="flex items-center gap-2">
-                                                    {notification.action && (
-                                                        <Button
-                                                            size="sm"
-                                                            className="bg-brand-600 hover:bg-brand-700 text-white"
-                                                            onClick={e => {
-                                                                if (notification.action) {
-                                                                    e.stopPropagation();
-                                                                    router.push(
-                                                                        notification.action,
-                                                                    );
-                                                                    onClose();
-                                                                }
-                                                            }}
-                                                        >
-                                                            Take Action
-                                                        </Button>
-                                                    )}
-                                                    {!notification.isRead && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() =>
-                                                                markAsRead(notification.id)
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1 text-sm text-brand-500">
+                                                <Calendar className="h-3 w-3" />
+                                                <span>
+                                                    {new Date(
+                                                        notification.timestamp,
+                                                    ).toLocaleString()}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                {notification.action && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-brand-600 hover:bg-brand-700 text-white"
+                                                        onClick={e => {
+                                                            if (notification.action) {
+                                                                e.stopPropagation();
+                                                                router.push(notification.action);
+                                                                onClose();
                                                             }
-                                                            disabled={updatingIds.has(
-                                                                notification.id,
-                                                            )}
-                                                            className="text-xs border-brand-300 text-brand-700 hover:bg-brand-50 bg-transparent"
-                                                        >
-                                                            {updatingIds.has(notification.id)
-                                                                ? "Marking..."
-                                                                : "Mark as Read"}
-                                                        </Button>
-                                                    )}
-                                                </div>
+                                                        }}
+                                                    >
+                                                        Take Action
+                                                    </Button>
+                                                )}
+                                                {!notification.isRead && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => markAsRead(notification.id)}
+                                                        disabled={updatingIds.has(notification.id)}
+                                                        className="text-xs border-brand-300 text-brand-700 hover:bg-brand-50 bg-transparent"
+                                                    >
+                                                        {updatingIds.has(notification.id)
+                                                            ? "Marking..."
+                                                            : "Mark as Read"}
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-accent-200">

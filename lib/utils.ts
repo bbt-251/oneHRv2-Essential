@@ -2,14 +2,13 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { timestampFormat } from "./util/dayjs_format";
 import dayjs from "dayjs";
-import ApplicantModel, { EducationExperience, ProfessionalExperience } from "./models/applicant";
 import { TMCategory } from "./models/hr-settings";
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
 // Debounce utility function
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
     func: T,
     wait: number,
 ): (...args: Parameters<T>) => void {
@@ -22,7 +21,7 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 interface Input {
-    data: any[];
+    data: Record<string, string | number | null | undefined>[];
     type?: "Latest First" | "Old First";
     format?: string;
     key?: string;
@@ -56,17 +55,6 @@ export default function sortByDate(value: Input) {
     }
 }
 
-export function getExperienceDate(exp: ProfessionalExperience): string {
-    return `${exp.startDate} - ${exp.currentlyWorking ? "Present" : exp.endDate}`;
-}
-
-export function getEducationDate(exp: EducationExperience): string {
-    return `${exp.startDate} - ${exp.currentlyStudying ? "Present" : exp.endDate}`;
-}
-
-export function getApplicantPhoneNumber(applicant: ApplicantModel): string {
-    return `${applicant.phoneCountryCode}${applicant.phoneNumber}`;
-}
 export function getCategoryDisplayString(
     categoryArray: string[],
     tmCategories: TMCategory[],

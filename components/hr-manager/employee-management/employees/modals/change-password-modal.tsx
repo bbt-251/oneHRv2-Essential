@@ -6,11 +6,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { X, Key, Eye, EyeOff, Loader2 } from "lucide-react";
 import type { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/context/toastContext";
+import { updateEmployeeWithBackend } from "@/lib/backend/client/employee-client";
 
 interface ChangePasswordModalProps {
     employee: EmployeeModel;
@@ -22,7 +22,6 @@ export function ChangePasswordModal({ employee, onClose }: ChangePasswordModalPr
     const { showToast } = useToast();
     const [newPassword, setNewPassword] = useState<string>("");
     const [confirmPassword, setConfirmPassword] = useState<string>("");
-    const [forceChange, setForceChange] = useState<boolean>(false);
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -40,33 +39,28 @@ export function ChangePasswordModal({ employee, onClose }: ChangePasswordModalPr
             return;
         }
 
-        if (!employee.uid) {
-            showToast("Employee UID not found", "Error", "error");
+        if (!employee.id) {
+            showToast("Employee record not found", "Error", "error");
             return;
         }
 
         setIsLoading(true);
 
         try {
-            const response = await fetch("/api/change-password", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
+            const response = await updateEmployeeWithBackend({
+                id: employee.id,
+                password: newPassword,
+                lastChanged: new Date().toISOString(),
+                passwordRecovery: {
+                    timestamp: "",
+                    token: "",
                 },
-                body: JSON.stringify({
-                    uid: employee.uid,
-                    newPassword,
-                    forceChange,
-                }),
             });
-
-            const result = await response.json();
-
-            if (result.success) {
+            if (response.employee) {
                 showToast("Password changed successfully", "Success", "success");
                 onClose();
             } else {
-                showToast(result.message, "Error", "error");
+                showToast("Failed to change password", "Error", "error");
             }
         } catch (error) {
             console.error("Error changing password:", error);
@@ -221,20 +215,6 @@ export function ChangePasswordModal({ employee, onClose }: ChangePasswordModalPr
                     >
                         Generate Secure Password
                     </Button>
-
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="forceChange"
-                            checked={forceChange}
-                            onCheckedChange={checked => setForceChange(checked as boolean)}
-                        />
-                        <Label
-                            htmlFor="forceChange"
-                            className={`text-sm ${theme === "dark" ? "text-gray-300" : ""}`}
-                        >
-                            Force user to change password on next login
-                        </Label>
-                    </div>
 
                     <div
                         className={`text-xs p-3 rounded ${theme === "dark" ? "bg-gray-900 text-gray-400" : "bg-gray-50 text-gray-600"}`}

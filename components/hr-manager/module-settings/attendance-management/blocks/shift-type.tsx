@@ -27,9 +27,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Edit, Loader2, Plus, Trash2, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useFirestore } from "@/context/firestore-context";
-import { hrSettingsService, ShiftTypeModel } from "@/lib/backend/firebase/hrSettingsService";
+import { useState } from "react";
+import { useData } from "@/context/app-data-context";
+import { hrSettingsService, ShiftTypeModel } from "@/lib/backend/hr-settings-service";
 import { timestampFormat } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import { useToast } from "@/context/toastContext";
@@ -40,16 +40,14 @@ import { useAuth } from "@/context/authContext";
 import { SHIFT_TYPE_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function ShiftType() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { theme } = useTheme();
     const { userData } = useAuth();
 
-    const [shiftTypes, setShiftTypes] = useState<ShiftTypeModel[]>([]);
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [shiftHours, setShiftHours] = useState<{ label: string; value: string }[]>([]);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
     const [editingShiftType, setEditingShiftType] = useState<ShiftTypeModel | null>(null);
     const [formData, setFormData] = useState<Partial<ShiftTypeModel>>({
         name: "",
@@ -92,13 +90,11 @@ export function ShiftType() {
         "Sunday",
     ];
 
-    useEffect(() => {
-        setShiftTypes(hrSettings.shiftTypes);
-    }, [hrSettings.shiftTypes]);
-
-    useEffect(() => {
-        setShiftHours(hrSettings.shiftHours.map(sh => ({ label: sh.name, value: sh.id })));
-    }, [hrSettings.shiftHours]);
+    const shiftTypes: ShiftTypeModel[] = hrSettings.shiftTypes;
+    const shiftHours: { label: string; value: string }[] = hrSettings.shiftHours.map(sh => ({
+        label: sh.name,
+        value: sh.id,
+    }));
 
     const handleAddShiftType = async () => {
         // required fields
@@ -127,7 +123,7 @@ export function ShiftType() {
         };
 
         if (editingShiftType) {
-            const { id, ...data } = formData;
+            const { id: _id, ...data } = formData;
             const res = await hrSettingsService.update(
                 "shiftTypes",
                 editingShiftType.id,

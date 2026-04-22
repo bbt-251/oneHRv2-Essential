@@ -5,12 +5,18 @@ import { PayrollData } from "@/components/hr-manager/compensation-benefits/payro
 import PayrollSlip from "@/components/hr-manager/compensation-benefits/payroll-management/blocks/payrollSlip";
 import PayrollPDFSettingsModel from "@/lib/models/payrollPDFSettings";
 
+type ShowToast = (
+    message: string,
+    title: string,
+    variant: "success" | "warning" | "error" | "info",
+) => void;
+
 export const generatePayrollSlip = async (
     selections: string[],
     dataSource: PayrollData[],
     pdfSettings: PayrollPDFSettingsModel,
     attendanceLogic: 1 | 2 | 3 | 4,
-    showToast: any,
+    showToast: ShowToast,
 ) => {
     if (selections.length === 0) {
         showToast("No selections made.", "Warning", "warning");

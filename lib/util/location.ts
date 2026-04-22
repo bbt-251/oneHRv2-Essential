@@ -34,7 +34,7 @@ export function isLocationAroundPoints(
 }
 
 export async function getCurrentLocation(): Promise<[number, number] | false> {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         if (typeof window === "undefined" || !navigator.geolocation) {
             resolve(false);
             return;

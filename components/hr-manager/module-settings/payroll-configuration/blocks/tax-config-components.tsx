@@ -7,6 +7,9 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TaxModel, TaxPercentageModel } from "@/lib/models/hr-settings";
 
+type TaxFieldValue = TaxModel[keyof TaxModel];
+type TaxBracketFieldValue = TaxPercentageModel[keyof TaxPercentageModel];
+
 interface TaxObligationFormProps {
     data?: TaxModel;
     isAddEditLoading: boolean;
@@ -68,14 +71,18 @@ export function TaxObligationForm({
         }
     };
 
-    const handleInputChange = (field: keyof TaxModel, value: any) => {
+    const handleInputChange = (field: keyof TaxModel, value: TaxFieldValue) => {
         setFormData({ ...formData, [field]: value });
         if (errors[field]) {
             setErrors({ ...errors, [field]: "" });
         }
     };
 
-    const handleBracketChange = (index: number, field: keyof TaxPercentageModel, value: any) => {
+    const handleBracketChange = (
+        index: number,
+        field: keyof TaxPercentageModel,
+        value: TaxBracketFieldValue,
+    ) => {
         const updatedBrackets = [...formData.taxRates];
         updatedBrackets[index] = { ...updatedBrackets[index], [field]: value };
         setFormData({ ...formData, taxRates: updatedBrackets });

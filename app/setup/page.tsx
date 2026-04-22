@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,13 +34,9 @@ export default function SetupPage() {
         employeeID: "",
     });
 
-    useEffect(() => {
-        checkEmployeesExist();
-    }, []);
-
-    const checkEmployeesExist = async (): Promise<void> => {
+    const checkEmployeesExist = useCallback(async (): Promise<void> => {
         try {
-            const response = await fetch("/api/check-users", {
+            const response = await fetch("/api/setup/bootstrap", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -52,12 +48,16 @@ export default function SetupPage() {
             if (result.success && result.usersExist) {
                 setEmployeesExist(true);
             }
-        } catch (error) {
+        } catch {
             showToast("Error checking system status", "Error", "error");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [showToast]);
+
+    useEffect(() => {
+        void checkEmployeesExist();
+    }, [checkEmployeesExist]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         const { name, value } = e.target;
@@ -117,7 +117,7 @@ export default function SetupPage() {
 
         return {
             timestamp,
-            uid: "", // Will be set after Firebase Auth user creation
+            uid: "", // Will be set after account creation
 
             // User provided fields
             firstName: formData.firstName.trim(),
@@ -130,12 +130,12 @@ export default function SetupPage() {
             // Employee information defaults
             birthDate: "",
             birthPlace: "",
-            levelOfEducation: "",
-            educationDetail: [],
-            yearsOfExperience: "",
-            experienceDetail: [],
-            trainingDetail: [],
-            languageSkills: [],
+            // levelOfEducation: "",
+            // educationDetail: [],
+            // yearsOfExperience: "",
+            // experienceDetail: [],
+            // trainingDetail: [],
+            // languageSkills: [],
             gender: "",
             maritalStatus: "",
             personalPhoneNumber: "",
@@ -159,7 +159,7 @@ export default function SetupPage() {
             contractType: "",
             contractHour: 0,
             hoursPerWeek: 0,
-            contractStatus: "",
+            contractStatus: "active",
             contractStartingDate: "",
             contractTerminationDate: "",
             contractDuration: [],
@@ -171,7 +171,7 @@ export default function SetupPage() {
             salary: 0,
             currency: "",
             eligibleLeaveDays: 0,
-            companyEmail: "",
+            companyEmail: formData.personalEmail.trim(),
             companyPhoneNumber: "",
             associatedTax: "",
             pensionApplication: false,
@@ -192,8 +192,8 @@ export default function SetupPage() {
             step: 0,
             shiftType: "Regular",
             role: ["Employee", "Manager", "HR Manager", "Payroll Officer"],
-            performanceScore: 0,
-            successorInformation: [],
+            // performanceScore: 0,
+            // successorInformation: [],
             unit: "",
 
             // Emergency information defaults
@@ -207,27 +207,24 @@ export default function SetupPage() {
             physicalAddress2: "",
 
             // Training and development defaults
-            starredTrainingMaterials: [],
-            trainingMaterialsProgress: [],
-            trainingMaterialStatus: [],
-            certificationsAcquired: [],
-            announcements: [],
+            // starredTrainingMaterials: [],
+            // trainingMaterialsProgress: [],
+            // trainingMaterialStatus: [],
+            // certificationsAcquired: [],
+            // announcements: [],
             notifications: [],
-            checklistItems: [],
+            // checklistItems: [],
             timezone: null,
-            checklistItemRemark: [],
-            performance: [],
+            // checklistItemRemark: [],
+            // performance: [],
             claimedOvertimes: [],
 
             // Promotion interview defaults
-            promotionInterviews: [],
-            promotionInterviewResults: [],
+            // promotionInterviews: [],
+            // promotionInterviewResults: [],
 
             // Custom fields defaults
-            "customFields-1": [],
-            "customFields-2": [],
-            "customFields-3": [],
-            "customFields-4": [],
+            customFields: [],
 
             // Balance leave days defaults
             balanceLeaveDays: 0,
@@ -253,85 +250,33 @@ export default function SetupPage() {
         setIsSubmitting(true);
 
         try {
-            // 1. Create Firebase Auth user
-            const response = await fetch("/api/register-user", {
+            const response = await fetch("/api/setup/bootstrap", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
+                    confirmationCode: formData.confirmationCode,
                     ...createDefaultEmployee(),
-                    email: formData.personalEmail,
-                    password: formData.password,
-                    role: ["Employee", "Manager", "HR Manager", "Payroll Officer"],
                 }),
             });
 
             const result = await response.json();
 
             if (result.success) {
-                // 2. Create employee in Firestore
-                const newEmployee: Omit<EmployeeModel, "id"> = {
-                    ...createDefaultEmployee(),
-                    uid: result.uid,
-                };
+                showToast(
+                    "Setup completed successfully! Super admin created.",
+                    "Success",
+                    "success",
+                );
 
-                const employeeResponse = await fetch("/api/create-employee", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(newEmployee),
-                });
-
-                const employeeResult = await employeeResponse.json();
-                if (employeeResult.success) {
-                    // 3. Generate attendance records
-                    try {
-                        const attendanceResponse = await fetch("/api/generate-attendance", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                uid: result.uid,
-                                shiftType: "Regular",
-                            }),
-                        });
-
-                        const attendanceResult = await attendanceResponse.json();
-                        if (attendanceResult.success) {
-                            showToast(
-                                "Setup completed successfully! Super admin created.",
-                                "Success",
-                                "success",
-                            );
-                        } else {
-                            showToast(
-                                "Setup completed, but attendance generation failed",
-                                "Warning",
-                                "warning",
-                            );
-                        }
-                    } catch (attendanceError) {
-                        showToast(
-                            "Setup completed, but attendance generation failed",
-                            "Warning",
-                            "warning",
-                        );
-                    }
-
-                    // Redirect to main app after successful setup
-                    setTimeout(() => {
-                        router.push("/");
-                    }, 2000);
-                } else {
-                    showToast("Error creating employee profile", "Error", "error");
-                }
+                setTimeout(() => {
+                    router.push("/");
+                }, 2000);
             } else {
                 showToast(result.message || "Error creating user account", "Error", "error");
             }
-        } catch (error) {
+        } catch {
             showToast("Failed to complete setup", "Error", "error");
         } finally {
             setIsSubmitting(false);

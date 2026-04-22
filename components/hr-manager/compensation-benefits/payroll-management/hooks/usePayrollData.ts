@@ -1,16 +1,17 @@
-import { useEffect, useState, useRef } from "react";
+import { useMemo } from "react";
 import { PayrollData } from "@/components/hr-manager/compensation-benefits/payroll-management/page";
 import returnPayrollData from "@/lib/backend/functions/returnPayslipData";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { EmployeeLoanModel } from "@/lib/models/employeeLoan";
 import { LoanTypeModel } from "@/lib/models/hr-settings";
+import PayrollPDFSettingsModel from "@/lib/models/payrollPDFSettings";
 
 export function usePayrollData(
     selectedMonth: string,
     selectedEmployees: string[],
     loans: EmployeeLoanModel[],
     loanTypes: LoanTypeModel[],
-    payrollPDFSettings: any,
+    payrollPDFSettings: PayrollPDFSettingsModel,
 ) {
     const {
         employees,
@@ -20,7 +21,7 @@ export function usePayrollData(
         overtimeRequests,
         leaveManagements,
         compensations,
-    } = useFirestore();
+    } = useData();
     const overtimeTypes = hrSettings.overtimeTypes;
     const shiftTypes = hrSettings.shiftTypes;
     const holidays = hrSettings.holidays;
@@ -30,39 +31,8 @@ export function usePayrollData(
     const pension = hrSettings.pension?.at(0) || null;
     const taxes = hrSettings.taxes;
 
-    const [payslipData, setPayslipData] = useState<PayrollData[]>([]);
-    const [filteredData, setFilteredData] = useState<PayrollData[]>([]);
-
-    // Track if we should apply employee selection
-    const prevSelectedEmployeesRef = useRef<string[]>([]);
-
-    // Handle employee selection changes
-    useEffect(() => {
-        // Only apply if selectedEmployees changed and we have data
-        if (payslipData.length > 0) {
-            const prevSelected = prevSelectedEmployeesRef.current;
-            const prevLength = prevSelected.length;
-            const currLength = selectedEmployees.length;
-
-            // Check if selection actually changed
-            const hasChanged =
-                prevLength !== currLength ||
-                (currLength > 0 && !selectedEmployees.every(e => prevSelected.includes(e)));
-
-            if (hasChanged) {
-                prevSelectedEmployeesRef.current = selectedEmployees;
-
-                if (selectedEmployees.length > 0) {
-                    setFilteredData(payslipData.filter(p => selectedEmployees.includes(p.uid)));
-                } else {
-                    setFilteredData(payslipData);
-                }
-            }
-        }
-    }, [selectedEmployees, payslipData]);
-
-    useEffect(() => {
-        const data = returnPayrollData({
+    const payslipData = useMemo<PayrollData[]>(() => {
+        return returnPayrollData({
             month: selectedMonth,
             employees,
             attendances,
@@ -83,8 +53,6 @@ export function usePayrollData(
             currencies,
             hrSettings,
         });
-        setPayslipData(data);
-        setFilteredData(data);
     }, [
         selectedMonth,
         employees,
@@ -104,7 +72,16 @@ export function usePayrollData(
         holidays,
         leaveManagements,
         currencies,
+        hrSettings,
     ]);
 
-    return { payslipData, setPayslipData, filteredData, setFilteredData };
+    const selectedEmployeeData = useMemo<PayrollData[]>(
+        () =>
+            selectedEmployees.length > 0
+                ? payslipData.filter(p => selectedEmployees.includes(p.uid))
+                : payslipData,
+        [payslipData, selectedEmployees],
+    );
+
+    return { payslipData, selectedEmployeeData };
 }

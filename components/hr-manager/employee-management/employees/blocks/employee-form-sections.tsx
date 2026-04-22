@@ -20,17 +20,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useFirestore } from "@/context/firestore-context";
-import { LocationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { useData } from "@/context/app-data-context";
+import { LocationModel } from "@/lib/backend/hr-settings-service";
 import { canBeReportee } from "@/lib/backend/functions/canBeReportee";
 import { CustomField, CustomFieldSection, EmployeeModel } from "@/lib/models/employee";
 import { calculateProbationEndDate } from "@/lib/util/calculate-probation-end-date";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
-import { Check, Edit, Ellipsis, Eye, EyeOff, X } from "lucide-react";
+import { Check, Ellipsis, X } from "lucide-react";
 import * as React from "react";
-import { useEffect, useState } from "react";
 
 interface LocationNode extends LocationModel {
     parentId?: string | null;
@@ -175,355 +174,20 @@ const renderMultiSelectField = (
         </Popover>
         {!errors[id] && (
             <p className="font-light text-sm text-gray-500">
-                "Employee" role is by default associated
+                &quot;Employee&quot; role is by default associated
             </p>
         )}
         {errors[id] && <p className="mt-1 text-sm text-red-500">{errors[id]}</p>}
     </div>
 );
 
-// Employee Information Section
-interface EmployeeInformationProps {
-    formData: EmployeeModel;
-    handleInputChange: (field: keyof EmployeeModel, value: string | string[]) => void;
-    handleCustomFieldsChange: (section: CustomFieldSection, fields: CustomField[]) => void;
-    errors: Record<string, string>;
-    handleEdit: () => void;
-    theme: string;
-    showPassword: boolean;
-    setShowPassword: (show: boolean) => void;
-    employee?: EmployeeModel;
-}
-
-export const EmployeeInformationSection: React.FC<EmployeeInformationProps> = ({
-    formData,
-    handleInputChange,
-    handleCustomFieldsChange,
-    errors,
-    handleEdit,
-    theme,
-    showPassword,
-    setShowPassword,
-    employee,
-}) => {
-    const { hrSettings } = useFirestore();
-    const maritalStatus = hrSettings.maritalStatuses || [];
-    const filteredMaritalStatus = maritalStatus.filter(status => status.active === true);
-    const labelClasses = theme === "dark" ? "text-gray-200" : "text-primary-800";
-    const inputClasses =
-        theme === "dark"
-            ? "bg-black border-gray-600 focus:border-blue-500 focus:ring-blue-500 text-white"
-            : "border-gray-200 focus:border-primary-600 focus:ring-primary-600";
-
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-primary-900">Employee Information</h3>
-                <Button
-                    onClick={handleEdit}
-                    variant="outline"
-                    size="sm"
-                    className="text-primary-700 border-gray-200 hover:bg-gray-50 bg-transparent"
-                >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                </Button>
-            </div>
-
-            {/* ... other form fields are fine ... */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "firstName",
-                    "First Name",
-                    formData.firstName,
-                    value => handleInputChange("firstName", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    true,
-                )}
-                {renderFormField(
-                    "middleName",
-                    "Middle Name",
-                    formData.middleName || "",
-                    value => handleInputChange("middleName", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "surname",
-                    "Surname",
-                    formData.surname,
-                    value => handleInputChange("surname", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    true,
-                )}
-                {renderFormField(
-                    "birthDate",
-                    "Birth Date",
-                    formData.birthDate || "",
-                    value => handleInputChange("birthDate", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    true,
-                    "date",
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "employeeID",
-                    "Employee ID",
-                    formData.employeeID,
-                    value => handleInputChange("employeeID", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    true,
-                )}
-                {renderSelectField(
-                    "levelOfEducation",
-                    "Level Of Education",
-                    formData.levelOfEducation || "",
-                    value => handleInputChange("levelOfEducation", value),
-                    hrSettings.levelOfEducations
-                        .filter(levelOfEducation => levelOfEducation.active)
-                        .map(levelOfEducation => ({
-                            value: levelOfEducation.id,
-                            label: levelOfEducation.name,
-                        })),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderSelectField(
-                    "yearsOfExperience",
-                    "Years of Experience",
-                    formData.yearsOfExperience || "",
-                    value => handleInputChange("yearsOfExperience", value),
-                    hrSettings.yearsOfExperiences
-                        .filter(yearsOfExperience => yearsOfExperience.active)
-                        .map(yearsOfExperience => ({
-                            value: yearsOfExperience.id,
-                            label: yearsOfExperience.name,
-                        })),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-                {renderFormField(
-                    "birthPlace",
-                    "Birth Place",
-                    formData.birthPlace || "",
-                    value => handleInputChange("birthPlace", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderSelectField(
-                    "gender",
-                    "Gender",
-                    formData.gender || "",
-                    value => handleInputChange("gender", value),
-                    [
-                        { value: "male", label: "Male" },
-                        { value: "female", label: "Female" },
-                    ],
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    true,
-                )}
-                {renderSelectField(
-                    "maritalStatus",
-                    "Marital Status",
-                    formData.maritalStatus || "",
-                    value => handleInputChange("maritalStatus", value),
-                    filteredMaritalStatus.map(maritalStatus => ({
-                        value: maritalStatus.id,
-                        label: maritalStatus.name,
-                    })),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "personalPhoneNumber",
-                    "Personal Phone Number",
-                    formData.personalPhoneNumber,
-                    value => handleInputChange("personalPhoneNumber", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    true,
-                )}
-                {renderFormField(
-                    "personalEmail",
-                    "Personal Email",
-                    formData.personalEmail || "",
-                    value => handleInputChange("personalEmail", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                    false,
-                    "email",
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <Label htmlFor="companyEmail" className={labelClasses}>
-                        Company Email <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                        id="companyEmail"
-                        type="email"
-                        value={formData.companyEmail}
-                        onChange={e => handleInputChange("companyEmail", e.target.value)}
-                        required
-                        placeholder="employee@company.com"
-                        className={`mt-1 ${inputClasses} ${
-                            errors.companyEmail ? "border-red-500" : ""
-                        }`}
-                    />
-                    {employee && (
-                        <p className="mt-1 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-2 rounded-md border border-amber-200 dark:border-amber-700">
-                            ⚠️ Changing this email will also update the employee's login
-                            credentials. The employee will need to use the new email to log in.
-                        </p>
-                    )}
-                    {!errors.companyEmail && !employee && (
-                        <p className="mt-1 text-sm text-gray-500">
-                            This email will also be used for Firebase Auth login
-                        </p>
-                    )}
-                    {errors.companyEmail && (
-                        <p className="mt-1 text-sm text-red-500">{errors.companyEmail}</p>
-                    )}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "bankAccount",
-                    "Bank Account",
-                    formData.bankAccount || "",
-                    value => handleInputChange("bankAccount", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-                {renderFormField(
-                    "providentFundAccount",
-                    "Provident Fund Account",
-                    formData.providentFundAccount || "",
-                    value => handleInputChange("providentFundAccount", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "tinNumber",
-                    "TIN Number",
-                    formData.tinNumber || "",
-                    value => handleInputChange("tinNumber", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-                {renderFormField(
-                    "passportNumber",
-                    "Passport Number",
-                    formData.passportNumber || "",
-                    value => handleInputChange("passportNumber", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                    "nationalIDNumber",
-                    "National ID Number",
-                    formData.nationalIDNumber || "",
-                    value => handleInputChange("nationalIDNumber", value),
-                    errors,
-                    labelClasses,
-                    inputClasses,
-                )}
-                {!employee && (
-                    <div>
-                        <Label htmlFor="password" className={labelClasses}>
-                            User Account Password <span className="text-red-500">*</span>
-                        </Label>
-                        <div className="relative mt-1">
-                            <Input
-                                id="password"
-                                type={showPassword ? "text" : "password"}
-                                value={formData.password || ""}
-                                onChange={e => handleInputChange("password", e.target.value)}
-                                required
-                                className={`${inputClasses} ${
-                                    errors.password ? "border-red-500 focus:ring-red-500" : ""
-                                } pr-10`}
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowPassword(!showPassword)}
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="h-4 w-4 text-gray-400" />
-                                ) : (
-                                    <Eye className="h-4 w-4 text-gray-400" />
-                                )}
-                            </Button>
-                        </div>
-                        {errors.password && (
-                            <p className="mt-1 text-sm text-red-500">{errors.password}</p>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Custom Fields for Employee Information (Step 1) */}
-            <CustomFieldsEditor
-                fields={formData.customFields?.filter(f => f.section === "employee") || []}
-                onChange={fields => handleCustomFieldsChange("employee", fields)}
-                theme={theme}
-                section="employee"
-                errors={errors}
-            />
-        </div>
-    );
-};
-
 // Position Information Section
 interface PositionInformationProps {
     formData: EmployeeModel;
-    handleInputChange: (field: keyof EmployeeModel, value: any) => void;
+    handleInputChange: (
+        field: keyof EmployeeModel,
+        value: string | string[] | number | boolean,
+    ) => void;
     handleCustomFieldsChange: (section: CustomFieldSection, fields: CustomField[]) => void;
     errors: Record<string, string>;
     setOpenWorkArea: (open: boolean) => void;
@@ -545,7 +209,7 @@ export const PositionInformationSection: React.FC<PositionInformationProps> = ({
     theme,
     employee,
 }) => {
-    const { hrSettings, activeEmployees: employees } = useFirestore();
+    const { activeEmployees: employees, ...hrSettings } = useData();
 
     const sections = hrSettings.sectionSettings || [];
     const locations = hrSettings.locations || [];
@@ -554,7 +218,6 @@ export const PositionInformationSection: React.FC<PositionInformationProps> = ({
     const GradeDefinition = hrSettings.grades || [];
     const shiftTypes = hrSettings.shiftTypes || [];
     const salaryScales = hrSettings.salaryScales || [];
-    const [reportingLMOptions, setReportingLMOptions] = useState<OptionModel[]>([]);
 
     const filteredSections = sections.filter(section => section.active === true);
     const filteredLocations = locations.filter(location => location.active === "Yes");
@@ -579,32 +242,23 @@ export const PositionInformationSection: React.FC<PositionInformationProps> = ({
         [numberOfSteps],
     );
 
-    useEffect(() => {
-        // For new employees, show all active employees as potential managers
+    const reportingLMOptions = React.useMemo(() => {
         if (!employee) {
-            const options = employees.map(user => ({
+            return employees.map(user => ({
                 label: getFullName(user),
                 value: user.uid,
             }));
-            setReportingLMOptions(options);
-            return;
         }
 
-        // Get available managers (excluding current employee)
         const availableManagers = employees.filter(
             emp => emp.uid !== employee.uid && canBeReportee(emp.uid, employee.uid, employees),
         );
-
-        // Always include the current manager if one exists, even if they wouldn't normally pass the check
         const currentManager = employees.find(emp => emp.uid === employee.reportingLineManager);
-        const options: OptionModel[] = [
-            ...availableManagers.map(user => ({
-                label: getFullName(user),
-                value: user.uid,
-            })),
-        ];
+        const options: OptionModel[] = availableManagers.map(user => ({
+            label: getFullName(user),
+            value: user.uid,
+        }));
 
-        // Add current manager if they exist and aren't already in the options
         if (
             currentManager &&
             currentManager.uid !== employee.uid &&
@@ -616,8 +270,8 @@ export const PositionInformationSection: React.FC<PositionInformationProps> = ({
             });
         }
 
-        setReportingLMOptions(options);
-    }, [employees, employee?.uid, employee?.reportingLineManager]);
+        return options;
+    }, [employee, employees]);
 
     // Prefer salary by Grade (ID) + Step (column). If not found, return undefined (skip update)
     const getSalaryForGradeAndStep = (gradeId: string, stepNum: number) => {
@@ -642,7 +296,7 @@ export const PositionInformationSection: React.FC<PositionInformationProps> = ({
     const locationOptions = React.useMemo(() => {
         const convertToOptions = (
             nodes: LocationNode[],
-        ): { value: string; label: string; children?: any[] }[] => {
+        ): { value: string; label: string; children?: ReturnType<typeof convertToOptions> }[] => {
             return nodes.map(node => ({
                 value: node.id,
                 label: node.name,
@@ -977,7 +631,7 @@ export const ContractInformationSection: React.FC<ContractInformationProps> = ({
     errors,
     theme,
 }) => {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const currencies = hrSettings.currencies.filter(c => c.active);
     const taxes = hrSettings.taxes.filter(c => c.active);
 

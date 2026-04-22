@@ -1,9 +1,9 @@
 "use client";
 
 import { AuthProvider } from "@/context/authContext";
+import { AppDataProvider } from "@/context/app-data-context";
 import { ToastProviderWrapper } from "@/context/toastContext";
 import type { ReactNode } from "react";
-import { FirestoreProvider } from "./firestore-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import ClassErrorBoundary from "@/components/class-error-boundary";
 
@@ -16,12 +16,12 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
             <ToastProviderWrapper>
                 <AuthProvider>
-                    <FirestoreProvider>
+                    <AppDataProvider>
                         <ClassErrorBoundary>
                             {/* <ForcePointerEvents /> */}
                             {children}
                         </ClassErrorBoundary>
-                    </FirestoreProvider>
+                    </AppDataProvider>
                 </AuthProvider>
             </ToastProviderWrapper>
         </ThemeProvider>

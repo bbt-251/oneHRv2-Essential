@@ -1,16 +1,26 @@
 "use client";
 
-import { ExtendedAnnouncementModel } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
 import { Calendar, Clock, Pin, User, Volume2 } from "lucide-react";
 import { useState } from "react";
+
+interface ExtendedAnnouncementModel {
+    id: string;
+    timestamp: string;
+    audienceTarget?: string[];
+    announcementTitle?: string;
+    criticity?: string;
+    announcementType?: string;
+    isPinned: boolean;
+    isRead: boolean;
+}
 
 interface AnnouncementsModalProps {
     isOpen: boolean;
@@ -24,9 +34,15 @@ export function AnnouncementsModal({
     userAnnouncements,
 }: AnnouncementsModalProps) {
     const { userData } = useAuth();
-    const { hrSettings } = useFirestore();
+    const { hrSettings } = useAppData();
     const { showToast } = useToast();
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+    const criticity =
+        (
+            hrSettings as typeof hrSettings & {
+                criticity?: Array<{ id: string; name: string }>;
+            }
+        ).criticity ?? [];
 
     const markAsRead = async (announcementId: string) => {
         if (!userData) return;
@@ -37,10 +53,9 @@ export function AnnouncementsModal({
             const currentAnnouncements = userData.announcements || [];
             const existingIndex = currentAnnouncements.findIndex(a => a.id === announcementId);
 
-            let updatedAnnouncements;
+            let updatedAnnouncements = [...currentAnnouncements];
             if (existingIndex >= 0) {
                 // Update existing entry
-                updatedAnnouncements = [...currentAnnouncements];
                 updatedAnnouncements[existingIndex] = {
                     ...updatedAnnouncements[existingIndex],
                     isRead: true,
@@ -67,8 +82,7 @@ export function AnnouncementsModal({
             } else {
                 showToast("Failed to mark announcement as read", "error", "error");
             }
-        } catch (error) {
-            console.error("Error marking announcement as read:", error);
+        } catch {
             showToast("Failed to mark announcement as read", "error", "error");
         } finally {
             setUpdatingIds(prev => {
@@ -88,10 +102,9 @@ export function AnnouncementsModal({
             const currentAnnouncements = userData.announcements || [];
             const existingIndex = currentAnnouncements.findIndex(a => a.id === announcementId);
 
-            let updatedAnnouncements;
+            let updatedAnnouncements = [...currentAnnouncements];
             if (existingIndex >= 0) {
                 // Update existing entry
-                updatedAnnouncements = [...currentAnnouncements];
                 updatedAnnouncements[existingIndex] = {
                     ...updatedAnnouncements[existingIndex],
                     isPinned: !currentPinned,
@@ -126,8 +139,7 @@ export function AnnouncementsModal({
                     "error",
                 );
             }
-        } catch (error) {
-            console.error("Error toggling pin status:", error);
+        } catch {
             showToast(
                 `Failed to ${!currentPinned ? "pin" : "unpin"} announcement`,
                 "error",
@@ -145,7 +157,7 @@ export function AnnouncementsModal({
     const markAllAsRead = async () => {
         if (!userData) return;
 
-        const unreadAnnouncements = userAnnouncements.filter((a: any) => !a.isRead);
+        const unreadAnnouncements = userAnnouncements.filter(announcement => !announcement.isRead);
         if (unreadAnnouncements.length === 0) return;
 
         setUpdatingIds(prev => new Set([...prev, ...unreadAnnouncements.map(a => a.id)]));
@@ -180,17 +192,16 @@ export function AnnouncementsModal({
             } else {
                 showToast("Failed to mark all announcements as read", "error", "error");
             }
-        } catch (error) {
-            console.error("Error marking all announcements as read:", error);
+        } catch {
             showToast("Failed to mark all announcements as read", "error", "error");
         } finally {
             setUpdatingIds(new Set());
         }
     };
 
-    const getPriorityColor = (criticity: string) => {
+    const getPriorityColor = (criticityId: string) => {
         // Map criticity to priority colors
-        const criticityData = hrSettings.criticity?.find(c => c.id === criticity);
+        const criticityData = criticity.find(c => c.id === criticityId);
         if (criticityData) {
             // You might want to add color mapping based on criticity name
             return "bg-blue-100 text-blue-700 border-blue-200";
@@ -198,7 +209,7 @@ export function AnnouncementsModal({
         return "bg-secondary-100 text-secondary-700 border-secondary-200";
     };
 
-    const unreadCount = userAnnouncements.filter((ann: any) => !ann.isRead).length;
+    const unreadCount = userAnnouncements.filter(announcement => !announcement.isRead).length;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -216,7 +227,7 @@ export function AnnouncementsModal({
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    {userAnnouncements.map((announcement: any) => (
+                    {userAnnouncements.map(announcement => (
                         <Card
                             key={announcement.id}
                             className={`border transition-all duration-200 hover:shadow-md ${
@@ -253,7 +264,7 @@ export function AnnouncementsModal({
                                             <Badge
                                                 className={`text-xs px-2 py-1 border ${getPriorityColor(announcement.criticity)}`}
                                             >
-                                                {hrSettings.criticity?.find(
+                                                {criticity.find(
                                                     c => c.id === announcement.criticity,
                                                 )?.name || announcement.criticity}
                                             </Badge>

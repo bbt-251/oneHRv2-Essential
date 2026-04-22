@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import { useTheme } from "@/components/theme-provider";
 import { LeaveModel } from "@/lib/models/leave";
+import { EmployeeModel } from "@/lib/models/employee";
 import { useLeaveActions } from "@/lib/util/leave-request/use-leave-actions";
 import {
     annualLeaveType,
@@ -50,7 +51,7 @@ export default function LeaveDetail({
     setIsLeaveDetailModalOpen,
 }: LeaveDetailProps) {
     const { theme } = useTheme();
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useAppData();
     const { sectionSettings, departmentSettings } = hrSettings;
     const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
 
@@ -70,7 +71,7 @@ export default function LeaveDetail({
     const [refuseRollbackComment, setRefuseRollbackComment] = useState<string>("");
     const [refuseLeaveComment, setRefuseLeaveComment] = useState<string>("");
 
-    const employee = employees.find((emp: any) => emp.uid === selectedLeave.employeeID);
+    const employee = employees.find((emp: EmployeeModel) => emp.uid === selectedLeave.employeeID);
     const getSectionName = (id: string) =>
         sectionSettings.find(s => s.id === id)?.name || "Unknown";
     const getLeaveTypeName = (id: string) => leaveTypes.find(lt => lt.id === id)?.name || "Unknown";
@@ -240,7 +241,8 @@ export default function LeaveDetail({
                                 >
                                     {
                                         employees.find(
-                                            (emp: any) => emp.uid === selectedLeave?.standIn,
+                                            (emp: EmployeeModel) =>
+                                                emp.uid === selectedLeave?.standIn,
                                         )?.firstName
                                     }
                                 </p>

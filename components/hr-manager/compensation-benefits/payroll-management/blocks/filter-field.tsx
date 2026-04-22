@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
 
-const employmentTypes = ["Full-time", "Part-time", "Contract", "Intern"];
 const positions = [
     "Senior Developer",
     "Marketing Manager",

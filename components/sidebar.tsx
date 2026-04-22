@@ -2,12 +2,12 @@
 
 import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/data-provider";
 import { AttendanceLogicModel } from "@/lib/models/attendance-logic";
 import { Calendar, Clock, DollarSign, LayoutGrid, LucideIcon, Settings, Users } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { SidebarSection } from "./sidebar-section";
 import { useTheme } from "./theme-provider";
 
@@ -21,10 +21,15 @@ export interface Item {
 
 export const employeeItems: Item[] = [
     {
+        title: "Dashboard",
+        icon: LayoutGrid,
+        url: "/dashboard",
+        isActive: true,
+    },
+    {
         title: "Time & Attendance Management",
         icon: Clock,
         url: "/attendance-management",
-        isActive: true,
     },
     {
         title: "Leave Management",
@@ -150,15 +155,12 @@ export function AppSidebar() {
     const { theme } = useTheme();
     const params = useParams();
     const path = Array.isArray(params.route) ? `/${params.route.join("/")}` : "";
-    const { attendanceLogic: logicData } = useFirestore();
+    const { attendanceLogic: logicData } = useData();
     const { userData } = useAuth();
-    const [attendanceLogic, setAttendanceLogic] = useState<AttendanceLogicModel>();
-
-    useEffect(() => {
-        if (logicData.length) {
-            setAttendanceLogic(logicData[0]);
-        }
-    }, [logicData]);
+    const attendanceLogic = useMemo<AttendanceLogicModel | undefined>(
+        () => logicData[0],
+        [logicData],
+    );
 
     return (
         <Sidebar

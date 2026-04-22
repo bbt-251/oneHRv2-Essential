@@ -18,11 +18,14 @@ import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Edit, Trash2, Eye, Columns, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ExtendedEmployeeLoan } from "@/lib/models/employeeLoan";
 import { EmployeeModel } from "@/lib/models/employee";
 import { AddEditLoanDialog } from "./add-edit-loan-dialog";
+
+interface LoanTypeOption {
+    id: string;
+    loanName?: string;
+}
 
 interface LoanTableProps {
     filteredLoans: ExtendedEmployeeLoan[];
@@ -33,7 +36,7 @@ interface LoanTableProps {
     isFilterModalOpen: boolean;
     setIsFilterModalOpen: (open: boolean) => void;
     columnDefinitions: { key: string; label: string; width: string }[];
-    loanTypes: any[];
+    loanTypes: LoanTypeOption[];
     getStatusBadge: (status: string) => { color: string; label: string };
     openViewDialog: (loan: ExtendedEmployeeLoan) => void;
     openInstallmentsModal: (loan: ExtendedEmployeeLoan) => void;

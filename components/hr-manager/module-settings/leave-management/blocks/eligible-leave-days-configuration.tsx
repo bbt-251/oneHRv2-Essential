@@ -8,11 +8,8 @@ import { Label } from "@/components/ui/label";
 
 import { useTheme } from "@/components/theme-provider";
 import { Clock } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
-import {
-    EligibleLeaveDaysModel,
-    hrSettingsService,
-} from "@/lib/backend/firebase/hrSettingsService";
+import { useData } from "@/context/app-data-context";
+import { EligibleLeaveDaysModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
 import { LEAVE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/leave-management";
 import { useAuth } from "@/context/authContext";
@@ -21,7 +18,7 @@ import { useAuth } from "@/context/authContext";
 
 export default function EligibleLeaveDaysConfiguration() {
     const { theme } = useTheme();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { userData } = useAuth();
     const eligibleLeaveDays = hrSettings.eligibleLeaveDays;

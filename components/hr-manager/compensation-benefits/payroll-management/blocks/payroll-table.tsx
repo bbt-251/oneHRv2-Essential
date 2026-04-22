@@ -39,6 +39,8 @@ interface PayrollTableProps {
     clearFilters: () => void;
 }
 
+type PayrollCellValue = string | number | null | undefined;
+
 export function PayrollTable({
     filteredData,
     payslipData,
@@ -64,7 +66,7 @@ export function PayrollTable({
     };
 
     const renderCellValue = (employee: PayrollData, columnKey: string) => {
-        const value = (employee as any)[columnKey];
+        const value = (employee as Record<string, PayrollCellValue>)[columnKey];
         if (
             typeof value === "number" &&
             (columnKey.includes("Salary") ||

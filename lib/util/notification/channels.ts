@@ -1,14 +1,6 @@
 // lib/notifications/channels.ts
-import { addDoc } from "firebase/firestore";
-import { notificationsCollection } from "@/lib/backend/firebase/collections";
-import { sendMessage } from "./telegram";
+import { mutateCompactData } from "@/lib/backend/client/data-client";
 import { getTimestamp } from "../dayjs_format";
-
-interface InAppNotificationData {
-    title: string;
-    message: string;
-    action: string | null;
-}
 
 export async function sendEmail(to: string, subject: string, htmlBody: string) {
     if (!to || !subject || !htmlBody) {
@@ -16,7 +8,6 @@ export async function sendEmail(to: string, subject: string, htmlBody: string) {
     }
 
     try {
-        const endpoint = `${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`;
         const response = await fetch("/api/send-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -82,15 +73,19 @@ export async function sendInApp(
     }
 
     try {
-        const docRef = await addDoc(notificationsCollection, {
-            uid: uid,
-            ...(title ? { title: title } : {}),
-            message: message,
-            action: action || null,
-            isRead: false,
-            timestamp: getTimestamp(),
+        const response = await mutateCompactData<{ notification?: { id?: string } }>({
+            resource: "notifications",
+            action: "create",
+            payload: {
+                uid: uid,
+                ...(title ? { title: title } : {}),
+                message: message,
+                action: action || null,
+                isRead: false,
+                timestamp: getTimestamp(),
+            },
         });
-        return { success: true, docId: docRef.id };
+        return { success: true, docId: response.notification?.id };
     } catch (error) {
         console.error("Failed to send in-app notification:", {
             error: error instanceof Error ? error.message : error,

@@ -23,8 +23,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Filter, Search, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { hrSettingsService, ProbationDayModel } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { hrSettingsService, ProbationDayModel } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -35,23 +35,23 @@ import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-manageme
 export default function ProbationEndPeriod() {
     const { showToast } = useToast();
     const { theme } = useTheme();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { userData } = useAuth();
     const probationDays = hrSettings.probationDays;
 
-    const [showModal, setShowModal] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [_isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [editingDay, setEditingDay] = useState<ProbationDayModel | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{ value: number }>({
         value: 0,
     });
 
-    const [showFilterModal, setShowFilterModal] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [visibleFields, setVisibleFields] = useState({
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [visibleFields, setVisibleFields] = useState<{ value: boolean }>({
         value: true,
     });
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<{ value: string }>({
         value: "",
     });
 
@@ -65,10 +65,6 @@ export default function ProbationEndPeriod() {
         setEditingDay(day);
         setFormData({ value: day.value });
         setShowModal(true);
-    };
-
-    const handleRowClick = (day: ProbationDayModel) => {
-        handleEdit(day);
     };
 
     const handleSubmit = async () => {
@@ -375,7 +371,7 @@ export default function ProbationEndPeriod() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredData.map((day, index) => (
+                        {filteredData.map(day => (
                             <TableRow
                                 key={day.id}
                                 className={`${index % 2 === 0 ? (theme === "dark" ? "bg-gray-900/50" : "bg-white") : theme === "dark" ? "bg-gray-800/50" : "bg-gray-50"} hover:${theme === "dark" ? "bg-gray-700/50" : "bg-amber-50/50"} cursor-pointer transition-colors`}

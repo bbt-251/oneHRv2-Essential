@@ -1,16 +1,13 @@
 import { LateComersModel } from "@/lib/models/late-comers";
-import { doc, setDoc, getDocs, query, where } from "firebase/firestore";
-import { lateComersCollection } from "../../firebase/collections";
+import { mutateCompactData, queryCompactData } from "@/lib/backend/client/data-client";
 import dayjs from "dayjs";
-
-const collectionRef = lateComersCollection;
 
 export async function addLateComers(data: Omit<LateComersModel, "id">): Promise<boolean> {
     try {
-        const docRef = doc(collectionRef);
-        await setDoc(docRef, {
-            ...data,
-            id: docRef.id,
+        await mutateCompactData({
+            resource: "lateComers",
+            action: "create",
+            payload: data as Record<string, unknown>,
         });
         return true;
     } catch (error) {
@@ -24,17 +21,11 @@ export async function getLateComersByMonth(
     year: number,
 ): Promise<LateComersModel[]> {
     try {
-        const startOfMonth = dayjs(`${year}-${month}-01`).startOf("month").toISOString();
-        const endOfMonth = dayjs(`${year}-${month}-01`).endOf("month").toISOString();
-
-        const q = query(
-            collectionRef,
-            where("timestamp", ">=", startOfMonth),
-            where("timestamp", "<=", endOfMonth),
-        );
-
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as LateComersModel);
+        const payload = await queryCompactData<{ lateComers: LateComersModel[] }>({
+            resource: "lateComers",
+            filters: { month: dayjs(`${year}-${month}-01`).format("MMMM"), year },
+        });
+        return payload.lateComers;
     } catch (error) {
         console.error("Error getting late comers:", error);
         return [];

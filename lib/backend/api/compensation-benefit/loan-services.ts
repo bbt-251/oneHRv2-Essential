@@ -1,12 +1,27 @@
 import { EmployeeLoanModel } from "@/lib/models/employeeLoan";
-import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
-import { employeeLoanCollection } from "../../firebase/collections";
-import { db } from "../../firebase/init";
+import {
+    createLoanWithBackend,
+    deleteLoanWithBackend,
+    updateLoanWithBackend,
+} from "@/lib/backend/client/payroll-client";
 import { createLog } from "../logCollection";
 import { LogInfo } from "@/lib/log-descriptions/compensation";
 
-const collectionRef = employeeLoanCollection;
-const collectionName = collectionRef.id;
+const logFailure = async (logInfo: LogInfo | undefined, actionBy: string | undefined) => {
+    if (!logInfo) {
+        return;
+    }
+
+    await createLog(
+        {
+            ...logInfo,
+            title: `${logInfo.title} Failed`,
+            description: `Failed to ${logInfo.description.toLowerCase()}`,
+        },
+        actionBy ?? "",
+        "Failure",
+    );
+};
 
 export async function createLoan(
     data: Omit<EmployeeLoanModel, "id">,
@@ -14,14 +29,8 @@ export async function createLoan(
     logInfo?: LogInfo,
 ): Promise<boolean> {
     try {
-        // Save employee in Firestore
-        const docRef = doc(collectionRef);
-        await setDoc(docRef, {
-            ...data,
-            id: docRef.id,
-        });
+        await createLoanWithBackend(data);
 
-        // Log the creation if logInfo is provided
         if (logInfo) {
             await createLog(logInfo, actionBy ?? "", "Success");
         }
@@ -29,18 +38,7 @@ export async function createLoan(
         return true;
     } catch (error) {
         console.log("Error", error);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy ?? "",
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }
@@ -50,28 +48,17 @@ export async function updateLoan(
     actionBy?: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, data.id);
     try {
-        await updateDoc(docRef, data as any);
-        // Log the update if logInfo is provided
+        await updateLoanWithBackend(data);
+
         if (logInfo) {
             await createLog(logInfo, actionBy ?? "", "Success");
         }
+
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy ?? "",
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }
@@ -81,28 +68,17 @@ export async function deleteLoan(
     actionBy?: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await deleteDoc(docRef);
-        // Log the deletion if logInfo is provided
+        await deleteLoanWithBackend(id);
+
         if (logInfo) {
             await createLog(logInfo, actionBy ?? "", "Success");
         }
+
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy ?? "",
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }

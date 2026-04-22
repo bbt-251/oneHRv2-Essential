@@ -1,6 +1,6 @@
 "use client";
 
-import { errorBotURL } from "@/lib/backend/firebase/config";
+import { errorBotURL } from "@/lib/backend/error-reporting";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,15 +67,15 @@ class ClassErrorBoundary extends Component<Props, State> {
                             </div>
                             <CardTitle className="text-xl">Oops! Something went wrong</CardTitle>
                             <CardDescription>
-                                We've encountered an unexpected error. Don't worry, our team has
-                                been notified.
+                                We&apos;ve encountered an unexpected error. Don&apos;t worry, our
+                                team has been notified.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="text-center text-sm text-muted-foreground">
-                                <p>We're working to fix this issue as quickly as possible.</p>
+                                <p>We&apos;re working to fix this issue as quickly as possible.</p>
                                 <p className="mt-2">
-                                    You'll be redirected to the home page shortly.
+                                    You&apos;ll be redirected to the home page shortly.
                                 </p>
                             </div>
                             <div className="flex gap-2 justify-center">

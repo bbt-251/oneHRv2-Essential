@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
+import { updateProjectAllocationsWithBackend } from "@/lib/backend/client/project-client";
 import { DailyAttendance } from "@/lib/models/attendance";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
-import { formatHour, getUserTimezone } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Clock, DollarSign, Edit } from "lucide-react";
@@ -27,6 +27,11 @@ interface AttendanceModalProps {
     filteredOTs: OvertimeRequestModel[];
     setShowChangeForm: (value: boolean) => void;
     setShowOvertimeForm: (value: boolean) => void;
+}
+
+interface ProjectAllocationEntry {
+    uid: string;
+    allocation: number;
 }
 
 export const calculateTotalOvertime = (overtimeRequests: OvertimeRequestModel[]): string => {
@@ -93,17 +98,17 @@ export const ClockInOut: React.FC<AttendanceModalProps> = ({
     setShowChangeForm,
     setShowOvertimeForm,
 }) => {
-    const [showProjectAllocation, setShowProjectAllocation] = useState(false);
+    const [showProjectAllocation, setShowProjectAllocation] = useState<boolean>(false);
     const [projectAllocations, setProjectAllocations] = useState<Record<string, number>>({});
-    // Projects assigned to the current user from Firestore
-    const { projects, employees } = useFirestore();
+    // Projects assigned to the current user from the shared app data layer
+    const { projects, employees } = useData();
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const [isSaving, setIsSaving] = useState(false);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
 
     // Get employee's stored timezone, fallback to current browser timezone
     const employeeData = employees.find(emp => emp.uid === userData?.uid);
-    const userTimezone = employeeData?.timezone || getUserTimezone();
+    const _userTimezone = employeeData?.timezone;
 
     const userProjects = React.useMemo(
         () =>
@@ -128,7 +133,7 @@ export const ClockInOut: React.FC<AttendanceModalProps> = ({
             });
             setProjectAllocations(initialAllocations);
         }
-    }, [userProjects]);
+    }, [projectAllocations, userProjects]);
 
     const handleProjectAllocationChange = (projectId: string, percentage: number) => {
         setProjectAllocations(prev => ({
@@ -179,7 +184,8 @@ export const ClockInOut: React.FC<AttendanceModalProps> = ({
 
             // Filter out current user's previous allocation
             const existingAllocations = (currentProject?.employeeAllocations || []).filter(
-                (a: any) => a && a.uid !== userData.uid,
+                (allocation: ProjectAllocationEntry | null | undefined) =>
+                    allocation && allocation.uid !== userData.uid,
             );
 
             // If allocation > 0, upsert user's allocation; otherwise keep them removed
@@ -201,14 +207,10 @@ export const ClockInOut: React.FC<AttendanceModalProps> = ({
                 const original =
                     (projects || []).find(p => p.id === u.id)?.employeeAllocations || [];
                 const nextJson = JSON.stringify(
-                    (u.employeeAllocations || []).sort((a: any, b: any) =>
-                        a.uid.localeCompare(b.uid),
-                    ),
+                    (u.employeeAllocations || []).sort((a, b) => a.uid.localeCompare(b.uid)),
                 );
                 const origJson = JSON.stringify(
-                    (original || [])
-                        .filter(Boolean)
-                        .sort((a: any, b: any) => a.uid.localeCompare(b.uid)),
+                    (original || []).filter(Boolean).sort((a, b) => a.uid.localeCompare(b.uid)),
                 );
                 return nextJson !== origJson;
             });
@@ -218,7 +220,12 @@ export const ClockInOut: React.FC<AttendanceModalProps> = ({
                 return;
             }
 
-            await updateProjectsBatch(updatesToApply);
+            await updateProjectAllocationsWithBackend(
+                updatesToApply.map(update => ({
+                    ...update,
+                    uid: userData.uid,
+                })),
+            );
             showToast("Allocations saved successfully.", "Success", "success");
         } catch (e) {
             console.error("Error saving allocations", e);

@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Upload, X, FileText, AlertCircle, User } from "lucide-react";
 import { format } from "date-fns";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 
 interface LeaveRequestModalProps {
@@ -30,9 +30,19 @@ interface LeaveRequestModalProps {
 
 export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
     const { userData } = useAuth();
-    const { activeEmployees: allEmployees, hrSettings, loading } = useFirestore();
+    const { activeEmployees: allEmployees, hrSettings } = useAppData();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        leaveType: string;
+        standIn: string;
+        employee: string;
+        startDate: Date | undefined;
+        endDate: Date | undefined;
+        returnDate: Date | undefined;
+        reason: string;
+        onBehalf: boolean;
+        attachments: File[];
+    }>({
         leaveType: "",
         standIn: "",
         employee: "",
@@ -45,6 +55,9 @@ export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [requestId] = useState<string>(
+        () => `LR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    );
 
     // Get leave types from Firebase
     const leaveTypes = hrSettings.leaveTypes
@@ -135,7 +148,6 @@ export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
         }
     };
 
-    const requestId = "LR-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     const selectedEmployee = employees.find(emp => emp.value === formData.employee);
 
     return (
@@ -172,7 +184,7 @@ export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
                             onCheckedChange={handleOnBehalfChange}
                         />
                         <Label htmlFor="onBehalf" className="text-sm text-primary-500">
-                            Request leave on someone's behalf
+                            Request leave on someone&apos;s behalf
                         </Label>
                     </div>
 

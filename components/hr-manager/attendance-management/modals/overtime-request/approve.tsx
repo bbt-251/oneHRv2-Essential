@@ -24,7 +24,7 @@ import { batchUpdateEmployee } from "@/lib/backend/api/employee-management/emplo
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients, getEmployeeNames } from "@/lib/util/notification/recipients";
@@ -37,10 +37,10 @@ interface HROvertimeApproveModalProps {
 
 export function HROvertimeApproveModal({ isOpen, onClose, request }: HROvertimeApproveModalProps) {
     const { userData } = useAuth();
-    const { employees } = useFirestore();
-    const [comments, setComments] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    const { employees } = useData();
+    const [comments, setComments] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState<boolean>(false);
     const { showToast } = useToast();
 
     if (!request) return null;
@@ -72,10 +72,6 @@ export function HROvertimeApproveModal({ isOpen, onClose, request }: HROvertimeA
         }
 
         setIsSubmitting(true);
-
-        const employeeNames = getEmployeeNames(employees, request.employeeUids);
-        const overtimeType = request.overtimeType; // This should be the overtime type name or ID
-        const hours = request.duration || 0;
 
         const res = await updateOvertimeRequest(
             {

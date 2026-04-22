@@ -90,8 +90,8 @@ export function CalendarWidget() {
     const { attendance = [] } = useAttendance({ role: "Employee" });
     const { theme } = useTheme();
     const currentDate = new Date();
-    const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
-    const [currentMonth, setCurrentMonth] = useState(currentDate.getMonth());
+    const [currentYear, setCurrentYear] = useState<number>(currentDate.getFullYear());
+    const [currentMonth, setCurrentMonth] = useState<number>(currentDate.getMonth());
 
     const navigateMonth = (direction: "prev" | "next") => {
         if (direction === "prev") {

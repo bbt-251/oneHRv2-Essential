@@ -11,7 +11,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DependentModel } from "@/lib/models/dependent";
 import { Users } from "lucide-react";
-import { formatDate } from "@/lib/util/dayjs_format";
 
 interface ViewDependentDetailModalProps {
     dependent: DependentModel | null;

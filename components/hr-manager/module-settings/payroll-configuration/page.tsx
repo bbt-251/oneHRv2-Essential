@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTheme } from "@/components/theme-provider";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ import { LoanType } from "./blocks/loan-type";
 import { PaymentType } from "./blocks/payment-type";
 import { Pension } from "./blocks/pension";
 import { TaxConfiguration } from "./blocks/tax-config";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import {
     savePayrollPDFSettings,
     getPayrollPDFSettings,
@@ -36,19 +35,18 @@ interface PayslipSettingsData {
 }
 
 function PayslipSettings() {
-    const { hrSettings } = useFirestore();
-    const { theme } = useTheme();
+    const { ...hrSettings } = useData();
     const [settings, setSettings] = useState<PayslipSettingsData>({
         headerID: "",
         footerID: "",
         stampID: "",
         signatureID: "",
     });
-    const [isSaving, setIsSaving] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [showSuccess, setShowSuccess] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    // Get document options from Firestore context
+    // Get document options from the shared app data layer
     const headerOptions: FileDocumentModel[] = hrSettings.headerDocuments || [];
     const footerOptions: FileDocumentModel[] = hrSettings.footerDocuments || [];
     const signatureOptions: FileDocumentModel[] = hrSettings.signatureDocuments || [];

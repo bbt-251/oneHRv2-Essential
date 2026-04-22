@@ -5,9 +5,10 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useTheme } from "@/components/theme-provider";
 import { LeaveModel } from "@/lib/models/leave";
+import { EmployeeModel } from "@/lib/models/employee";
 import {
     annualLeaveType,
     unpaidLeaveType,
@@ -17,29 +18,27 @@ import { X } from "lucide-react";
 // Helper hook to get effective theme (handles "system" option)
 function useEffectiveTheme() {
     const { theme } = useTheme();
-    const [effectiveTheme, setEffectiveTheme] = useState<"light" | "dark">("light");
+    const isSystemDark =
+        typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const [systemTheme, setSystemTheme] = useState<"light" | "dark">(
+        isSystemDark ? "dark" : "light",
+    );
 
     useEffect(() => {
-        if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-            setEffectiveTheme(systemTheme);
-
-            const listener = (e: MediaQueryListEvent) => {
-                setEffectiveTheme(e.matches ? "dark" : "light");
-            };
-            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", listener);
-            return () =>
-                window
-                    .matchMedia("(prefers-color-scheme: dark)")
-                    .removeEventListener("change", listener);
-        } else {
-            setEffectiveTheme(theme as "light" | "dark");
+        if (theme !== "system") {
+            return;
         }
+
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const listener = (e: MediaQueryListEvent) => {
+            setSystemTheme(e.matches ? "dark" : "light");
+        };
+
+        mediaQuery.addEventListener("change", listener);
+        return () => mediaQuery.removeEventListener("change", listener);
     }, [theme]);
 
-    return effectiveTheme;
+    return theme === "system" ? systemTheme : (theme as "light" | "dark");
 }
 
 interface LeaveDetailProps {
@@ -67,11 +66,14 @@ export default function LeaveDetail({
     setIsLeaveDetailModalOpen,
 }: LeaveDetailProps) {
     const theme = useEffectiveTheme();
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const { sectionSettings, departmentSettings } = hrSettings;
     const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
 
-    const employee = employees.find((emp: any) => emp.uid === selectedLeave.employeeID);
+    const employee = employees.find((emp: EmployeeModel) => emp.uid === selectedLeave.employeeID);
+    const standInEmployee = employees.find(
+        (emp: EmployeeModel) => emp.uid === selectedLeave?.standIn,
+    );
     const getSectionName = (id: string) =>
         sectionSettings.find(s => s.id === id)?.name || "Unknown";
     const getLeaveTypeName = (id: string) => leaveTypes.find(lt => lt.id === id)?.name || "Unknown";
@@ -208,16 +210,7 @@ export default function LeaveDetail({
                                         theme === "dark" ? "text-slate-200" : "text-slate-700"
                                     }`}
                                 >
-                                    {
-                                        employees.find(
-                                            (emp: any) => emp.uid === selectedLeave?.standIn,
-                                        )?.firstName
-                                    }{" "}
-                                    {
-                                        employees.find(
-                                            (emp: any) => emp.uid === selectedLeave?.standIn,
-                                        )?.surname
-                                    }
+                                    {standInEmployee?.firstName} {standInEmployee?.surname}
                                 </p>
                             </div>
 

@@ -28,13 +28,23 @@ import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employe
 import { useAuth } from "@/context/authContext";
 import { formatDate } from "@/lib/util/dayjs_format";
 import { CalendarIcon } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 
 interface EditDependentModalProps {
     dependent: DependentModel | null;
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+}
+
+interface DependentFormState {
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    dateOfBirth: Date | null;
+    phoneNumber: string;
+    gender: "Male" | "Female";
+    relationship: DependentRelationship;
 }
 
 export function EditDependentModal({
@@ -44,18 +54,18 @@ export function EditDependentModal({
     onSuccess,
 }: EditDependentModalProps) {
     const { userData } = useAuth();
-    const { activeEmployees } = useFirestore();
-    const [formData, setFormData] = useState({
+    const { activeEmployees } = useData();
+    const [formData, setFormData] = useState<DependentFormState>({
         firstName: "",
         middleName: "",
         lastName: "",
-        dateOfBirth: null as Date | null,
+        dateOfBirth: null,
         phoneNumber: "",
-        gender: "Male" as "Male" | "Female",
+        gender: "Male",
         relationship: DependentRelationship.SPOUSE,
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Load dependent data when modal opens

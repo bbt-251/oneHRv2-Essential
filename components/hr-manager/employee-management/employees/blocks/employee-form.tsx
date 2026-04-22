@@ -2,17 +2,17 @@
 import { Button } from "@/components/ui/button";
 
 import { useTheme } from "@/components/theme-provider";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { CustomField, CustomFieldSection, EmployeeModel } from "@/lib/models/employee";
 import { FormStep } from "@/lib/models/type";
 import { Loader2, X } from "lucide-react";
 import { useState } from "react";
 import AddEditWorkingArea from "./AddEditWorkingArea";
+import { EmployeeInformationSection } from "./employee-information-section";
 import {
     ContractInformationSection,
     EmergencyContactSection,
-    EmployeeInformationSection,
     PositionInformationSection,
 } from "./employee-form-sections";
 
@@ -24,14 +24,29 @@ interface EmployeeFormProps {
     isLoading: boolean;
 }
 
+const createEmptyEmployee = (): EmployeeModel => ({
+    id: "",
+    firstName: "",
+    middleName: "",
+    surname: "",
+    employeeID: "",
+    personalPhoneNumber: "",
+    personalEmail: "",
+    companyEmail: "",
+    password: "",
+    probationPeriodEndDate: "",
+    contractDuration: [],
+    customFields: [],
+});
+
 export function EmployeeForm({ employee, onSave, onCancel, isLoading }: EmployeeFormProps) {
-    const { activeEmployees } = useFirestore();
+    const { activeEmployees } = useData();
 
     const { showToast } = useToast();
     const { theme } = useTheme();
 
     const [currentStep, setCurrentStep] = useState<number>(1);
-    const [openWorkArea, setOpenWorkArea] = useState(false);
+    const [openWorkArea, setOpenWorkArea] = useState<boolean>(false);
 
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [formData, setFormData] = useState<EmployeeModel>(() => {
@@ -44,20 +59,7 @@ export function EmployeeForm({ employee, onSave, onCancel, isLoading }: Employee
                 personalPhoneNumber: employee.personalPhoneNumber ?? "",
             } as EmployeeModel;
         }
-        return {
-            id: "",
-            firstName: "",
-            middleName: "",
-            surname: "",
-            employeeID: "",
-            personalPhoneNumber: "",
-            personalEmail: "",
-            companyEmail: "",
-            password: "",
-            probationPeriodEndDate: "",
-            contractDuration: [],
-            customFields: [],
-        } as any;
+        return createEmptyEmployee();
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 

@@ -1,7 +1,5 @@
-// hooks/auth/useLogin.ts
-import { auth } from "@/lib/backend/firebase/init";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
+import { loginWithBackend } from "@/lib/backend/client/auth-client";
 
 interface LoginProps {
     email: string;
@@ -30,50 +28,70 @@ export const useLogin = (): LoginHook => {
     const [error, setError] = useState<string | null>(null);
 
     const login = async ({ email, password }: LoginProps): Promise<LoginResponse> => {
+        console.log("[auth][login] starting login request", { email });
         setIsLoading(true);
         setError(null);
 
         try {
-            // Authenticate user with Firebase
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
+            const data = await loginWithBackend({ email, password });
+            console.log("[auth][login] backend login response", {
+                email,
+                authenticated: data.authenticated,
+                hasUser: Boolean(data.user),
+                errorCode: data.error?.code ?? null,
+            });
 
+            if (!data.authenticated || !data.user) {
+                const manualErrorCode = data.error?.code || "auth/unknown";
+                throw new Error(manualErrorCode);
+            }
+
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new Event("auth-changed"));
+            }
+
+            console.log("[auth][login] login succeeded", {
+                uid: data.user.uid,
+                email: data.user.email || "",
+            });
             return {
                 success: true,
                 user: {
-                    uid: user.uid,
-                    email: user.email || "",
-                    displayName: user.displayName || undefined,
+                    uid: data.user.uid,
+                    email: data.user.email || "",
                 },
             };
         } catch (err) {
             let errorMessage = "Login failed. Please try again.";
             let errorCode = "unknown";
 
-            // Handle specific Firebase authentication errors
             if (err instanceof Error) {
                 switch (err.message) {
-                    case "Firebase: Error (auth/invalid-email).":
+                    case "INVALID_CREDENTIALS":
+                    case "auth/invalid-credential":
+                    case "auth/wrong-password":
+                    case "auth/user-not-found":
+                        errorMessage = "Login failed. Please check your credentials.";
+                        errorCode = "auth/invalid-credential";
+                        break;
+                    case "TENANT_MISMATCH":
+                        errorMessage = "Your account is not available for this environment.";
+                        errorCode = "auth/tenant-mismatch";
+                        break;
+                    case "auth/invalid-email":
                         errorMessage = "Invalid email address.";
                         errorCode = "auth/invalid-email";
                         break;
-                    case "Firebase: Error (auth/user-disabled).":
+                    case "auth/user-disabled":
                         errorMessage = "This account has been disabled.";
                         errorCode = "auth/user-disabled";
                         break;
-                    case "Firebase: Error (auth/user-not-found).":
-                        errorMessage = "No account found with this email.";
-                        errorCode = "auth/user-not-found";
-                        break;
-                    case "Firebase: Error (auth/wrong-password).":
-                        errorMessage = "Incorrect password.";
-                        errorCode = "auth/wrong-password";
-                        break;
-                    case "Firebase: Error (auth/too-many-requests).":
+                    case "TOO_MANY_ATTEMPTS":
+                    case "auth/too-many-requests":
                         errorMessage = "Too many attempts. Try again later.";
                         errorCode = "auth/too-many-requests";
                         break;
-                    case "Firebase: Error (auth/network-request-failed).":
+                    case "auth/network-request-failed":
                         errorMessage = "Network error. Please check your connection.";
                         errorCode = "auth/network-request-failed";
                         break;
@@ -82,6 +100,12 @@ export const useLogin = (): LoginHook => {
                         errorCode = "auth/unknown";
                 }
             }
+
+            console.error("[auth][login] login failed", {
+                email,
+                errorCode,
+                rawError: err instanceof Error ? err.message : err,
+            });
 
             setError(errorMessage);
 

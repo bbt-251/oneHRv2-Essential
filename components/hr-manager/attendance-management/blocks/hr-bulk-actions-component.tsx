@@ -100,7 +100,7 @@ export function HRBulkActionsComponent({
             } else {
                 setSelectedAttendanceRequests([]);
             }
-        } catch (error) {
+        } catch {
             showToast(`Failed to approve ${type} requests`, "Bulk Approval Failed", "error", 5000);
         } finally {
             setIsProcessing(false);
@@ -136,7 +136,7 @@ export function HRBulkActionsComponent({
             } else {
                 setSelectedAttendanceRequests([]);
             }
-        } catch (error) {
+        } catch {
             showToast(`Failed to reject ${type} requests`, "Bulk Rejection Failed", "error", 5000);
         } finally {
             setIsProcessing(false);

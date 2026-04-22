@@ -119,7 +119,7 @@ export function HRExportComponent({
             document.body.removeChild(link);
 
             showToast(`Successfully exported ${type} report`, "Export Successful", "success", 3000);
-        } catch (error) {
+        } catch {
             showToast("Failed to export report", "Export Failed", "error", 5000);
         } finally {
             setIsExporting(false);

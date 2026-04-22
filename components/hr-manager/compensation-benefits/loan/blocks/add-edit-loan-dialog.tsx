@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Check, ChevronsUpDown, Plus, Search, Loader2 } from "lucide-react";
 import { ExtendedEmployeeLoan } from "@/lib/models/employeeLoan";
 import { EmployeeModel } from "@/lib/models/employee";
+import type { LoanTypeModel } from "@/lib/models/hr-settings";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import dayjs from "dayjs";
 import { useEffect } from "react";
@@ -33,6 +34,11 @@ const calculateLoanValues = (loanAmount: number, interestRate: number, duration:
     };
 };
 
+interface LoanTypeOption extends LoanTypeModel {
+    loanName: string;
+    loanInterestRate: number;
+}
+
 interface AddEditLoanDialogProps {
     isAddDialogOpen: boolean;
     setIsAddDialogOpen: (open: boolean) => void;
@@ -46,7 +52,7 @@ interface AddEditLoanDialogProps {
     employeeSearchTerm: string;
     setEmployeeSearchTerm: (term: string) => void;
     months: string[];
-    loanTypes: any[];
+    loanTypes: LoanTypeOption[];
     handleAddLoan: () => void;
     isAddEditLoading: boolean;
     handleReset: () => void;
@@ -107,12 +113,14 @@ export function AddEditLoanDialog({
             }
         }
     }, [
+        newLoan,
         newLoan.loanType,
         newLoan.loanAmount,
         newLoan.duration,
         newLoan.loanTotalAmount,
         newLoan.monthlyRepaymentAmount,
         loanTypes,
+        setNewLoan,
     ]);
 
     return (
@@ -475,7 +483,7 @@ export function AddEditLoanDialog({
                                 onValueChange={value =>
                                     setNewLoan({
                                         ...newLoan,
-                                        loanStatus: value as any,
+                                        loanStatus: value as ExtendedEmployeeLoan["loanStatus"],
                                     })
                                 }
                             >

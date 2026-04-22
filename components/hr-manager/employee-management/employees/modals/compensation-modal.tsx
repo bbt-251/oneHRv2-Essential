@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
 import {
@@ -35,7 +35,7 @@ import { getTimestamp } from "@/lib/util/dayjs_format";
 import { validateMultipleSeverancePayEligibility } from "@/lib/backend/functions/calculateSeverancePay";
 import { validateMultipleAnnualLeavePayEligibility } from "@/lib/backend/functions/calculateAnnualLeavePay";
 import dayjs from "dayjs";
-import { DollarSign, Edit, Trash2, Info } from "lucide-react";
+import { DollarSign, Edit, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 // Helper functions for month array conversion
@@ -92,11 +92,31 @@ interface CompensationModalProps {
     onClose: () => void;
 }
 
+type PaymentDraft = Partial<{
+    id: string;
+    timestamp: string;
+    employees: EmployeeModel[];
+    paymentTypeName: string;
+    paymentAmount: number;
+    monthlyAmounts: { [month: string]: number };
+    severanceMonth?: string;
+    annualLeaveMonth?: string;
+}>;
+
+type DeductionDraft = Partial<{
+    id: string;
+    timestamp: string;
+    employees: EmployeeModel[];
+    deductionTypeName: string;
+    deductionAmount: number;
+    monthlyAmounts: { [month: string]: number };
+}>;
+
 export function CompensationModal({ isOpen, employee, onClose }: CompensationModalProps) {
     const { showToast } = useToast();
     const { userData } = useAuth();
     const { confirm, ConfirmDialog } = useConfirm();
-    const { hrSettings, compensations, employees } = useFirestore();
+    const { compensations, employees, ...hrSettings } = useData();
     const paymentTypes = hrSettings.paymentTypes.filter(p => p.active);
     const deductionTypes = hrSettings.deductionTypes.filter(p => p.active);
     const pension = hrSettings.pension?.[0] || null;
@@ -167,40 +187,20 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
 
     const deductions = [...employeeDeductions, ...dependencyDeductions];
 
-    const [activeTab, setActiveTab] = useState("allowances");
-    const [isLoading, setIsLoading] = useState(false);
-    const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
-    const [isAddDeductionDialogOpen, setIsAddDeductionDialogOpen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>("allowances");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState<boolean>(false);
+    const [isAddDeductionDialogOpen, setIsAddDeductionDialogOpen] = useState<boolean>(false);
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
     const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
     const [editingDeductionId, setEditingDeductionId] = useState<string | null>(null);
-    const [newPayment, setNewPayment] = useState<
-        Partial<{
-            id: string;
-            timestamp: string;
-            employees: EmployeeModel[];
-            paymentTypeName: string;
-            paymentAmount: number;
-            monthlyAmounts: { [month: string]: number };
-            severanceMonth?: string;
-            annualLeaveMonth?: string;
-        }>
-    >({});
-    const [newDeduction, setNewDeduction] = useState<
-        Partial<{
-            id: string;
-            timestamp: string;
-            employees: EmployeeModel[];
-            deductionTypeName: string;
-            deductionAmount: number;
-            monthlyAmounts: { [month: string]: number };
-        }>
-    >({});
+    const [newPayment, setNewPayment] = useState<PaymentDraft>({});
+    const [newDeduction, setNewDeduction] = useState<DeductionDraft>({});
     const [selectedEmployeesForForm, setSelectedEmployeesForForm] = useState<EmployeeModel[]>([
         employee,
     ]);
-    const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
-    const [isEmployeePopoverOpen, setIsEmployeePopoverOpen] = useState(false);
+    const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>("");
+    const [isEmployeePopoverOpen, setIsEmployeePopoverOpen] = useState<boolean>(false);
 
     const handleEmployeeToggle = (employee: EmployeeModel) => {
         const isSelected = selectedEmployeesForForm.some(emp => emp.id === employee.id);
@@ -265,7 +265,7 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
     };
 
     // Handle payment type change
-    const handlePaymentTypeChange = (value: string) => {
+    const _handlePaymentTypeChange = (value: string) => {
         const newPaymentType = paymentTypes.find(pt => pt.id === value);
         const isSwitchingToSeverancePay = newPaymentType?.paymentType === "Severance Pay";
         const isSwitchingToAnnualLeave = newPaymentType?.paymentType === "Annual Leave";
@@ -377,7 +377,7 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
     };
 
     // Handle month selection for severance pay
-    const handleSeveranceMonthChange = (month: string) => {
+    const _handleSeveranceMonthChange = (month: string) => {
         // Update the month first
         const updatedPayment = {
             ...newPayment,
@@ -465,7 +465,7 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
     };
 
     // Handle month selection for annual leave pay
-    const handleAnnualLeaveMonthChange = (month: string) => {
+    const _handleAnnualLeaveMonthChange = (month: string) => {
         // Update the month first
         const updatedPayment = {
             ...newPayment,
@@ -516,6 +516,9 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
         if (isSeverancePay && selectedEmployeesForForm.length === 1 && newPayment.severanceMonth) {
             calculateAndSetSeverancePay();
         }
+        // The calculator closes over the current draft and intentionally only reruns on the
+        // severance-specific business inputs listed here.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedEmployeesForForm, newPayment.severanceMonth, isSeverancePay]);
 
     // Effect to calculate annual leave when conditions change
@@ -523,6 +526,9 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
         if (isAnnualLeave && selectedEmployeesForForm.length === 1 && newPayment.annualLeaveMonth) {
             calculateAndSetAnnualLeavePay();
         }
+        // The calculator closes over the current draft and intentionally only reruns on the
+        // annual-leave-specific business inputs listed here.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedEmployeesForForm, newPayment.annualLeaveMonth, isAnnualLeave]);
 
     const handleAddPayment = async () => {

@@ -1,60 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import {
-    ArrowLeft,
-    Plus,
-    MoreHorizontal,
-    Edit,
-    Trash2,
-    Eye,
-    DollarSign,
-    Calendar,
-    User,
-    FileText,
-    Search,
-    Check,
-    ChevronsUpDown,
-    Columns,
-    Filter,
-    Loader2,
-} from "lucide-react";
 import { EmployeeLoanModel, LoanByMonth } from "@/lib/models/employeeLoan";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { getTimestamp } from "@/lib/util/dayjs_format";
@@ -97,28 +45,28 @@ export function useLoanManagement(
 ) {
     const router = useRouter();
     const { showToast } = useToast();
-    const { hrSettings, employees, employeeLoans } = useFirestore();
+    const { employees, employeeLoans, ...hrSettings } = useData();
     const { userData } = useAuth();
-    const loanTypes = hrSettings.loanTypes.filter(l => l.active == true);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
+    const loanTypes = hrSettings.loanTypes.filter(l => l.active === true);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
     const [editingLoan, setEditingLoan] = useState<ExtendedEmployeeLoan | null>(null);
-    const [isInstallmentsModalOpen, setIsInstallmentsModalOpen] = useState(false);
+    const [isInstallmentsModalOpen, setIsInstallmentsModalOpen] = useState<boolean>(false);
     const [selectedLoanForInstallments, setSelectedLoanForInstallments] =
         useState<ExtendedEmployeeLoan | null>(null);
-    const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState(false);
-    const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
-    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [isEditingMode, setIsEditingMode] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState<boolean>(false);
+    const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>("");
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [isEditingMode, setIsEditingMode] = useState<boolean>(false);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
     const [editValues, setEditValues] = useState<{
         [key: string]: { amount: string; deductFromSalary: string; comment: string };
     }>({});
-    const [installPage, setInstallPage] = useState(0);
-    const [installPageSize, setInstallPageSize] = useState(12);
+    const [installPage, setInstallPage] = useState<number>(0);
+    const [installPageSize, setInstallPageSize] = useState<number>(12);
 
-    const [visibleColumns, setVisibleColumns] = useState({
+    const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
         timestamp: true,
         employee: true,
         loanType: true,
@@ -133,7 +81,7 @@ export function useLoanManagement(
         remainingAmount: true,
     });
 
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<Record<string, string>>({
         timestamp: "",
         employee: "",
         loanType: "",
@@ -195,7 +143,7 @@ export function useLoanManagement(
 
     useEffect(() => {
         const _loans: ExtendedEmployeeLoan[] = [];
-        employeeLoans.map(loan => {
+        employeeLoans.forEach(loan => {
             const loanProgress = calculateLoanProgress(loan.months, loan.loanTotalAmount);
 
             _loans.push({
@@ -209,7 +157,7 @@ export function useLoanManagement(
         });
 
         setLoans(_loans);
-    }, [employeeLoans]);
+    }, [employeeLoans, employees]);
 
     // Reset and clamp installments pagination when modal/selection changes
     useEffect(() => {
@@ -320,7 +268,7 @@ export function useLoanManagement(
         try {
             let res: boolean;
             if (isEditMode && editingLoan) {
-                const { timestamp, ...data } = loan;
+                const { timestamp: _timestamp, ...data } = loan;
                 res = await updateLoan(
                     { id: editingLoan.id, ...data },
                     userData?.uid ?? "",

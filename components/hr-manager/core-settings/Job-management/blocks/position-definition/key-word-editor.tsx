@@ -10,7 +10,7 @@ export function KeywordEditor({
     values: string[];
     onChange: (vals: string[]) => void;
 }) {
-    const [draft, setDraft] = useState("");
+    const [draft, setDraft] = useState<string>("");
 
     function add() {
         const trimmed = draft.trim();

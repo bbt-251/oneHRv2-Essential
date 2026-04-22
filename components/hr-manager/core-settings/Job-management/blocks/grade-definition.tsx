@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +19,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Loader2, CalendarIcon } from "lucide-react";
+import { Pencil, Trash2, Loader2, CalendarIcon } from "lucide-react";
 import ConfigTable, { ColumnDef } from "./config-table";
-import { GradeDefinitionModel, hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { GradeDefinitionModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -36,14 +36,14 @@ import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-manageme
 type FormState = GradeDefinitionModel & { id?: string };
 
 export default function GradeDefinition() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
-    const [saveLoading, setSaveLoading] = useState(false);
-    const [rows, setRows] = useState<GradeDefinitionModel[]>([]);
-    const [formOpen, setFormOpen] = useState(false);
+    const [saveLoading, setSaveLoading] = useState<boolean>(false);
+    const rows = hrSettings.grades;
+    const [formOpen, setFormOpen] = useState<boolean>(false);
     const [formState, setFormState] = useState<FormState>({
         id: "",
         createdAt: "",
@@ -53,6 +53,25 @@ export default function GradeDefinition() {
         endDate: "",
         active: "Yes",
     });
+
+    const confirmDelete = useCallback(
+        (id: string) => {
+            confirm("Are you sure ?", async () => {
+                const res = await hrSettingsService.remove(
+                    "grades",
+                    id,
+                    userData?.uid ?? "",
+                    JOB_MANAGEMENT_LOG_MESSAGES.GRADE_DELETED(id),
+                );
+                if (res) {
+                    showToast("Grade deleted successfully", "Success", "success");
+                } else {
+                    showToast("Error deleting grade", "Error", "error");
+                }
+            });
+        },
+        [confirm, showToast, userData?.uid],
+    );
 
     const columns: ColumnDef[] = useMemo(
         () => [
@@ -106,12 +125,8 @@ export default function GradeDefinition() {
                 ),
             },
         ],
-        [rows],
+        [confirmDelete],
     );
-
-    useEffect(() => {
-        setRows(hrSettings.grades);
-    }, [hrSettings.grades]);
 
     function openAdd() {
         setFormState({
@@ -129,22 +144,6 @@ export default function GradeDefinition() {
     function openEdit(item: GradeDefinitionModel) {
         setFormState({ ...item });
         setFormOpen(true);
-    }
-
-    function confirmDelete(id: string) {
-        confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
-                "grades",
-                id,
-                userData?.uid ?? "",
-                JOB_MANAGEMENT_LOG_MESSAGES.GRADE_DELETED(id),
-            );
-            if (res) {
-                showToast("Grade deleted successfully", "Success", "success");
-            } else {
-                showToast("Error deleting grade", "Error", "error");
-            }
-        });
     }
 
     function validate(s: FormState) {
@@ -171,7 +170,7 @@ export default function GradeDefinition() {
 
         if (formState.id) {
             // update
-            const { id, ...data } = formState;
+            const { id: _id, ...data } = formState;
             const res = await hrSettingsService.update(
                 "grades",
                 formState.id,

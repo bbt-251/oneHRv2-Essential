@@ -28,7 +28,7 @@ import { EmployeeActions } from "../blocks/employee-actions";
 import { EmployeeModel } from "@/lib/models/employee";
 import { ColumnConfig } from "@/lib/models/type";
 import { useTheme } from "@/components/theme-provider";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import getEmployeeFullName from "@/lib/util/getEmployeeFullName";
 import dayjs from "dayjs";
 import { EmployeeDetailsModal } from "./employee-details-modal";
@@ -59,10 +59,9 @@ export function OffboardingModal({
     onManageDependents,
 }: OffboardingModalProps) {
     const { theme } = useTheme();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const {
         sectionSettings,
-        locations,
         contractTypes,
         contractHours,
         maritalStatuses,
@@ -75,7 +74,6 @@ export function OffboardingModal({
     const getName = (items: { id: string; name: string }[], id: string) =>
         items.find(item => item.id === id)?.name || "Unknown";
 
-    const getLocationName = (locationId: string) => getName(locations, locationId);
     const getSectionName = (sectionId: string) => getName(sectionSettings, sectionId);
     const getContractTypeName = (contractTypeId: string) => getName(contractTypes, contractTypeId);
     const getMaritalStatusName = (maritalStatusId: string) =>

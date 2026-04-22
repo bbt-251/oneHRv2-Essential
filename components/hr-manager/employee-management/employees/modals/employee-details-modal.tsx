@@ -5,20 +5,11 @@ import type React from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-    X,
-    User,
-    Briefcase,
-    FileText,
-    Phone,
-    Settings,
-    ChevronDown,
-    ChevronRight,
-} from "lucide-react";
+import { X, User, Briefcase, FileText, Phone, ChevronDown, ChevronRight } from "lucide-react";
 import type { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
 import { CustomFieldsSection } from "@/components/ui/custom-fields";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import getEmployeeFullName from "@/lib/util/getEmployeeFullName";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -30,8 +21,8 @@ interface EmployeeDetailsModalProps {
 
 export function EmployeeDetailsModal({ employee, onClose, onEdit }: EmployeeDetailsModalProps) {
     const { theme } = useTheme();
-    const { hrSettings, employees } = useFirestore();
-    const [isReporteesOpen, setIsReporteesOpen] = useState(false);
+    const { employees, ...hrSettings } = useData();
+    const [isReporteesOpen, setIsReporteesOpen] = useState<boolean>(false);
     const {
         sectionSettings,
         locations,

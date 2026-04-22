@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AttendanceModel } from "@/lib/models/attendance";
 import dayjs from "dayjs";
 import { Clock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClockInModal } from "./clock-in-modal";
 
 interface FilterProps {
@@ -44,10 +44,11 @@ export function AttendanceFilter({
     onClearFilters,
 }: FilterProps) {
     const { theme } = useTheme();
-    const [currentTime, setCurrentTime] = useState(new Date());
-    const [isClockInModalOpen, setIsClockInModalOpen] = useState(false);
-    const [currentMonthAttendance, setCurrentMonthAttendance] = useState<AttendanceModel | null>(
-        null,
+    const [currentTime, setCurrentTime] = useState<Date>(new Date());
+    const [isClockInModalOpen, setIsClockInModalOpen] = useState<boolean>(false);
+    const currentMonthAttendance = useMemo<AttendanceModel | null>(
+        () => attendances.find(a => a.month == dayjs().format("MMMM")) ?? null,
+        [attendances],
     );
 
     const statusOptions = [
@@ -100,13 +101,6 @@ export function AttendanceFilter({
                     : "bg-blue-50 text-[#3f3d56] border-blue-200 hover:bg-blue-100",
         },
     ];
-
-    useEffect(() => {
-        const attendance = attendances.find(a => a.month == dayjs().format("MMMM"));
-        if (attendance) {
-            setCurrentMonthAttendance(attendance);
-        }
-    }, [attendances]);
 
     useEffect(() => {
         const timer = setInterval(() => {

@@ -13,12 +13,11 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
-import { NotificationTypeModel } from "@/lib/backend/firebase/hrSettingsService";
+import { NotificationTypeModel } from "@/lib/backend/hr-settings-service";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/authContext";
 import { NOTIFICATION_TYPE_LOG_MESSAGES } from "@/lib/log-descriptions/notification-location";
@@ -49,7 +48,9 @@ export function AddNotificationType({
             active: editingNotification?.active || "",
         });
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<
+        Pick<NotificationTypeModel, "notificationType" | "text" | "active">
+    >({
         notificationType: "",
         text: "",
         active: "Yes",
@@ -194,12 +195,7 @@ export function AddNotificationType({
                                 <SelectValue placeholder="Select active status" />
                             </SelectTrigger>
                             <SelectContent
-                                className={cn(
-                                    theme === "dark"
-                                        ? "bg-black border-gray-600"
-                                        : "bg-amber-50/80 border-y border-amber-300",
-                                    "w-40",
-                                )}
+                                className={`${theme === "dark" ? "bg-black border-gray-600" : "bg-amber-50/80 border-y border-amber-300"} w-40`}
                             >
                                 {activeOptions.map(option => (
                                     <SelectItem key={option} value={option}>

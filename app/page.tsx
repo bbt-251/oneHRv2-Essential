@@ -4,7 +4,7 @@
 export const dynamic = "force-dynamic";
 
 import { EyeClosedIcon, EyeIcon, Mail, Lock, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/context/toastContext";
 import { useLogin } from "@/hooks/auth/useLogin";
 import { usePasswordReset } from "@/hooks/auth/usePasswordReset";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/context/authContext";
@@ -46,7 +46,6 @@ function LoginForm({
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
     const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
-    const router = useRouter();
     const { theme } = useTheme();
 
     const validateEmail = (email: string): boolean => {
@@ -87,7 +86,7 @@ function LoginForm({
                 await onLogin(email, password);
                 // Parent component handles redirect after checking userData
             }
-        } catch (err) {
+        } catch {
             const errorMsg = "Login failed. Please check your credentials.";
             setError(errorMsg);
             onError?.(errorMsg);
@@ -123,7 +122,7 @@ function LoginForm({
                     setError("");
                 }
             }
-        } catch (err) {
+        } catch {
             const errorMsg = "Failed to send reset email. Please try again.";
             setError(errorMsg);
             onError?.(errorMsg);
@@ -146,7 +145,8 @@ function LoginForm({
                     <CardDescription
                         className={`text-center ${theme === "dark" ? "text-slate-300" : "text-gray-600"}`}
                     >
-                        Enter your email address and we'll send you a link to reset your password
+                        Enter your email address and we&apos;ll send you a link to reset your
+                        password
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleForgotPassword}>
@@ -319,19 +319,15 @@ function LoginForm({
 
 export default function Home() {
     const { user, userData, authLoading, employeeNotFound, signout } = useAuth();
-    const { login, isLoading: loginLoading, error: loginError } = useLogin();
-    const { sendResetEmail, isLoading: resetLoading, error: resetError } = usePasswordReset();
+    const { login, isLoading: loginLoading } = useLogin();
+    const { sendResetEmail, isLoading: resetLoading } = usePasswordReset();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const router = useRouter();
 
-    const getDefaultRoute = () => {
-        if (!userData?.role?.length) return "/signin";
-        if (userData.role.includes("HR Manager")) return "/hr/employees";
-        if (userData.role.includes("Payroll Officer")) return "/hr/compensation-benefits";
-        if (userData.role.includes("Manager")) return "/manager/reportees/directory";
-        return "/attendance-management";
-    };
+    const getDefaultRoute = useCallback(() => {
+        return "/dashboard";
+    }, []);
 
     const handleLogin = async (email: string, password: string): Promise<boolean> => {
         try {
@@ -352,7 +348,7 @@ export default function Home() {
                 );
                 return false;
             }
-        } catch (err) {
+        } catch {
             showToast(
                 "An unexpected error occurred during login",
                 "Login Error",
@@ -365,13 +361,13 @@ export default function Home() {
     };
 
     // Effect to handle redirect after login - wait for userData or employeeNotFound
-    const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
+    const hasAttemptedLoginRef = useRef<boolean>(false);
 
     useEffect(() => {
-        if (user && hasAttemptedLogin) {
+        if (user && hasAttemptedLoginRef.current) {
             if (userData) {
-                router.push(getDefaultRoute());
-                setHasAttemptedLogin(false);
+                router.replace(getDefaultRoute());
+                hasAttemptedLoginRef.current = false;
             }
             // If employee not found (explicitly set to true), show error and stay on login page
             else if (employeeNotFound === true) {
@@ -382,18 +378,28 @@ export default function Home() {
                     6000,
                     "critical",
                 );
-                setHasAttemptedLogin(false);
+                hasAttemptedLoginRef.current = false;
             }
             // Don't show any error if employeeNotFound is still undefined or false
             // This means the employee lookup is still in progress or hasn't completed
         }
-    }, [user, userData, authLoading, employeeNotFound, hasAttemptedLogin, router, showToast]);
+    }, [employeeNotFound, getDefaultRoute, router, showToast, user, userData]);
+
+    useEffect(() => {
+        if (authLoading) {
+            return;
+        }
+
+        if (user && userData) {
+            router.replace(getDefaultRoute());
+        }
+    }, [authLoading, getDefaultRoute, router, user, userData]);
 
     // Modify handleLogin to set the flag
     const handleLoginWithRedirect = async (email: string, password: string): Promise<boolean> => {
         const result = await handleLogin(email, password);
         if (result) {
-            setHasAttemptedLogin(true);
+            hasAttemptedLoginRef.current = true;
         }
         return result;
     };
@@ -423,7 +429,7 @@ export default function Home() {
                 );
                 return false;
             }
-        } catch (err) {
+        } catch {
             showToast(
                 "An unexpected error occurred while sending reset email",
                 "Reset Error",
@@ -506,7 +512,7 @@ export default function Home() {
     }
 
     if (user && userData) {
-        redirect(getDefaultRoute());
+        return null;
     }
 
     return (

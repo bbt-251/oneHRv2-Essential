@@ -2,7 +2,7 @@
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileText, Plus, Users } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import LeaveTable from "./blocks/leave-table";
 import OutOfOffice from "./blocks/out-of-office";
 import { useAuth } from "@/context/authContext";
@@ -22,7 +22,7 @@ export default function LeaveManagement() {
 
     // Add state for editing leave
     const [editingLeave, setEditingLeave] = useState<LeaveModel | null>(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
     const navigationItems = [
         {

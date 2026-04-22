@@ -19,15 +19,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useFirestore } from "@/context/firestore-context";
-import { useDelegation } from "@/hooks/use-delegation";
+import { useAppData } from "@/context/app-data-context";
+import { useAuth } from "@/context/authContext";
 import { EmployeeModel } from "@/lib/models/employee";
 import { Download, Eye, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 export default function TeamDirectoryPage() {
-    const { employees, hrSettings } = useFirestore();
-    const { allReportees, delegatedReportees } = useDelegation();
+    const { employees, ...hrSettings } = useAppData();
+    const { userData } = useAuth();
 
     // Filters and results state
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -35,8 +35,6 @@ export default function TeamDirectoryPage() {
     const [locationFilter, setLocationFilter] = useState<string>("all");
     const [positionFilter, setPositionFilter] = useState<string>("all");
     const [shiftTypeFilter, setShiftTypeFilter] = useState<string>("all");
-    const [filteredEmployees, setFilteredEmployees] = useState<EmployeeModel[]>([]);
-
     // Helper functions to get human-readable names from IDs
     const getDepartmentName = useMemo<(id: string) => string>(
         () => (id: string) => {
@@ -72,8 +70,8 @@ export default function TeamDirectoryPage() {
 
     // Filter employees to only current user's reportees (own + delegated)
     const reportees = useMemo<EmployeeModel[]>(
-        () => employees.filter(emp => allReportees.includes(emp.uid)),
-        [employees, allReportees],
+        () => employees.filter(emp => userData?.reportees?.includes(emp.uid)),
+        [employees, userData?.reportees],
     );
 
     // Unique IDs for filter dropdowns
@@ -98,7 +96,7 @@ export default function TeamDirectoryPage() {
         [reportees],
     );
 
-    useEffect(() => {
+    const filteredEmployees = useMemo(() => {
         let filtered: EmployeeModel[] = reportees;
 
         // Text search across selected fields
@@ -138,7 +136,7 @@ export default function TeamDirectoryPage() {
             return a.surname.localeCompare(b.surname);
         });
 
-        setFilteredEmployees(filtered);
+        return filtered;
     }, [reportees, searchTerm, departmentFilter, locationFilter, positionFilter, shiftTypeFilter]);
 
     return (
@@ -150,11 +148,6 @@ export default function TeamDirectoryPage() {
                     </h1>
                     <p className="text-gray-600 dark:text-muted-foreground mt-2">
                         Manage and view details of all employees reporting to you
-                        {delegatedReportees.length > 0 && (
-                            <span className="ml-2 text-blue-600">
-                                ({delegatedReportees.length} delegated reportees)
-                            </span>
-                        )}
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -249,11 +242,6 @@ export default function TeamDirectoryPage() {
                     <div className="mb-4">
                         <p className="text-sm text-muted-foreground">
                             Showing {filteredEmployees.length} of {reportees.length} employees
-                            {delegatedReportees.length > 0 && (
-                                <span className="ml-2 text-blue-600">
-                                    ({delegatedReportees.length} from delegation)
-                                </span>
-                            )}
                         </p>
                     </div>
 

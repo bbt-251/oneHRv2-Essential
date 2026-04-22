@@ -30,21 +30,21 @@ import { PaymentTypeForm } from "./payment-type-component";
 import { PaymentTypeModel } from "@/lib/models/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { PAYROLL_CONFIGURATION_LOG_MESSAGES } from "@/lib/log-descriptions/payroll-configuration";
 import { useAuth } from "@/context/authContext";
 
 export function PaymentType() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const paymentTypes = hrSettings.paymentTypes;
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
     const [density, setDensity] = useState<Density>("normal");
-    const [showDialog, setShowDialog] = useState(false);
-    const [showViewDialog, setShowViewDialog] = useState(false);
+    const [showDialog, setShowDialog] = useState<boolean>(false);
+    const [showViewDialog, setShowViewDialog] = useState<boolean>(false);
     const [editingItem, setEditingItem] = useState<PaymentTypeModel | null>(null);
     const [viewingItem, setViewingItem] = useState<PaymentTypeModel | null>(null);
 
@@ -64,7 +64,7 @@ export function PaymentType() {
         { key: "active", label: "Status", visible: true },
     ];
 
-    const [columnConfig, setColumnConfig] = useState(paymentTypeColumns);
+    const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(paymentTypeColumns);
 
     const handleAdd = () => {
         setEditingItem(null);
@@ -100,7 +100,7 @@ export function PaymentType() {
     const handleSave = async (formData: PaymentTypeModel) => {
         setIsAddEditLoading(true);
 
-        const { id, ...data } = formData;
+        const { id: _id, ...data } = formData;
         if (editingItem) {
             const res = await hrSettingsService.update(
                 "paymentTypes",
@@ -354,8 +354,8 @@ export function PaymentType() {
                                                 colSpan={columnConfig.length + 1}
                                                 className="text-center py-8 text-gray-500 dark:text-gray-400"
                                             >
-                                                No payment types found. Click "Add Payment Type" to
-                                                create your first entry.
+                                                No payment types found. Click &quot;Add Payment
+                                                Type&quot; to create your first entry.
                                             </TableCell>
                                         </TableRow>
                                     )}

@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import {
     createOvertimeRequest,
     updateOvertimeRequest,
 } from "@/lib/backend/api/attendance/overtime-service";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import { dateFormat, timestampFormat } from "@/lib/util/dayjs_format";
 import getFullName from "@/lib/util/getEmployeeFullName";
@@ -95,13 +95,13 @@ export function EmployeeOvertimeForm({
 }: EmployeeOvertimeFormProps) {
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const { employees } = useFirestore();
+    const { employees } = useData();
     const { showToast } = useToast();
     const isDark = theme === "dark";
     const isEdit = !!editingRequest;
 
     const [formData, setFormData] = useState<FormData>(defaultFormData(day));
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     useEffect(() => {
         if (editingRequest) {
@@ -234,7 +234,7 @@ export function EmployeeOvertimeForm({
                                 },
                                 title: "Overtime Request Submitted",
                                 action: "/overtime_requests",
-                                getCustomMessage: (recipientType, payload) => {
+                                getCustomMessage: recipientType => {
                                     if (recipientType === "hr") {
                                         return {
                                             telegram: `Employee ${employeeName} submitted an overtime request for ${newRequest.overtimeDate} awaiting your review.`,

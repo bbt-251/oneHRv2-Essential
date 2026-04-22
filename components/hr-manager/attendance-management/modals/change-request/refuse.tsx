@@ -15,7 +15,7 @@ import { AttendanceChangeRequest } from "../../page";
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients } from "@/lib/util/notification/recipients";
 import getFullName from "@/lib/util/getEmployeeFullName";
@@ -36,10 +36,10 @@ export function HRAttendanceRefuseModal({
     requestData,
 }: HRAttendanceRefuseModalProps) {
     const { userData } = useAuth();
-    const [reason, setReason] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [reason, setReason] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const { showToast } = useToast();
-    const { employees } = useFirestore();
+    const { employees } = useData();
 
     if (!request) return null;
 
@@ -66,7 +66,7 @@ export function HRAttendanceRefuseModal({
         if (res) {
             // Send notification when attendance change request is rejected
             try {
-                const employee = employees.find(e => request.employeeUid);
+                const employee = employees.find(e => e.uid === request.employeeUid);
 
                 // Get recipients: For attendance change rejection, notify BOTH employee and their manager
                 const validRecipients = getNotificationRecipients(
@@ -84,7 +84,7 @@ export function HRAttendanceRefuseModal({
                             employeeName: employee ? getFullName(employee) : "",
                             date: request.date,
                         },
-                        getCustomMessage: (recipientType, payload) => {
+                        getCustomMessage: recipientType => {
                             if (recipientType === "manager") {
                                 // Message for Managers
                                 return {

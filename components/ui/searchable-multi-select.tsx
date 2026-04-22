@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, X, Check } from "lucide-react";
@@ -9,7 +8,7 @@ import { ChevronDown, X, Check } from "lucide-react";
 export interface SearchableSelectItem {
     id: string;
     label: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface SearchableMultiSelectProps {
@@ -31,8 +30,8 @@ export function SearchableMultiSelect({
     disabled = false,
     className = "",
 }: SearchableMultiSelectProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [searchQuery, setSearchQuery] = useState<string>("");
     const containerRef = useRef<HTMLDivElement>(null);
 
     const filteredItems = items.filter(item =>

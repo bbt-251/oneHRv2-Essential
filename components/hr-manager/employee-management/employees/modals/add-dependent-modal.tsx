@@ -37,6 +37,16 @@ interface AddDependentModalProps {
     onSuccess: () => void;
 }
 
+interface DependentFormState {
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    dateOfBirth: Date | null;
+    phoneNumber: string;
+    gender: "Male" | "Female";
+    relationship: DependentRelationship;
+}
+
 export function AddDependentModal({
     employeeUid,
     employeeName,
@@ -45,17 +55,17 @@ export function AddDependentModal({
     onSuccess,
 }: AddDependentModalProps) {
     const { userData } = useAuth();
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<DependentFormState>({
         firstName: "",
         middleName: "",
         lastName: "",
-        dateOfBirth: null as Date | null,
+        dateOfBirth: null,
         phoneNumber: "",
-        gender: "Male" as "Male" | "Female",
+        gender: "Male",
         relationship: DependentRelationship.SPOUSE,
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const validateForm = (): boolean => {

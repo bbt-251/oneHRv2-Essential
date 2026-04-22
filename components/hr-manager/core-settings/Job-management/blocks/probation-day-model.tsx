@@ -8,17 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Edit } from "lucide-react";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
-import { useFirestore } from "@/context/firestore-context";
-import { hrSettingsService, ProbationDayModel } from "@/lib/backend/firebase/hrSettingsService";
+import { useData } from "@/context/app-data-context";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 
 export default function ProbationEndPeriod() {
     const { showToast } = useToast();
-    const { theme } = useTheme();
-    const { hrSettings } = useFirestore();
+    useTheme();
+    const { ...hrSettings } = useData();
     const probationDays = hrSettings.probationDays;
 
-    const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState({
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [formData, setFormData] = useState<{ value: number }>({
         value: probationDays?.[0]?.value || 0,
     });
 

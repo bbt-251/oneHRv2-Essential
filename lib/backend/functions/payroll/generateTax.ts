@@ -47,7 +47,7 @@ export async function generateTax(payrollData: PayrollData[], basicInfo?: Compan
     const buffer1 = Buffer.from(arrayBuffer1);
 
     const imageId1 = workbook.addImage({
-        buffer: buffer1 as any,
+        buffer: buffer1,
         extension: "png",
     });
 
@@ -56,7 +56,7 @@ export async function generateTax(payrollData: PayrollData[], basicInfo?: Compan
     const buffer2 = Buffer.from(arrayBuffer2);
 
     const imageId2 = workbook.addImage({
-        buffer: buffer2 as any,
+        buffer: buffer2,
         extension: "png",
     });
 

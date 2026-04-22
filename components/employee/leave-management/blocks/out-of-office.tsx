@@ -14,7 +14,7 @@ import {
 
 import { useTheme } from "@/components/theme-provider";
 import { Users, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { LeaveModel } from "@/lib/models/leave";
 import { EmployeeModel } from "@/lib/models/employee";
 import LeaveDetail from "@/components/manager/leave-management/modals/leave-detail";
@@ -76,7 +76,7 @@ function transformLeaveRequestsToOutOfOfficeData(
 export default function OutOfOffice() {
     const { theme } = useTheme();
     const { user } = useAuth();
-    const { employees, leaveManagements, hrSettings } = useFirestore();
+    const { employees, leaveManagements, ...hrSettings } = useData();
 
     const getReporteeIds = (managerId: string): string[] => {
         const directReports = employees.filter(emp => emp.reportingLineManager === managerId);
@@ -108,11 +108,18 @@ export default function OutOfOffice() {
         const department = departments.find(department => department.id === departmentId);
         return department?.name || "Unknown";
     };
-    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
 
     // Matrix filters
-    const [matrixFilters, setMatrixFilters] = useState({
+    const [matrixFilters, setMatrixFilters] = useState<{
+        employeeName: string;
+        department: string;
+        section: string;
+        leaveStatus: string;
+        startDate: string;
+        endDate: string;
+    }>({
         employeeName: "",
         department: "",
         section: "",
@@ -122,8 +129,8 @@ export default function OutOfOffice() {
     });
 
     // Add this after the existing state declarations
-    const [selectedLeave, setSelectedLeave] = useState<any>(null);
-    const [isLeaveDetailModalOpen, setIsLeaveDetailModalOpen] = useState(false);
+    const [selectedLeave, setSelectedLeave] = useState<LeaveModel | null>(null);
+    const [isLeaveDetailModalOpen, setIsLeaveDetailModalOpen] = useState<boolean>(false);
 
     // Generate date range for the selected month
     const dateRange = useMemo(() => {
@@ -165,11 +172,11 @@ export default function OutOfOffice() {
         });
     }, [leaveRequests, employees, matrixFilters]);
 
-    const getLeaveForDate = (employee: any, date: Date) => {
+    const getLeaveForDate = (employee: OutOfOfficeModel, date: Date) => {
         const currentDate = new Date(date);
         currentDate.setHours(0, 0, 0, 0);
 
-        return employee.leaves.find((leave: any) => {
+        return employee.leaves.find((leave: LeaveModel) => {
             const startDate = new Date(leave.firstDayOfLeave);
             const endDate = new Date(leave.lastDayOfLeave);
 
@@ -226,7 +233,7 @@ export default function OutOfOffice() {
     };
 
     // Add this function after the navigation functions
-    const handleLeaveClick = (leave: any) => {
+    const handleLeaveClick = (leave: LeaveModel) => {
         setSelectedLeave(leave);
         setIsLeaveDetailModalOpen(true);
     };

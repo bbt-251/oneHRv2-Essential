@@ -27,8 +27,18 @@ export function createContactKeyboard() {
     };
 }
 
-export async function sendMessage(chatId: number, text: string, keyboard?: any) {
-     
+type TelegramReplyMarkup =
+    | {
+          keyboard?: Array<Array<{ text: string; request_contact?: boolean }>>;
+          resize_keyboard?: boolean;
+          one_time_keyboard?: boolean;
+      }
+    | {
+          inline_keyboard?: Array<Array<{ text: string; web_app?: { url: string } }>>;
+          remove_keyboard?: boolean;
+      };
+
+export async function sendMessage(chatId: number, text: string, keyboard?: TelegramReplyMarkup) {
     try {
         const botInstance = getBot();
         return await botInstance.sendMessage(chatId, text, {

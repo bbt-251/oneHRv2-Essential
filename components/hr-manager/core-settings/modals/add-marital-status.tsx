@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService, MaritalStatusModel } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService, MaritalStatusModel } from "@/lib/backend/hr-settings-service";
 import { MARITAL_STATUS_LOG_MESSAGES } from "@/lib/log-descriptions/marital-document";
 import { useEffect, useState } from "react";
 
@@ -26,9 +26,12 @@ export function AddMaritalStatusModal({
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const [formData, setFormData] = useState({ name: "", active: true });
+    const [formData, setFormData] = useState<Pick<MaritalStatusModel, "name" | "active">>({
+        name: "",
+        active: true,
+    });
     const resetForm = () => setFormData({ name: "", active: true });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     useEffect(() => {
         if (editingStatus) {

@@ -1,28 +1,28 @@
 import { AttendanceModel } from "@/lib/models/attendance";
 import { getTimestamp, monthNames } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
-import {
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    setDoc,
-    updateDoc,
-    where,
-    writeBatch,
-} from "firebase/firestore";
-import { attendanceCollection } from "../../firebase/collections";
-import { db } from "../../firebase/init";
+import { mutateCompactData, queryCompactData } from "@/lib/backend/client/data-client";
 import { createLog } from "../logCollection";
 import { LogInfo } from "@/lib/log-descriptions/attendance";
 
-const collectionRef = attendanceCollection;
-const collectionName = collectionRef.id;
-
-// Helper function to get days in a month
 const daysInMonth = (month: number, year: number): number => {
     return new Date(year, month + 1, 0).getDate();
+};
+
+const logFailure = async (logInfo: LogInfo | undefined, actionBy: string) => {
+    if (!logInfo) {
+        return;
+    }
+
+    await createLog(
+        {
+            ...logInfo,
+            title: `${logInfo.title} Failed`,
+            description: `Failed to ${logInfo.description.toLowerCase()}`,
+        },
+        actionBy,
+        "Failure",
+    );
 };
 
 export async function createAttendance(
@@ -31,30 +31,20 @@ export async function createAttendance(
     logInfo?: LogInfo,
 ): Promise<AttendanceModel | null> {
     try {
-        const docRef = doc(collectionRef);
-        await setDoc(docRef, {
-            ...data,
-            id: docRef.id,
+        const payload = await mutateCompactData<{ attendance: AttendanceModel | null }>({
+            resource: "attendances",
+            action: "create",
+            payload: data as Record<string, unknown>,
         });
-        // Log the creation if logInfo is provided
+
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
-        return await getAttendanceById(docRef.id);
+
+        return payload.attendance;
     } catch (error) {
         console.error("Error creating attendance:", error);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return null;
     }
 }
@@ -73,7 +63,7 @@ export async function generateAttendanceForEmployee(
         monthNames.forEach((month, index) => {
             const att: Omit<AttendanceModel, "id"> = {
                 generatedAt: getTimestamp(),
-                uid: uid,
+                uid,
                 month: month as AttendanceModel["month"],
                 year: currentYear,
                 state: "N/A" as AttendanceModel["state"],
@@ -90,7 +80,6 @@ export async function generateAttendanceForEmployee(
                 lastClockInTimestamp: null,
             };
 
-            // Stage/state determination
             if (currentMonth > index) {
                 att.stage = "Closed";
             } else if (currentMonth === index) {
@@ -101,8 +90,7 @@ export async function generateAttendanceForEmployee(
                 att.stage = "Incoming";
             }
 
-            // Generate daily attendance
-            const daysInAMonth: number = daysInMonth(index, currentYear);
+            const daysInAMonth = daysInMonth(index, currentYear);
             for (let i = 1; i <= daysInAMonth; i++) {
                 att.values.push({
                     id: crypto.randomUUID(),
@@ -120,56 +108,51 @@ export async function generateAttendanceForEmployee(
             attendanceDataList.push(att);
         });
 
-        // Batch write
-        const batch = writeBatch(db);
-        const createdRecords: AttendanceModel[] = [];
+        const createdRecords = await Promise.all(
+            attendanceDataList.map(async attendance => {
+                const created = await mutateCompactData<{ attendance: AttendanceModel | null }>({
+                    resource: "attendances",
+                    action: "create",
+                    payload: attendance as Record<string, unknown>,
+                });
+                return created.attendance;
+            }),
+        );
 
-        attendanceDataList.forEach(attendance => {
-            const docRef = doc(collectionRef);
-            const attendanceWithId = { ...attendance, id: docRef.id };
-            batch.set(docRef, attendanceWithId);
-            createdRecords.push(attendanceWithId as AttendanceModel);
-        });
-
-        await batch.commit();
-
-        // Log the generation if logInfo is provided
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
 
-        return { success: true, records: createdRecords };
+        return {
+            success: true,
+            records: createdRecords.filter(
+                (attendance): attendance is AttendanceModel => attendance !== null,
+            ),
+        };
     } catch (error) {
         console.error("Error generating attendance:", error);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return { success: false };
     }
 }
 
 export async function getAttendanceByEmployee(uid: string): Promise<AttendanceModel[]> {
-    const q = query(collectionRef, where("uid", "==", uid));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AttendanceModel);
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+        filters: { uid },
+    });
+    return payload.attendances;
 }
 
 export async function getAttendanceByMonthAndYear(
     month: string,
     year: number,
 ): Promise<AttendanceModel[]> {
-    const q = query(collectionRef, where("month", "==", month), where("year", "==", year));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AttendanceModel);
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+        filters: { month, year },
+    });
+    return payload.attendances;
 }
 
 export async function getAttendanceByEmployeeAndPeriod(
@@ -177,27 +160,19 @@ export async function getAttendanceByEmployeeAndPeriod(
     month: string,
     year: number,
 ): Promise<AttendanceModel | null> {
-    const q = query(
-        collectionRef,
-        where("uid", "==", uid),
-        where("month", "==", month),
-        where("year", "==", year),
-    );
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        return { id: doc.id, ...doc.data() } as AttendanceModel;
-    }
-    return null;
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+        filters: { uid, month, year },
+    });
+    return payload.attendances[0] ?? null;
 }
 
 export async function getAttendanceById(id: string): Promise<AttendanceModel | null> {
-    const docRef = doc(db, collectionName, id);
-    const snapshot = await getDoc(docRef);
-    if (snapshot.exists()) {
-        return { id: snapshot.id, ...snapshot.data() } as AttendanceModel;
-    }
-    return null;
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+        filters: { id },
+    });
+    return payload.attendances[0] ?? null;
 }
 
 export async function updateAttendance(
@@ -205,28 +180,20 @@ export async function updateAttendance(
     actionBy: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, data.id);
     try {
-        await updateDoc(docRef, data as any);
-        // Log the update if logInfo is provided
+        await mutateCompactData({
+            resource: "attendances",
+            action: "update",
+            targetId: data.id,
+            payload: data as Record<string, unknown>,
+        });
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }
@@ -236,28 +203,19 @@ export async function deleteAttendance(
     actionBy: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await deleteDoc(docRef);
-        // Log the deletion if logInfo is provided
+        await mutateCompactData({
+            resource: "attendances",
+            action: "delete",
+            targetId: id,
+        });
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }
@@ -265,22 +223,26 @@ export async function deleteAttendance(
 export async function getAttendanceByState(
     state: AttendanceModel["state"],
 ): Promise<AttendanceModel[]> {
-    const q = query(collectionRef, where("state", "==", state));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AttendanceModel);
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+    });
+    return payload.attendances.filter(attendance => attendance.state === state);
 }
 
 export async function getAttendanceByStage(
     stage: AttendanceModel["stage"],
 ): Promise<AttendanceModel[]> {
-    const q = query(collectionRef, where("stage", "==", stage));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AttendanceModel);
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+    });
+    return payload.attendances.filter(attendance => attendance.stage === stage);
 }
 
 export async function getAllAttendance(): Promise<AttendanceModel[]> {
-    const snapshot = await getDocs(collectionRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as AttendanceModel);
+    const payload = await queryCompactData<{ attendances: AttendanceModel[] }>({
+        resource: "attendances",
+    });
+    return payload.attendances;
 }
 
 export async function updateAttendanceState(
@@ -289,28 +251,20 @@ export async function updateAttendanceState(
     actionBy: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await updateDoc(docRef, { state });
-        // Log the state update if logInfo is provided
+        await mutateCompactData({
+            resource: "attendances",
+            action: "update",
+            targetId: id,
+            payload: { state },
+        });
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }
@@ -321,28 +275,20 @@ export async function updateAttendanceStage(
     actionBy: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await updateDoc(docRef, { stage });
-        // Log the stage update if logInfo is provided
+        await mutateCompactData({
+            resource: "attendances",
+            action: "update",
+            targetId: id,
+            payload: { stage },
+        });
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }
@@ -353,28 +299,20 @@ export async function updateLastClockInTimestamp(
     actionBy: string,
     logInfo?: LogInfo,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await updateDoc(docRef, { lastClockInTimestamp: timestamp });
-        // Log the timestamp update if logInfo is provided
+        await mutateCompactData({
+            resource: "attendances",
+            action: "update",
+            targetId: id,
+            payload: { lastClockInTimestamp: timestamp },
+        });
         if (logInfo) {
             await createLog(logInfo, actionBy, "Success");
         }
         return true;
     } catch (err) {
         console.error(err);
-        // Log the failure if logInfo is provided
-        if (logInfo) {
-            await createLog(
-                {
-                    ...logInfo,
-                    title: `${logInfo.title} Failed`,
-                    description: `Failed to ${logInfo.description.toLowerCase()}`,
-                },
-                actionBy,
-                "Failure",
-            );
-        }
+        await logFailure(logInfo, actionBy);
         return false;
     }
 }

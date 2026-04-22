@@ -8,7 +8,7 @@ import { ChevronDown, Check } from "lucide-react";
 export interface SearchableSelectItem {
     id: string;
     label: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
 }
 
 interface SearchableSelectProps {
@@ -30,8 +30,8 @@ export function SearchableSelect({
     disabled = false,
     className = "",
 }: SearchableSelectProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [searchQuery, setSearchQuery] = useState<string>("");
     const containerRef = useRef<HTMLDivElement>(null);
 
     const filteredItems = items.filter(item =>

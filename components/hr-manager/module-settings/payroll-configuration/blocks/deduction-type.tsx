@@ -28,20 +28,20 @@ import { Calculator, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DeductionTypeForm } from "./deduction-type-components";
 import { DeductionTypeModel } from "@/lib/models/hr-settings";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 
 export function DeductionType() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const deductionTypes = hrSettings.deductionTypes;
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
     const [density, setDensity] = useState<Density>("normal");
-    const [showDialog, setShowDialog] = useState(false);
-    const [showViewDialog, setShowViewDialog] = useState(false);
+    const [showDialog, setShowDialog] = useState<boolean>(false);
+    const [showViewDialog, setShowViewDialog] = useState<boolean>(false);
     const [editingItem, setEditingItem] = useState<DeductionTypeModel | null>(null);
     const [viewingItem, setViewingItem] = useState<DeductionTypeModel | null>(null);
 
@@ -50,7 +50,7 @@ export function DeductionType() {
         { key: "active", label: "Status", visible: true },
     ];
 
-    const [columnConfig, setColumnConfig] = useState(deductionTypeColumns);
+    const [columnConfig, setColumnConfig] = useState<ColumnConfig[]>(deductionTypeColumns);
 
     const handleAdd = () => {
         setEditingItem(null);
@@ -81,7 +81,7 @@ export function DeductionType() {
     const handleSave = async (formData: DeductionTypeModel) => {
         setIsAddEditLoading(true);
 
-        const { id, ...data } = formData;
+        const { id: _id, ...data } = formData;
         if (editingItem) {
             const res = await hrSettingsService.update("deductionTypes", editingItem.id, data);
             if (res) {
@@ -290,8 +290,8 @@ export function DeductionType() {
                                                 colSpan={columnConfig.length + 1}
                                                 className="text-center py-8 text-gray-500 dark:text-gray-400"
                                             >
-                                                No deduction types found. Click "Add Deduction Type"
-                                                to create your first entry.
+                                                No deduction types found. Click &quot;Add Deduction
+                                                Type&quot; to create your first entry.
                                             </TableCell>
                                         </TableRow>
                                     )}

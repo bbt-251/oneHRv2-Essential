@@ -32,7 +32,7 @@ import {
     MoreVertical,
 } from "lucide-react";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { OvertimeFilter } from "./blocks/overtime-filter";
 import { OvertimeForm } from "./blocks/overtime-form";
 import { OvertimeDetailModal } from "./modals/overtime-detail-modal";
@@ -45,12 +45,10 @@ import {
 import { useToast } from "@/context/toastContext";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients, getEmployeeNames } from "@/lib/util/notification/recipients";
-import { sendTelegram } from "@/lib/util/notification/channels";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 import { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
-import { useDelegation } from "@/hooks/use-delegation";
 import dayjs from "dayjs";
 
 import { dateFormat } from "@/lib/util/dayjs_format";
@@ -59,31 +57,29 @@ import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { getPrimaryOvertimeEmployee } from "@/lib/util/overtime-request-display";
 import { Trash2, Undo2 } from "lucide-react";
+import type { OvertimeFormData } from "./blocks/overtime-form";
 
 export function OvertimeApprovals() {
     const { theme } = useTheme();
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const { activeEmployees, overtimeRequests: overtimeRequestsData, hrSettings } = useFirestore();
-    const { allReportees, delegatedReportees } = useDelegation();
+    const { activeEmployees, overtimeRequests: overtimeRequestsData, ...hrSettings } = useAppData();
     const overtimeTypes = hrSettings.overtimeTypes;
-    const [reportees, setReportees] = useState<EmployeeModel[]>([]);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [isRequestLoading, setIsRequestLoading] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+    const [isRequestLoading, setIsRequestLoading] = useState<boolean>(false);
 
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
     const [selectedOvertimeTypes, setSelectedOvertimeTypes] = useState<string[]>([]);
-    const [selectedDateFrom, setSelectedDateFrom] = useState("");
-    const [selectedDateTo, setSelectedDateTo] = useState("");
-    const [selectedTimeFrom, setSelectedTimeFrom] = useState("");
-    const [selectedTimeTo, setSelectedTimeTo] = useState("");
+    const [selectedDateFrom, setSelectedDateFrom] = useState<string>("");
+    const [selectedDateTo, setSelectedDateTo] = useState<string>("");
+    const [selectedTimeFrom, setSelectedTimeFrom] = useState<string>("");
+    const [selectedTimeTo, setSelectedTimeTo] = useState<string>("");
 
     const [selectedRequestForDetail, setSelectedRequestForDetail] =
         useState<OvertimeRequestModel | null>(null);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
 
-    const [overtimeRequests, setOvertimeRequests] = useState<OvertimeRequestModel[]>([]);
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState<boolean>(false);
     const [employeesModalRequest, setEmployeesModalRequest] = useState<OvertimeRequestModel | null>(
         null,
     );
@@ -93,37 +89,28 @@ export function OvertimeApprovals() {
         request: OvertimeRequestModel | null;
     }>({ type: "delete", request: null });
 
-    // Combine own reportees with delegated reportees
-    useEffect(() => {
-        const ownReportees = activeEmployees.filter(e => userData?.reportees?.includes(e.uid));
-        const delegatedEmployees = activeEmployees.filter(e => delegatedReportees.includes(e.uid));
-        const combinedReportees = [...ownReportees, ...delegatedEmployees];
-        // Remove duplicates
-        const uniqueReportees = Array.from(
-            new Map(combinedReportees.map(e => [e.uid, e])).values(),
-        );
-        setReportees(uniqueReportees);
-    }, [activeEmployees, userData?.reportees, delegatedReportees]);
+    const reportees = useMemo<EmployeeModel[]>(
+        () => activeEmployees.filter(e => userData?.reportees?.includes(e.uid)),
+        [activeEmployees, userData?.reportees],
+    );
 
     // Show all overtime requests that either:
     // - were submitted by this manager, OR
     // - include any of their reportees (including delegated reportees), OR
     // - include the manager themselves as an employee.
-    useEffect(() => {
+    const overtimeRequests = useMemo<OvertimeRequestModel[]>(() => {
         const reporteeUids = new Set(reportees.map(r => r.uid));
         const managerUid = userData?.uid;
 
-        const visibleRequests = overtimeRequestsData.filter(ot => {
+        return overtimeRequestsData.filter(ot => {
             const hasReportee = ot.employeeUids.some(uid => reporteeUids.has(uid));
             const includesManager = managerUid ? ot.employeeUids.includes(managerUid) : false;
             const requestedByManager = managerUid ? ot.requestedBy === managerUid : false;
             return requestedByManager || hasReportee || includesManager;
         });
-
-        setOvertimeRequests(visibleRequests);
     }, [overtimeRequestsData, reportees, userData?.uid]);
 
-    const handleFormSubmit = async (formData: any): Promise<boolean> => {
+    const handleFormSubmit = async (formData: OvertimeFormData): Promise<boolean> => {
         setIsRequestLoading(true);
 
         if (!userData) {
@@ -534,11 +521,6 @@ export function OvertimeApprovals() {
                         style={{ fontFamily: "Montserrat, sans-serif" }}
                     >
                         Manage overtime requests for your team
-                        {delegatedReportees.length > 0 && (
-                            <span className="ml-2 text-blue-600">
-                                ({delegatedReportees.length} delegated reportees)
-                            </span>
-                        )}
                     </p>
                 </div>
                 <div className="flex gap-3">
@@ -960,7 +942,7 @@ export function OvertimeApprovals() {
             <OvertimeDetailModal
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
-                request={selectedRequestForDetail as any}
+                request={selectedRequestForDetail}
                 overtimeTypes={overtimeTypes}
             />
 

@@ -19,7 +19,7 @@ export default function LeaveStats({
     daysTaken,
     eligibleDays,
     accrualDays = 0,
-    contractStartDate,
+    contractStartDate: _contractStartDate,
     carryOverLimit,
     onBalanceClick,
 }: LeaveStatsProps) {

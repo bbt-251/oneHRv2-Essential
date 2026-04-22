@@ -15,37 +15,36 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { Columns, Filter, X, Calendar, Users } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { Columns, Filter, X, Calendar } from "lucide-react";
+import { useData } from "@/context/app-data-context";
 import LeaveTable from "./blocks/leave-table";
 import { useTheme } from "@/components/theme-provider";
+import { EmployeeModel } from "@/lib/models/employee";
 
 // Helper hook to get effective theme (handles "system" option)
 function useEffectiveTheme() {
     const { theme } = useTheme();
-    const [effectiveTheme, setEffectiveTheme] = useState<"light" | "dark">("light");
+    const isSystemDark =
+        typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const [systemTheme, setSystemTheme] = useState<"light" | "dark">(
+        isSystemDark ? "dark" : "light",
+    );
 
     useEffect(() => {
-        if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
-            setEffectiveTheme(systemTheme);
-
-            const listener = (e: MediaQueryListEvent) => {
-                setEffectiveTheme(e.matches ? "dark" : "light");
-            };
-            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", listener);
-            return () =>
-                window
-                    .matchMedia("(prefers-color-scheme: dark)")
-                    .removeEventListener("change", listener);
-        } else {
-            setEffectiveTheme(theme as "light" | "dark");
+        if (theme !== "system") {
+            return;
         }
+
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const listener = (e: MediaQueryListEvent) => {
+            setSystemTheme(e.matches ? "dark" : "light");
+        };
+
+        mediaQuery.addEventListener("change", listener);
+        return () => mediaQuery.removeEventListener("change", listener);
     }, [theme]);
 
-    return effectiveTheme;
+    return theme === "system" ? systemTheme : (theme as "light" | "dark");
 }
 
 // Column definitions for HR view
@@ -69,7 +68,7 @@ const hrColumnDefinitions = [
 
 export default function HRLeaveManagement() {
     const theme = useEffectiveTheme();
-    const { leaveManagements, employees } = useFirestore();
+    const { leaveManagements, employees } = useData();
 
     // HR sees all leave requests, sorted by timestamp (latest first)
     const leaveRequests = useMemo(() => {
@@ -78,7 +77,7 @@ export default function HRLeaveManagement() {
         );
     }, [leaveManagements]);
 
-    const [hrFilters, setHrFilters] = useState({
+    const [hrFilters, setHrFilters] = useState<Record<string, string>>({
         employee: "",
         department: "",
         leaveRequestId: "",
@@ -112,7 +111,7 @@ export default function HRLeaveManagement() {
     };
 
     // Column visibility state for HR view
-    const [hrVisibleColumns, setHrVisibleColumns] = useState(() => {
+    const [hrVisibleColumns, setHrVisibleColumns] = useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
         hrColumnDefinitions.forEach(col => {
             initial[col.key] = col.defaultVisible;
@@ -127,11 +126,12 @@ export default function HRLeaveManagement() {
             [columnKey]: !prev[columnKey],
         }));
     };
-
     // Filter all leave requests for HR view
     const filteredHrRequests = useMemo(() => {
         return leaveRequests.filter(request => {
-            const employee = employees.find((emp: any) => emp.uid === request.employeeID);
+            const employee = employees.find(
+                (employee: EmployeeModel) => employee.uid === request.employeeID,
+            );
 
             const matchesEmployee =
                 !hrFilters.employee ||
@@ -199,7 +199,7 @@ export default function HRLeaveManagement() {
                 matchesRollback
             );
         });
-    }, [hrFilters, leaveManagements, employees]);
+    }, [employees, hrFilters, leaveRequests]);
 
     // Count active filters for HR view
     const activeHrFiltersCount = Object.values(hrFilters).filter(

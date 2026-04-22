@@ -25,7 +25,7 @@ import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 
 interface ManagerOvertimeFormProps {
     isOpen: boolean;
@@ -33,7 +33,7 @@ interface ManagerOvertimeFormProps {
     reportees: EmployeeModel[];
     overtimeTypes: OvertimeConfigurationModel[];
     onClose: () => void;
-    onSubmit: (data: any) => Promise<boolean>;
+    onSubmit: (data: OvertimeFormData) => Promise<boolean>;
 }
 
 export interface OvertimeFormData {
@@ -57,7 +57,7 @@ export function OvertimeForm({
 }: ManagerOvertimeFormProps) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState<boolean>(false);
 
     const [formData, setFormData] = useState<OvertimeFormData>({
         timestamp: dayjs().format(timestampFormat),
@@ -174,7 +174,7 @@ export function OvertimeForm({
                                             <Input
                                                 id={id}
                                                 type={type}
-                                                value={(formData as any)[id]}
+                                                value={formData[id as keyof OvertimeFormData]}
                                                 onChange={e =>
                                                     handleInputChange(id, e.target.value)
                                                 }
@@ -276,7 +276,10 @@ export function OvertimeForm({
                                                 <CommandList>
                                                     <CommandGroup>
                                                         {reportees.map(
-                                                            (employee: any, index: number) => (
+                                                            (
+                                                                employee: EmployeeModel,
+                                                                index: number,
+                                                            ) => (
                                                                 <CommandItem
                                                                     key={index}
                                                                     onSelect={() =>
@@ -339,7 +342,7 @@ export function OvertimeForm({
                                     <Textarea
                                         id={id}
                                         placeholder={placeholder}
-                                        value={(formData as any)[id]}
+                                        value={formData[id as keyof OvertimeFormData]}
                                         onChange={e => handleInputChange(id, e.target.value)}
                                         className={`w-full min-h-[120px] resize-none ${
                                             isDark ? "bg-gray-700 text-white" : ""

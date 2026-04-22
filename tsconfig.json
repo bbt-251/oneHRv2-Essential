@@ -42,15 +42,19 @@
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "jsx": "preserve",
+        "jsx": "react-jsx",
         "incremental": true,
+        "types": ["node", "react", "react-dom"],
         "plugins": [
             {
                 "name": "next"
             }
         ],
         "paths": {
-            "@/*": ["./*"]
+            "@/*": ["./*"],
+            "firebase/auth": ["./lib/backend/adapters/firebase-auth.ts"],
+            "firebase/storage": ["./lib/backend/adapters/firebase-storage.ts"],
+            "firebase-admin": ["./lib/backend/adapters/firebase-admin.ts"]
         }
     },
     "include": [

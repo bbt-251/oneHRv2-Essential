@@ -7,7 +7,7 @@ import { AttendanceFilter } from "./blocks/attendance-filter";
 import { AttendanceLegend } from "./blocks/attendance-legend";
 import { useAuth } from "@/context/authContext";
 import dayjs from "dayjs";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 
 interface Summary {
     totalPresent: number;
@@ -20,8 +20,8 @@ export const AttendanceManagement = () => {
     const { userData } = useAuth();
     const { theme } = useTheme();
     const { attendance } = useAttendance({ role: "Employee" });
-    const { leaveManagements } = useFirestore();
-    const [selectedMonth, setSelectedMonth] = useState("All Months");
+    const { leaveManagements } = useAppData();
+    const [selectedMonth, setSelectedMonth] = useState<string>("All Months");
     const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
     const [summary, setSummary] = useState<Summary>({
         totalPresent: 0,
@@ -31,13 +31,6 @@ export const AttendanceManagement = () => {
     });
 
     useEffect(() => {
-        console.log("Attendance data in AttendanceManagement:", attendance);
-        console.log(
-            "User uid:",
-            userData?.uid,
-            "Leave managements count:",
-            leaveManagements.length,
-        );
         if (!attendance || attendance.length === 0) return;
         let totalPresent = 0;
         let totalAbsent = 0;

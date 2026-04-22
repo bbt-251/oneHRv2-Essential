@@ -13,6 +13,7 @@ import {
     SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { ChevronRight, LucideIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -90,8 +91,11 @@ export function SidebarSection({
                                                 {item.icon ? (
                                                     <item.icon className="h-5 w-5 text-brand-500 group-hover:text-brand-700 dark:text-muted-foreground dark:group-hover:text-foreground flex-shrink-0" />
                                                 ) : item.customIcon ? (
-                                                    <img
+                                                    <Image
                                                         src={item.customIcon}
+                                                        width={20}
+                                                        height={20}
+                                                        unoptimized
                                                         className="h-5 w-5 text-brand-500 group-hover:text-brand-700 dark:invert flex-shrink-0"
                                                         alt={item.title}
                                                     />
@@ -176,8 +180,11 @@ export function SidebarSection({
                                                     }`}
                                                 />
                                             ) : item.customIcon ? (
-                                                <img
+                                                <Image
                                                     src={item.customIcon}
+                                                    width={20}
+                                                    height={20}
+                                                    unoptimized
                                                     className="h-5 w-5 flex-shrink-0 dark:invert"
                                                     alt={item.title}
                                                 />
@@ -208,8 +215,11 @@ export function SidebarSection({
                                                     }`}
                                                 />
                                             ) : item.customIcon ? (
-                                                <img
+                                                <Image
                                                     src={item.customIcon}
+                                                    width={20}
+                                                    height={20}
+                                                    unoptimized
                                                     className="h-5 w-5 flex-shrink-0 dark:invert"
                                                     alt={item.title}
                                                 />

@@ -22,13 +22,30 @@ import { Badge } from "@/components/ui/badge";
 import { X, ClipboardList, Search } from "lucide-react";
 import type { EmployeeModel } from "@/lib/models/employee";
 
+interface EmployeeFieldChange {
+    field: string;
+    previousValue: string;
+    newValue: string;
+}
+
+interface EmployeeLogEntry {
+    id: string;
+    employeeId: string;
+    action: string;
+    description: string;
+    timestamp: string;
+    performedBy: string;
+    category: "login" | "profile" | "document" | "system";
+    fieldChanges?: EmployeeFieldChange[];
+}
+
 interface EmployeeLogModalProps {
     employee: EmployeeModel;
     onClose: () => void;
 }
 
 export function EmployeeLogModal({ employee, onClose }: EmployeeLogModalProps) {
-    const [logs] = useState<any[]>([
+    const [logs] = useState<EmployeeLogEntry[]>([
         {
             id: "1",
             employeeId: employee.id,
@@ -95,7 +112,7 @@ export function EmployeeLogModal({ employee, onClose }: EmployeeLogModalProps) {
         },
     ]);
 
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
     const filteredLogs = logs.filter(log => {

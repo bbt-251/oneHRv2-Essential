@@ -28,14 +28,14 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { AlertTriangle, Clock, Edit, Loader2, Plus, Settings, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/context/toastContext";
 import {
     hrSettingsService,
     ShiftHourDivision,
     ShiftHourModel,
-} from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+} from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { FlexibilityParameterModel } from "@/lib/models/flexibilityParameter";
 import {
     createParameter,
@@ -50,38 +50,31 @@ import { useAuth } from "@/context/authContext";
 import { SHIFT_HOURS_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function ShiftHours() {
-    const { hrSettings, flexibilityParameter: parameterData } = useFirestore();
+    const { flexibilityParameter: parameterData, ...hrSettings } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
 
-    const [shiftHours, setShiftHours] = useState<ShiftHourModel[]>([]);
-
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isFlexibilityModalOpen, setIsFlexibilityModalOpen] = useState(false);
-    const [flexibilityParameter, setFlexibilityParameter] = useState<FlexibilityParameterModel>({
-        id: "",
-        minute: 0,
-    });
+    const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+    const [isFlexibilityModalOpen, setIsFlexibilityModalOpen] = useState<boolean>(false);
+    const [flexibilityMinute, setFlexibilityMinute] = useState<number>(
+        parameterData?.at(0)?.minute ?? 0,
+    );
     const [editingShiftHour, setEditingShiftHour] = useState<ShiftHourModel | null>(null);
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [isDoneLoading, setIsDoneLoading] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [isDoneLoading, setIsDoneLoading] = useState<boolean>(false);
     const [formData, setFormData] = useState<Partial<ShiftHourModel>>({
         id: "",
         name: "",
         shiftHours: [{ startTime: "", endTime: "" }],
         active: "Yes",
     });
-
-    useEffect(() => {
-        setShiftHours(hrSettings.shiftHours);
-    }, [hrSettings.shiftHours]);
-
-    useEffect(() => {
-        const data = parameterData?.at(0);
-        if (data) setFlexibilityParameter(data);
-    }, [parameterData]);
+    const shiftHours: ShiftHourModel[] = hrSettings.shiftHours;
+    const flexibilityParameter: FlexibilityParameterModel = {
+        id: parameterData?.at(0)?.id ?? "",
+        minute: flexibilityMinute,
+    };
 
     // THEME CLASSES
     const cardBg = theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200";
@@ -147,7 +140,7 @@ export function ShiftHours() {
         };
 
         if (editingShiftHour) {
-            const { timestamp, ...data } = newShiftHour;
+            const { timestamp: _timestamp, ...data } = newShiftHour;
             const res = await hrSettingsService.update(
                 "shiftHours",
                 editingShiftHour.id,
@@ -218,10 +211,6 @@ export function ShiftHours() {
         });
     };
 
-    const handleRowClick = (shiftHour: ShiftHourModel) => {
-        handleEditShiftHour(shiftHour);
-    };
-
     const resetForm = () => {
         setFormData({
             id: "",
@@ -268,7 +257,7 @@ export function ShiftHours() {
                 showToast("Error updating flexibility parameter", "Error", "error");
             }
         } else {
-            const { id, ...data } = flexibilityParameter;
+            const { id: _id, ...data } = flexibilityParameter;
             const res = await createParameter(data);
             if (res) {
                 showToast("Flexibility parameter created successfully", "Success", "success");
@@ -342,12 +331,11 @@ export function ShiftHours() {
                                             id="flexibilityMinutes"
                                             type="number"
                                             min="0"
-                                            value={flexibilityParameter.minute}
+                                            value={flexibilityMinute}
                                             onChange={e =>
-                                                setFlexibilityParameter(prev => ({
-                                                    id: prev.id,
-                                                    minute: Number.parseInt(e.target.value) || 0,
-                                                }))
+                                                setFlexibilityMinute(
+                                                    Number.parseInt(e.target.value) || 0,
+                                                )
                                             }
                                             placeholder="Enter number of minutes"
                                             className={cn("w-full", inputClass)}

@@ -22,7 +22,7 @@ import { EmployeeActions } from "./employee-actions";
 import { ExportModal } from "../modals/export-modal";
 import { ColumnConfig } from "@/lib/models/type";
 import { useTheme } from "@/components/theme-provider";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import getEmployeeFullName from "@/lib/util/getEmployeeFullName";
 import {
     Pagination,
@@ -59,7 +59,7 @@ export function EmployeeTable({
     onManageDependents,
     onDeleteEmployee,
 }: EmployeeTableProps) {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const {
         sectionSettings,
         locations,
@@ -103,7 +103,7 @@ export function EmployeeTable({
         return manager ? getEmployeeFullName(manager) : "Unknown";
     };
 
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [columns, setColumns] = useState<ColumnConfig[]>([
         { key: "firstName", label: "First Name", visible: true },
         { key: "middleName", label: "Middle Name", visible: true },
@@ -177,8 +177,8 @@ export function EmployeeTable({
         key: "firstName",
         direction: "ascending",
     });
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
     const getComparableValue = (employee: EmployeeModel, field: keyof EmployeeModel) => {
         const raw = employee[field];

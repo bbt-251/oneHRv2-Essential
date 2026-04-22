@@ -38,6 +38,8 @@ export interface EmployeeModel {
     passportNumber: string;
     nationalIDNumber: string;
     employeeID: string;
+    // Transient auth input fields used by setup/create/change-password flows.
+    // Credentials are persisted through Better Auth, not the employee collection.
     password: string;
     lastChanged: string;
     passwordRecovery: PasswordRecovery;

@@ -14,9 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/theme-provider";
 
 import { FileText, Eye, CheckCircle, XCircle } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 
 import { LeaveModel } from "@/lib/models/leave";
+import { EmployeeModel } from "@/lib/models/employee";
 import LeaveDetail from "../modals/leave-detail";
 import RollbackRequestModal from "../../../employee/leave-management/modals/rollback-request";
 import {
@@ -49,7 +50,7 @@ export default function LeaveTable({
     managerVisibleColumns,
 }: LeaveTableProps) {
     const { theme } = useTheme();
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useAppData();
     const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
 
     const departments = hrSettings.departmentSettings;
@@ -61,13 +62,15 @@ export default function LeaveTable({
         const department = departments.find(department => department.id === departmentId);
         return department?.name || "Unknown";
     };
+    const getEmployee = (employeeId: string): EmployeeModel | undefined =>
+        employees.find(employee => employee.uid === employeeId);
 
     const [selectedLeave, setSelectedLeave] = useState<LeaveModel | null>(null);
     const [isLeaveDetailModalOpen, setIsLeaveDetailModalOpen] = useState<boolean>(false);
 
     const [isRollbackModalOpen, setIsRollbackModalOpen] = useState<boolean>(false);
 
-    const [managerFilters, setManagerFilters] = useState({
+    const [managerFilters, setManagerFilters] = useState<Record<string, string>>({
         employee: "",
         department: "",
         leaveRequestId: "",
@@ -104,7 +107,7 @@ export default function LeaveTable({
     ).length;
 
     // Handle opening leave detail
-    const handleOpenLeaveDetail = (leave: any) => {
+    const handleOpenLeaveDetail = (leave: LeaveModel) => {
         setSelectedLeave(leave);
         setIsLeaveDetailModalOpen(true);
     };
@@ -224,30 +227,19 @@ export default function LeaveTable({
                                                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
                                                 style={{ backgroundColor: "#3f3d56" }}
                                             >
-                                                {employees
-                                                    .find(
-                                                        (emp: any) =>
-                                                            emp.uid === request.employeeID,
-                                                    )
+                                                {getEmployee(request.employeeID)
                                                     ?.firstName.split(" ")
                                                     .map(n => n[0])
                                                     .join("")}
                                             </div>
                                             <div>
                                                 <div className="font-semibold text-slate-800">
-                                                    {
-                                                        employees.find(
-                                                            (emp: any) =>
-                                                                emp.uid === request.employeeID,
-                                                        )?.firstName
-                                                    }
+                                                    {getEmployee(request.employeeID)?.firstName}
                                                 </div>
                                                 <div className="text-xs text-slate-500">
                                                     {getDepartmentName(
-                                                        employees.find(
-                                                            (emp: any) =>
-                                                                emp.uid === request.employeeID,
-                                                        )?.department || "",
+                                                        getEmployee(request.employeeID)
+                                                            ?.department || "",
                                                     )}
                                                 </div>
                                             </div>
@@ -257,9 +249,7 @@ export default function LeaveTable({
                                 {managerVisibleColumns.department && (
                                     <TableCell className="py-6 text-slate-600 font-medium">
                                         {getDepartmentName(
-                                            employees.find(
-                                                (emp: any) => emp.uid === request.employeeID,
-                                            )?.department || "",
+                                            getEmployee(request.employeeID)?.department || "",
                                         )}
                                     </TableCell>
                                 )}
@@ -301,11 +291,7 @@ export default function LeaveTable({
                                 )}
                                 {managerVisibleColumns.standIn && (
                                     <TableCell className="py-6 text-slate-600 font-medium">
-                                        {
-                                            employees.find(
-                                                (emp: any) => emp.uid === request.standIn,
-                                            )?.firstName
-                                        }
+                                        {getEmployee(request.standIn)?.firstName}
                                     </TableCell>
                                 )}
                                 {managerVisibleColumns.authorizedDays && (

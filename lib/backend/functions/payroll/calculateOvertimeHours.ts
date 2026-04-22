@@ -5,10 +5,10 @@ import camelize from "../camelize";
 
 export default function calculateOvertimeHours(overtime: OvertimeRequestModel[]) {
     // getting overtime data
-    const groupedByOvertimeType: any = groupBy("overtimeType", overtime);
+    const groupedByOvertimeType = groupBy("overtimeType", overtime);
 
     // creating an object to store aggregated overtime worked hours for the employee
-    let overtimeTypeWorkedHours: any = {};
+    const overtimeTypeWorkedHours: Record<string, number> = {};
 
     // getting defined overtime types inside the attendance
     const keys: string[] = Object.keys(groupedByOvertimeType);

@@ -14,7 +14,7 @@ interface DensitySelectorProps {
 }
 
 export function DensitySelector({ density, onDensityChange }: DensitySelectorProps) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState<boolean>(false);
     const { theme } = useTheme();
 
     const densityOptions = [

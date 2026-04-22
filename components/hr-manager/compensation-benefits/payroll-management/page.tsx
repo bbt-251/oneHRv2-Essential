@@ -27,10 +27,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import returnPayrollData, { ColValues } from "@/lib/backend/functions/returnPayslipData";
+import { ColValues } from "@/lib/backend/functions/returnPayslipData";
 import { AttendanceModel } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import PayrollPDFSettingsModel from "@/lib/models/payrollPDFSettings";
 import { getPayrollPDFSettings } from "@/lib/backend/api/payroll-settings-service";
 import { useAuth } from "@/context/authContext";
@@ -137,18 +137,17 @@ export function PayrollManagement() {
     const router = useRouter();
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const { employees, attendanceLogic, hrSettings, employeeLoans, overtimeRequests } =
-        useFirestore();
+    const { employees, attendanceLogic, hrSettings, employeeLoans, overtimeRequests } = useData();
     const loanTypes = hrSettings.loanTypes;
     const [selectedMonth, setSelectedMonth] = useState<string>("January");
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
     const [rollbackLoadingId, setRollbackLoadingId] = useState<string | null>(null);
     const [rollbackCandidate, setRollbackCandidate] = useState<OvertimeRequestModel | null>(null);
 
-    // PDF settings loaded from Firestore
+    // PDF settings loaded from the shared app data layer
     const [pdfSettings, setPdfSettings] = useState<PayrollPDFSettingsModel | null>(null);
 
-    // Load PDF settings from Firestore on mount
+    // Load PDF settings on mount
     useEffect(() => {
         async function loadPdfSettings() {
             try {
@@ -207,7 +206,7 @@ export function PayrollManagement() {
         };
     }, [pdfSettings]);
 
-    const { payslipData, filteredData, setFilteredData } = usePayrollData(
+    const { payslipData } = usePayrollData(
         selectedMonth,
         selectedEmployees,
         employeeLoans,
@@ -215,6 +214,7 @@ export function PayrollManagement() {
         defaultPDFSettings,
     );
     const {
+        filteredData,
         filters,
         rangeFilters,
         dateRangeFilters,
@@ -222,7 +222,7 @@ export function PayrollManagement() {
         handleRangeFilterChange,
         handleDateRangeFilterChange,
         clearFilters,
-    } = usePayrollFilters(payslipData, selectedEmployees, setFilteredData);
+    } = usePayrollFilters(payslipData, selectedEmployees);
     const {
         activeTab,
         visibleColumns,

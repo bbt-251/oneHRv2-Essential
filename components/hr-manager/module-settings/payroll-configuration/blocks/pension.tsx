@@ -1,25 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { PensionModel } from "@/lib/models/hr-settings";
 import { Loader2, PiggyBank } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function Pension() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const pension = hrSettings.pension?.at(0) || null;
     const { showToast } = useToast();
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [employeeContribution, setEmployeeContribution] = useState(7);
-    const [employerContribution, setEmployerContribution] = useState(11);
-
-    useEffect(() => {
-        setEmployeeContribution(pension?.employeePension ?? 0);
-        setEmployerContribution(pension?.employerPension ?? 0);
-    }, [pension]);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [employeeContributionDraft, setEmployeeContributionDraft] = useState<number | null>(null);
+    const [employerContributionDraft, setEmployerContributionDraft] = useState<number | null>(null);
+    const employeeContribution = employeeContributionDraft ?? pension?.employeePension ?? 0;
+    const employerContribution = employerContributionDraft ?? pension?.employerPension ?? 0;
 
     const handleSave = async () => {
         setIsAddEditLoading(true);
@@ -50,8 +47,8 @@ export function Pension() {
     };
 
     const handleReset = () => {
-        setEmployeeContribution(pension?.employeePension ?? 0);
-        setEmployerContribution(pension?.employerPension ?? 0);
+        setEmployeeContributionDraft(null);
+        setEmployerContributionDraft(null);
     };
 
     return (
@@ -76,7 +73,7 @@ export function Pension() {
                                     step="0.1"
                                     value={employeeContribution}
                                     onChange={e =>
-                                        setEmployeeContribution(
+                                        setEmployeeContributionDraft(
                                             Number.parseFloat(e.target.value) || 0,
                                         )
                                     }
@@ -99,7 +96,7 @@ export function Pension() {
                                     step="0.1"
                                     value={employerContribution}
                                     onChange={e =>
-                                        setEmployerContribution(
+                                        setEmployerContributionDraft(
                                             Number.parseFloat(e.target.value) || 0,
                                         )
                                     }

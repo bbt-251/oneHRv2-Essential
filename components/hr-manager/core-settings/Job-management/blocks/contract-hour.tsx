@@ -28,10 +28,10 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Filter, Search } from "lucide-react";
+import { Plus, Edit, Filter, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ContractHourModel, hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { ContractHourModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import DeleteConfirm from "../../blocks/delete-confirm";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
@@ -40,32 +40,47 @@ import { useAuth } from "@/context/authContext";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 
 export default function ContractHour() {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { theme } = useTheme();
     const { showToast } = useToast();
     const { userData } = useAuth();
     const contractHours = hrSettings.contractHours;
 
-    const [showModal, setShowModal] = useState(false);
-    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
     const [editingContractHour, setEditingContractHour] = useState<ContractHourModel | null>(null);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [formData, setFormData] = useState<{
+        hourPerWeek: number;
+        startDate: string;
+        endDate: string;
+        active: string;
+    }>({
         hourPerWeek: 0,
         startDate: "",
         endDate: "",
         active: "Yes",
     });
 
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<{
+        hourPerWeek: string;
+        startDate: string;
+        endDate: string;
+        active: string;
+    }>({
         hourPerWeek: "",
         startDate: "",
         endDate: "",
         active: "",
     });
 
-    const [selectedFields, setSelectedFields] = useState({
+    const [selectedFields, setSelectedFields] = useState<{
+        hourPerWeek: boolean;
+        startDate: boolean;
+        endDate: boolean;
+        active: boolean;
+    }>({
         hourPerWeek: true,
         startDate: true,
         endDate: true,
@@ -610,7 +625,7 @@ export default function ContractHour() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredData.map((contractHour, index) => (
+                        {filteredData.map(contractHour => (
                             <TableRow
                                 key={contractHour.id}
                                 className={`${theme === "dark" ? "bg-black" : "bg-white"} cursor-pointer transition-colors`}

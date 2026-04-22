@@ -21,13 +21,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Layers, Users } from "lucide-react";
+import { Plus, Edit, Layers, Users } from "lucide-react";
 import { DataToolbar, type Density, getDensityRowClasses } from "../blocks/data-toolbar";
-import { SectionSettingsModel } from "@/lib/backend/firebase/hrSettingsService";
+import { SectionSettingsModel } from "@/lib/backend/hr-settings-service";
 import { EmployeeModel } from "@/lib/models/employee";
 // Add these imports
-import { hrSettingsService } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { AddSection } from "../modals/add-section-modal";
 import { DetailEmployeeModal } from "../modals/employee-detail-modal";
@@ -38,7 +38,7 @@ import { SECTION_LOG_MESSAGES } from "@/lib/log-descriptions/department-section"
 
 export function SectionManagement() {
     const { theme } = useTheme();
-    const { hrSettings, employees } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const { userData } = useAuth();
     const departments = hrSettings.departmentSettings;
     // Keep original sections (department stored as id) and create a display copy
@@ -54,15 +54,22 @@ export function SectionManagement() {
     };
 
     const { showToast } = useToast();
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEmployeesModal, setShowEmployeesModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState<boolean>(false);
+    const [showEmployeesModal, setShowEmployeesModal] = useState<boolean>(false);
     const [selectedSectionEmployees, setSelectedSectionEmployees] = useState<EmployeeModel[]>([]);
-    const [selectedSectionName, setSelectedSectionName] = useState("");
+    const [selectedSectionName, setSelectedSectionName] = useState<string>("");
     const [editingSection, setEditingSection] = useState<SectionSettingsModel | null>(null);
 
     // Toolbar state
     const [density, setDensity] = useState<Density>("normal");
-    const [visibleColumns, setVisibleColumns] = useState({
+    const [visibleColumns, setVisibleColumns] = useState<{
+        name: boolean;
+        code: boolean;
+        department: boolean;
+        supervisor: boolean;
+        employees: boolean;
+        active: boolean;
+    }>({
         name: true,
         code: true,
         department: true,
@@ -70,9 +77,25 @@ export function SectionManagement() {
         employees: true,
         active: true,
     });
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [departmentFilter, setDepartmentFilter] = useState("all");
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+
+    const filteredSections = useMemo(() => {
+        return displaySections.filter(s => {
+            const matchesSearch =
+                s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (s.supervisor && s.supervisor.toLowerCase().includes(searchTerm.toLowerCase()));
+            const matchesStatus =
+                statusFilter === "all" ||
+                (statusFilter === "active" && s.active) ||
+                (statusFilter === "inactive" && !s.active);
+            const matchesDepartment =
+                departmentFilter === "all" || s.department === departmentFilter;
+            return matchesSearch && matchesStatus && matchesDepartment;
+        });
+    }, [departmentFilter, displaySections, searchTerm, statusFilter]);
 
     const handleAdd = () => {
         setEditingSection(null);
@@ -107,24 +130,6 @@ export function SectionManagement() {
         setSelectedSectionName(sectionName);
         setShowEmployeesModal(true);
     };
-
-    // Derived data
-    const filteredSections = useMemo(() => {
-        // Filter the displaySections (department is the name) for rendering
-        return displaySections.filter(s => {
-            const matchesSearch =
-                s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                s.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (s.supervisor && s.supervisor.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesStatus =
-                statusFilter === "all" ||
-                (statusFilter === "active" && s.active) ||
-                (statusFilter === "inactive" && !s.active);
-            const matchesDepartment =
-                departmentFilter === "all" || s.department === departmentFilter;
-            return matchesSearch && matchesStatus && matchesDepartment;
-        });
-    }, [sections, searchTerm, statusFilter, departmentFilter]);
 
     // Toolbar helpers
     const cols = Object.entries(visibleColumns).map(([key, visible]) => ({
@@ -163,7 +168,8 @@ export function SectionManagement() {
                     .map(c => {
                         if (c.key === "employees")
                             return String(findEmployeesBySectionId(s.id).length);
-                        return String((s as any)[c.key] ?? "");
+                        const value = s[c.key as keyof SectionSettingsModel];
+                        return String(value ?? "");
                     })
                     .join(","),
             )

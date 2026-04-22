@@ -23,7 +23,7 @@ import { updateOvertimeRequest } from "@/lib/backend/api/attendance/overtime-ser
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients, getEmployeeNames } from "@/lib/util/notification/recipients";
@@ -38,11 +38,11 @@ const FONT = { fontFamily: "Montserrat, sans-serif" };
 
 export function HROvertimeRefuseModal({ isOpen, onClose, request }: HROvertimeRefuseModalProps) {
     const { userData } = useAuth();
-    const [reason, setReason] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    const [reason, setReason] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState<boolean>(false);
     const { showToast } = useToast();
-    const { employees } = useFirestore();
+    const { employees } = useData();
 
     if (!request) return null;
 
@@ -53,8 +53,6 @@ export function HROvertimeRefuseModal({ isOpen, onClose, request }: HROvertimeRe
         }
 
         setIsSubmitting(true);
-
-        const employeeNames = getEmployeeNames(employees, request.employeeUids);
 
         const res = await updateOvertimeRequest(
             {

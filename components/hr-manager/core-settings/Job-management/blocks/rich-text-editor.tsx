@@ -27,6 +27,35 @@ interface RichTextEditorProps {
     className?: string;
 }
 
+function ToolbarButton({
+    onClick,
+    active,
+    children,
+    title,
+}: {
+    onClick: () => void;
+    active?: boolean;
+    children: React.ReactNode;
+    title: string;
+}) {
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClick}
+            onMouseDown={e => e.preventDefault()}
+            title={title}
+            className={cn(
+                "h-8 w-8 p-0 hover:bg-amber-100",
+                active && "bg-amber-100 text-amber-700",
+            )}
+        >
+            {children}
+        </Button>
+    );
+}
+
 export default function RichTextEditor({
     value,
     onChange,
@@ -35,7 +64,7 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
     const { theme } = useTheme();
     const editorRef = useRef<HTMLDivElement>(null);
-    const [isFocused, setIsFocused] = useState(false);
+    const [isFocused, setIsFocused] = useState<boolean>(false);
 
     useEffect(() => {
         if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -80,33 +109,6 @@ export default function RichTextEditor({
     const isCommandActive = (command: string): boolean => {
         return document.queryCommandState(command);
     };
-
-    const ToolbarButton = ({
-        onClick,
-        active,
-        children,
-        title,
-    }: {
-        onClick: () => void;
-        active?: boolean;
-        children: React.ReactNode;
-        title: string;
-    }) => (
-        <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClick}
-            onMouseDown={e => e.preventDefault()}
-            title={title}
-            className={cn(
-                "h-8 w-8 p-0 hover:bg-amber-100",
-                active && "bg-amber-100 text-amber-700",
-            )}
-        >
-            {children}
-        </Button>
-    );
 
     return (
         <Card className={cn("overflow-hidden", className)}>

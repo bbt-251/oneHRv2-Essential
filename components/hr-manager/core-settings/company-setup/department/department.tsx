@@ -22,12 +22,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import {
-    DepartmentSettingsModel,
-    hrSettingsService,
-} from "@/lib/backend/firebase/hrSettingsService";
+import { DepartmentSettingsModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
 import { DEPARTMENT_LOG_MESSAGES } from "@/lib/log-descriptions/department-section";
 import { EmployeeModel } from "@/lib/models/employee";
 import { Building2, Edit, Plus, Users } from "lucide-react";
@@ -40,7 +37,7 @@ import AddEditDepartmentModal from "./modals/add-edit-department-modal";
 export function Department() {
     const { theme } = useTheme();
     const { showToast } = useToast();
-    const { hrSettings, employees } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const { userData } = useAuth();
     const departments = hrSettings.departmentSettings.map(d => ({
         ...d,
@@ -58,7 +55,14 @@ export function Department() {
     );
 
     const [density, setDensity] = useState<Density>("normal");
-    const [visibleColumns, setVisibleColumns] = useState({
+    const [visibleColumns, setVisibleColumns] = useState<{
+        name: boolean;
+        code: boolean;
+        manager: boolean;
+        location: boolean;
+        employees: boolean;
+        active: boolean;
+    }>({
         name: true,
         code: true,
         manager: true,
@@ -66,9 +70,9 @@ export function Department() {
         employees: true,
         active: true,
     });
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [locationFilter, setLocationFilter] = useState("all");
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [locationFilter, setLocationFilter] = useState<string>("all");
 
     const findEmployeesByDepartmentId = (departmentId: string) => {
         return employees.filter(e => e.department === departmentId);
@@ -134,6 +138,26 @@ export function Department() {
         (statusFilter !== "all" ? 1 : 0) +
         (locationFilter !== "all" ? 1 : 0);
 
+    const getDepartmentColumnValue = (
+        department: (typeof departments)[number],
+        key: keyof typeof visibleColumns,
+    ) => {
+        switch (key) {
+            case "name":
+                return department.name;
+            case "code":
+                return department.code;
+            case "manager":
+                return department.manager;
+            case "location":
+                return department.location;
+            case "active":
+                return department.active;
+            default:
+                return "";
+        }
+    };
+
     const exportDepartments = () => {
         const headers = cols
             .filter(c => c.visible)
@@ -146,7 +170,9 @@ export function Department() {
                     .map(c => {
                         if (c.key === "employees")
                             return String(findEmployeesByDepartmentId(d.id).length);
-                        return String((d as any)[c.key] ?? "");
+                        return String(
+                            getDepartmentColumnValue(d, c.key as keyof typeof visibleColumns) ?? "",
+                        );
                     })
                     .join(","),
             )

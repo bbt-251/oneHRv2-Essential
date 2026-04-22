@@ -11,7 +11,7 @@ import { Calendar, Users, Filter, ChevronDown, X, AlertCircle } from "lucide-rea
 import { useState } from "react";
 import { EmployeeModel } from "@/lib/models/employee";
 import getFullName from "@/lib/util/getEmployeeFullName";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 
 interface HRManagerFilterProps {
     selectedEmployees: string[];
@@ -60,7 +60,7 @@ export function HRManagerFilter({
     onClearFilters,
     employees,
 }: HRManagerFilterProps) {
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const [employeePopoverOpen, setEmployeePopoverOpen] = useState<boolean>(false);
     const [employeeSearch, setEmployeeSearch] = useState<string>("");
     const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState<boolean>(false);

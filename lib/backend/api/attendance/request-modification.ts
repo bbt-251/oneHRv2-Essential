@@ -1,39 +1,31 @@
-import { doc, setDoc, updateDoc } from "firebase/firestore";
 import dayjs from "dayjs";
+import { mutateCompactData } from "@/lib/backend/client/data-client";
 
-import { requestedAttendanceModificationCollection } from "../../firebase/collections";
-import { db } from "../../firebase/init";
-import { AttendanceCommentModel, RequestModificationModel } from "@/lib/models/attendance";
+import { RequestModificationModel } from "@/lib/models/attendance";
 import { getAttendanceById, updateAttendance } from "./attendance-service";
 
-const collectionRef = requestedAttendanceModificationCollection;
-const collectionName = collectionRef.id;
-
-// add
 export const requestAttendanceModification = async (data: Omit<RequestModificationModel, "id">) => {
-    let result: boolean = false;
-
-    const newData = doc(collectionRef);
-
-    result = await setDoc(newData, { ...data, id: newData.id })
+    return mutateCompactData({
+        resource: "requestModifications",
+        action: "create",
+        payload: data as Record<string, unknown>,
+    })
         .then(() => true)
         .catch(err => {
             console.log(err);
             return false;
         });
-
-    return result;
 };
 
-// approve
 export async function approveAttendanceModification(data: RequestModificationModel) {
     data.status = "Approved";
 
-    let result: boolean = false;
-
-    const docRef = doc(db, collectionName, `${data.id}`);
-
-    result = await updateDoc(docRef, data as any)
+    let result = await mutateCompactData({
+        resource: "requestModifications",
+        action: "update",
+        targetId: data.id,
+        payload: data as Record<string, unknown>,
+    })
         .then(() => true)
         .catch(err => {
             console.log(err);
@@ -43,15 +35,13 @@ export async function approveAttendanceModification(data: RequestModificationMod
     if (result) {
         const attendance = await getAttendanceById(data.parentAttendanceID);
         if (attendance) {
-            let dailyWorkedHoursRM: number = 0;
-            const oldMWH: number =
-                attendance.monthlyWorkedHours - (attendance?.dailyWorkingHour ?? 0);
+            let dailyWorkedHoursRM = 0;
+            const oldMWH = attendance.monthlyWorkedHours - (attendance?.dailyWorkingHour ?? 0);
 
             for (let i = 0; i < data.workedHours.length - 1; i++) {
                 const clockIn = dayjs(data.workedHours[i].hour, "h:mm A");
                 const clockOut = dayjs(data.workedHours[i + 1].hour, "h:mm A");
-                const difference: number =
-                    Math.round(clockOut.diff(clockIn, "hours", true) * 100) / 100;
+                const difference = Math.round(clockOut.diff(clockIn, "hours", true) * 100) / 100;
                 dailyWorkedHoursRM += difference;
             }
 
@@ -62,7 +52,7 @@ export async function approveAttendanceModification(data: RequestModificationMod
             attendance.values[data.day - 1].workedHours = data.workedHours;
             attendance.values[data.day - 1].dailyWorkedHours = dailyWorkedHoursRM;
 
-            result = await updateAttendance(attendance)
+            result = await updateAttendance(attendance, "")
                 .then(() => true)
                 .catch(err => {
                     console.log(err);
@@ -74,20 +64,18 @@ export async function approveAttendanceModification(data: RequestModificationMod
     return result;
 }
 
-// refuse
 export async function refuseAttendanceModification(data: RequestModificationModel) {
     data.status = "Refused";
 
-    let result: boolean = false;
-
-    const docRef = doc(db, collectionName, `${data.id}`);
-
-    result = await updateDoc(docRef, data as any)
+    return mutateCompactData({
+        resource: "requestModifications",
+        action: "update",
+        targetId: data.id,
+        payload: data as Record<string, unknown>,
+    })
         .then(() => true)
         .catch(err => {
             console.log(err);
             return false;
         });
-
-    return result;
 }

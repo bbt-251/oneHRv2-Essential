@@ -1,5 +1,5 @@
 import { EmployeeModel } from "@/lib/models/employee";
-import { HrSettingsByType } from "@/context/firestore-context";
+import type { HrSettingsState } from "@/hooks/use-hr-settings";
 
 /**
  * Replace dynamic placeholders in document content with actual employee data
@@ -11,23 +11,13 @@ import { HrSettingsByType } from "@/context/firestore-context";
 export function replaceDynamicFields(
     content: string,
     employee: EmployeeModel | null,
-    hrSettings?: HrSettingsByType,
+    hrSettings?: HrSettingsState,
 ): string {
     if (!employee) return content;
 
     const fullName = [employee.firstName, employee.middleName, employee.surname]
         .filter(Boolean)
         .join(" ");
-
-    // Helper function to get name by ID from HR settings
-    const getNameById = (
-        id: string | undefined,
-        settings: Array<{ id: string; name: string }> | undefined,
-    ): string => {
-        if (!id || !settings) return id || "";
-        const item = settings.find(item => item.id === id);
-        return item?.name || id;
-    };
 
     // Helper function to get position name by ID
     const getPositionName = (id: string | undefined): string => {

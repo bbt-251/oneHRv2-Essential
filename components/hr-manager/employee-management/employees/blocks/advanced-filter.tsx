@@ -25,24 +25,36 @@ export interface FilterConfig {
     label: string;
 }
 
+interface SelectOption {
+    id: string;
+    name: string;
+}
+
+interface AdvancedFilterHrSettings {
+    positions?: SelectOption[];
+    departmentSettings?: SelectOption[];
+    contractTypes?: SelectOption[];
+    levelOfEducations?: SelectOption[];
+    maritalStatuses?: SelectOption[];
+    sectionSettings?: SelectOption[];
+    grades?: SelectOption[];
+    shiftTypes?: SelectOption[];
+}
+
 interface AdvancedFilterProps {
     employees: EmployeeModel[];
-    hrSettings?: any;
+    hrSettings?: AdvancedFilterHrSettings;
     onFiltersChange: (filters: FilterConfig[]) => void;
 }
 
 export function AdvancedFilter({ employees, hrSettings, onFiltersChange }: AdvancedFilterProps) {
     const { theme } = useTheme();
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState<boolean>(false);
     const [filters, setFilters] = useState<FilterConfig[]>([]);
-
-    // Allow dynamic options derived from hrSettings and employees to avoid stale hardcoded lists
-    const { hrSettings: providedHrSettings } = { hrSettings: undefined };
-    // hrSettings will be provided via props; destructure safely later
 
     // Build filter field config with dynamic options using hrSettings (if available) or falling back to values derived from employees
     const filterFields = useMemo(() => {
-        const toOptions = (items: any[] | undefined) =>
+        const toOptions = (items: SelectOption[] | undefined) =>
             (items || []).map(i => ({ id: i.id, name: i.name }));
 
         const genderOptions = Array.from(new Set(employees.map(e => e.gender).filter(Boolean))).map(
@@ -374,7 +386,7 @@ export function AdvancedFilter({ employees, hrSettings, onFiltersChange }: Advan
                         <SelectValue placeholder="Select value" />
                     </SelectTrigger>
                     <SelectContent className={selectContentClasses}>
-                        {fieldConfig.options?.map((option: { id: string; name: string }) => (
+                        {fieldConfig.options?.map((option: SelectOption) => (
                             <SelectItem key={option.id} value={option.id}>
                                 {option.name}
                             </SelectItem>

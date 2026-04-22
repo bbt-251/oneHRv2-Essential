@@ -1,3 +1,4 @@
+/* eslint-disable semi */
 export default interface PayrollPDFSettingsModel {
     id: string;
     createdAt: string;
@@ -6,4 +7,4 @@ export default interface PayrollPDFSettingsModel {
     footer: string | null;
     signature: string | null;
     stamp: string | null;
-};;;;;;;;;;
+}

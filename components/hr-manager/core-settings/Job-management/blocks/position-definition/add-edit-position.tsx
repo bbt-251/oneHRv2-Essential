@@ -18,8 +18,8 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
 import RichTextEditor from "../rich-text-editor";
 import { KeywordEditor } from "./key-word-editor";
-import { CompetencySelector } from "./competency-selector";
-import { HrSettingsByType } from "@/context/firestore-context";
+import type { HrSettingsState } from "@/hooks/use-hr-settings";
+import type { PositionDefinitionModel } from "@/lib/backend/hr-settings-service";
 import { cn } from "@/lib/utils";
 
 interface PositionDialogProps {
@@ -30,10 +30,9 @@ interface PositionDialogProps {
     step: number;
     setStep: (step: number) => void;
     progress: number;
-    form: any;
-    setForm: (form: any) => void;
-    hrSettings: HrSettingsByType;
-    availableCompetencies: any[];
+    form: PositionDefinitionModel | null;
+    setForm: React.Dispatch<React.SetStateAction<PositionDefinitionModel | null>>;
+    hrSettings: HrSettingsState;
     workflowStepOptions: string[];
     stepSelectValue: string;
     handleSave: () => void;
@@ -51,12 +50,15 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
     form,
     setForm,
     hrSettings,
-    availableCompetencies,
     workflowStepOptions,
     stepSelectValue,
     handleSave,
     saveLoading,
 }) => {
+    const updateForm = (patch: Partial<PositionDefinitionModel>) => {
+        setForm(current => (current ? { ...current, ...patch } : current));
+    };
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-w-4xl rounded-2xl overflow-y-auto max-h-[90vh]">
@@ -118,7 +120,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Input
                                         id="name"
                                         value={form.name}
-                                        onChange={e => setForm({ ...form, name: e.target.value })}
+                                        onChange={e => updateForm({ name: e.target.value })}
                                         placeholder="e.g., Senior Developer"
                                     />
                                 </div>
@@ -127,7 +129,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Label htmlFor="grade">Grade</Label>
                                     <Select
                                         value={form.grade}
-                                        onValueChange={v => setForm({ ...form, grade: v })}
+                                        onValueChange={v => updateForm({ grade: v })}
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select grade" />
@@ -149,7 +151,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Input
                                         id="band"
                                         value={form.band || ""}
-                                        onChange={e => setForm({ ...form, band: e.target.value })}
+                                        onChange={e => updateForm({ band: e.target.value })}
                                         placeholder="e.g., B3"
                                     />
                                 </div>
@@ -160,9 +162,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                         id="startDate"
                                         type="date"
                                         value={form.startDate}
-                                        onChange={e =>
-                                            setForm({ ...form, startDate: e.target.value })
-                                        }
+                                        onChange={e => updateForm({ startDate: e.target.value })}
                                     />
                                 </div>
 
@@ -172,9 +172,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                         id="endDate"
                                         type="date"
                                         value={form.endDate}
-                                        onChange={e =>
-                                            setForm({ ...form, endDate: e.target.value })
-                                        }
+                                        onChange={e => updateForm({ endDate: e.target.value })}
                                     />
                                 </div>
 
@@ -183,7 +181,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Select
                                         value={form.active}
                                         onValueChange={v =>
-                                            setForm({ ...form, active: v as "Yes" | "No" })
+                                            updateForm({ active: v as "Yes" | "No" })
                                         }
                                     >
                                         <SelectTrigger>
@@ -201,7 +199,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Select
                                         value={form.critical}
                                         onValueChange={v =>
-                                            setForm({ ...form, critical: v as "Yes" | "No" })
+                                            updateForm({ critical: v as "Yes" | "No" })
                                         }
                                     >
                                         <SelectTrigger>
@@ -226,7 +224,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <RichTextEditor
                                         value={form.positionDescription}
                                         onChange={value =>
-                                            setForm({ ...form, positionDescription: value })
+                                            updateForm({ positionDescription: value })
                                         }
                                         placeholder="Enter detailed position description..."
                                     />
@@ -235,7 +233,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Label htmlFor="keys">Keywords</Label>
                                     <KeywordEditor
                                         values={form.keys}
-                                        onChange={keys => setForm({ ...form, keys })}
+                                        onChange={keys => updateForm({ keys })}
                                     />
                                 </div>
                             </div>
@@ -245,24 +243,6 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                         {step === 2 && (
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label>Associated Competencies</Label>
-                                    <CompetencySelector
-                                        selectedCompetencies={form.competencies}
-                                        availableCompetencies={availableCompetencies}
-                                        onCompetenciesChange={competencies =>
-                                            setForm({ ...form, competencies })
-                                        }
-                                        positionName={form.name}
-                                        hrSettings={hrSettings}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 3 */}
-                        {step === 3 && (
-                            <div className="space-y-4">
-                                <div className="space-y-2">
                                     <Label htmlFor="additionalInformation">
                                         Additional Information
                                     </Label>
@@ -270,10 +250,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                         id="additionalInformation"
                                         value={form.additionalInformation || ""}
                                         onChange={e =>
-                                            setForm({
-                                                ...form,
-                                                additionalInformation: e.target.value,
-                                            })
+                                            updateForm({ additionalInformation: e.target.value })
                                         }
                                         placeholder="Any additional information..."
                                         rows={4}
@@ -285,7 +262,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                         id="companyProfile"
                                         value={form.companyProfile || ""}
                                         onChange={e =>
-                                            setForm({ ...form, companyProfile: e.target.value })
+                                            updateForm({ companyProfile: e.target.value })
                                         }
                                         placeholder="Company profile information"
                                         disabled={form.companyProfileUsed || false}
@@ -297,10 +274,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                         id="companyProfileUsed"
                                         checked={form.companyProfileUsed || false}
                                         onCheckedChange={checked =>
-                                            setForm({
-                                                ...form,
-                                                companyProfileUsed: checked as boolean,
-                                            })
+                                            updateForm({ companyProfileUsed: checked as boolean })
                                         }
                                     />
                                     <Label htmlFor="companyProfileUsed">Use Company Profile</Label>
@@ -310,7 +284,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                     <Select
                                         value={stepSelectValue}
                                         onValueChange={v =>
-                                            setForm({ ...form, step: v === "none" ? null : v })
+                                            updateForm({ step: v === "none" ? null : v })
                                         }
                                     >
                                         <SelectTrigger>

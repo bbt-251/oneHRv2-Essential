@@ -1,16 +1,12 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFirestore } from "@/context/firestore-context";
-import { useToast } from "@/context/toastContext";
-import {
-    getAllEmployees,
-    getEmployeesByUid,
-} from "@/lib/backend/api/employee-management/employee-management-service";
+import { useAppData } from "@/context/app-data-context";
+import { getEmployeesByUid } from "@/lib/backend/api/employee-management/employee-management-service";
 import { RequestModificationModel } from "@/lib/models/attendance";
 import { dateFormat, timestampFormat } from "@/lib/util/dayjs_format";
 import getFullName from "@/lib/util/getEmployeeFullName";
-import dayjs, { duration } from "dayjs";
+import dayjs from "dayjs";
 import { AlertCircle, DollarSign, Edit } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ChangeRequest } from "./blocks/change-request";
@@ -24,7 +20,6 @@ import { HROvertimeApproveModal } from "./modals/overtime-request/approve";
 import { HROvertimeDetailModal } from "./modals/overtime-request/detail";
 import { HROvertimeRefuseModal } from "./modals/overtime-request/refuse";
 import { LateComersModal } from "./modals/late-comers-modal";
-import { EmployeeModel } from "@/lib/models/employee";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 
 export interface AttendanceChangeRequest {
@@ -71,17 +66,16 @@ export interface ModalState {
 }
 
 export function AttendanceManagementHR() {
-    const { showToast } = useToast();
     const {
         requestModifications,
         overtimeRequests: overtimeRequestsData,
         loading,
         activeEmployees,
         hrSettings,
-    } = useFirestore();
+    } = useAppData();
     const overtimeTypes = hrSettings.overtimeTypes;
-    const [error, setError] = useState<string | null>(null);
-    const [isLateComersModalOpen, setIsLateComersModalOpen] = useState(false);
+    const [error] = useState<string | null>(null);
+    const [isLateComersModalOpen, setIsLateComersModalOpen] = useState<boolean>(false);
 
     // Filter states
     const [filterState, setFilterState] = useState<FilterState>({
@@ -278,7 +272,7 @@ export function AttendanceManagementHR() {
                 return true;
             })
             .sort((a, b) => getSortableRequestTimestamp(b) - getSortableRequestTimestamp(a));
-    }, [overtimeRequests, filterState]);
+    }, [activeEmployees, overtimeRequests, filterState]);
 
     // Filter logic for attendance change requests
     const filteredAttendanceRequests = useMemo(() => {

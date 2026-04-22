@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { generatePayrollSlip } from "@/lib/backend/functions/payroll/generatePayrollSlip";
 import returnPayrollData from "@/lib/backend/functions/returnPayslipData";
@@ -24,7 +24,7 @@ import {
     FileText,
     Search,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPayrollPDFSettings } from "@/lib/backend/api/payroll-settings-service";
 
 interface PayslipModalProps {
@@ -41,82 +41,156 @@ interface PayslipRecord {
     status: "available" | "processing" | "pending";
 }
 
+function arePayrollPdfSettingsEqual(
+    left: PayrollPDFSettingsModel | null,
+    right: PayrollPDFSettingsModel | null,
+) {
+    if (left === right) {
+        return true;
+    }
+
+    if (!left || !right) {
+        return false;
+    }
+
+    return (
+        left.id === right.id &&
+        left.createdAt === right.createdAt &&
+        left.updatedAt === right.updatedAt &&
+        left.header === right.header &&
+        left.footer === right.footer &&
+        left.signature === right.signature &&
+        left.stamp === right.stamp
+    );
+}
+
+function arePayslipRecordsEqual(left: PayslipRecord[], right: PayslipRecord[]) {
+    if (left === right) {
+        return true;
+    }
+
+    if (left.length !== right.length) {
+        return false;
+    }
+
+    return left.every((record, index) => {
+        const otherRecord = right[index];
+
+        return (
+            record.id === otherRecord.id &&
+            record.month === otherRecord.month &&
+            record.year === otherRecord.year &&
+            record.grossSalary === otherRecord.grossSalary &&
+            record.netSalary === otherRecord.netSalary &&
+            record.status === otherRecord.status
+        );
+    });
+}
+
 export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
     const { userData } = useAuth();
     const {
         employees,
         attendanceLogic,
-        attendances,
+        attendance: attendances,
         hrSettings,
+        headerDocuments,
+        footerDocuments,
+        signatureDocuments,
+        stampDocuments,
         overtimeRequests,
         leaveManagements,
         compensations,
         employeeLoans,
-    } = useFirestore();
+    } = useAppData();
     const loanTypes = hrSettings.loanTypes;
     const { showToast } = useToast();
 
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [previewingId, setPreviewingId] = useState<string | null>(null);
     const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
-    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
     const [payslipRecords, setPayslipRecords] = useState<PayslipRecord[]>([]);
     const [pdfSettings, setPdfSettings] = useState<PayrollPDFSettingsModel | null>(null);
+    const pdfDocumentLookupKey = useMemo(
+        () =>
+            [
+                headerDocuments.map(document => `${document.id}:${document.fileUrl}`).join("|"),
+                footerDocuments.map(document => `${document.id}:${document.fileUrl}`).join("|"),
+                signatureDocuments.map(document => `${document.id}:${document.fileUrl}`).join("|"),
+                stampDocuments.map(document => `${document.id}:${document.fileUrl}`).join("|"),
+            ].join("::"),
+        [headerDocuments, footerDocuments, signatureDocuments, stampDocuments],
+    );
 
-    // Load PDF settings from Firestore
+    // Load PDF settings from the shared app data layer
     useEffect(() => {
+        let isCancelled = false;
+
         async function loadPdfSettings() {
             try {
                 const settings = await getPayrollPDFSettings();
                 if (settings) {
-                    // Resolve document IDs to actual URLs from hrSettings
-                    const headerDocs = hrSettings.headerDocuments || [];
-                    const footerDocs = hrSettings.footerDocuments || [];
-                    const signatureDocs = hrSettings.signatureDocuments || [];
-                    const stampDocs = hrSettings.stampDocuments || [];
-
                     const resolvedSettings: PayrollPDFSettingsModel = {
                         ...settings,
                         header: settings.header
-                            ? headerDocs.find(d => d.id === settings.header)?.fileUrl || null
+                            ? headerDocuments.find(d => d.id === settings.header)?.fileUrl || null
                             : null,
                         footer: settings.footer
-                            ? footerDocs.find(d => d.id === settings.footer)?.fileUrl || null
+                            ? footerDocuments.find(d => d.id === settings.footer)?.fileUrl || null
                             : null,
                         signature: settings.signature
-                            ? signatureDocs.find(d => d.id === settings.signature)?.fileUrl || null
+                            ? signatureDocuments.find(d => d.id === settings.signature)?.fileUrl ||
+                              null
                             : null,
                         stamp: settings.stamp
-                            ? stampDocs.find(d => d.id === settings.stamp)?.fileUrl || null
+                            ? stampDocuments.find(d => d.id === settings.stamp)?.fileUrl || null
                             : null,
                     };
-                    setPdfSettings(resolvedSettings);
+
+                    if (!isCancelled) {
+                        setPdfSettings(previousSettings =>
+                            arePayrollPdfSettingsEqual(previousSettings, resolvedSettings)
+                                ? previousSettings
+                                : resolvedSettings,
+                        );
+                    }
                 }
             } catch (error) {
                 console.error("Error loading PDF settings:", error);
             }
         }
-        if (hrSettings.headerDocuments.length > 0) {
+
+        if (pdfDocumentLookupKey) {
             loadPdfSettings();
         }
+
+        return () => {
+            isCancelled = true;
+        };
     }, [
-        hrSettings.headerDocuments,
-        hrSettings.footerDocuments,
-        hrSettings.signatureDocuments,
-        hrSettings.stampDocuments,
+        pdfDocumentLookupKey,
+        headerDocuments,
+        footerDocuments,
+        signatureDocuments,
+        stampDocuments,
     ]);
 
     // Use loaded settings or fall back to defaults
-    const defaultPDFSettings: PayrollPDFSettingsModel = pdfSettings || {
-        id: "pdfsettings-001",
-        createdAt: "",
-        updatedAt: "",
-        header: null,
-        footer: null,
-        signature: null,
-        stamp: null,
-    };
+    const defaultPDFSettings = useMemo<PayrollPDFSettingsModel>(
+        () =>
+            pdfSettings || {
+                id: "pdfsettings-001",
+                createdAt: "",
+                updatedAt: "",
+                header: null,
+                footer: null,
+                signature: null,
+                stamp: null,
+            },
+        [pdfSettings],
+    );
 
     useEffect(() => {
         if (!userData || !employees.length) return;
@@ -178,7 +252,9 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
             }
         });
 
-        setPayslipRecords(records);
+        setPayslipRecords(previousRecords =>
+            arePayslipRecordsEqual(previousRecords, records) ? previousRecords : records,
+        );
     }, [
         userData,
         employees,
@@ -189,6 +265,8 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
         compensations,
         overtimeRequests,
         leaveManagements,
+        loanTypes,
+        defaultPDFSettings,
     ]);
 
     const filteredRecords = payslipRecords.filter(record => {
@@ -230,7 +308,8 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
             userPayroll,
             defaultPDFSettings,
             attendanceLogic?.at(0)?.chosenLogic ?? 1,
-            showToast,
+            (message, title, variant) =>
+                showToast(message, title, variant === "info" ? "default" : variant),
         );
 
         setDownloadingId(null);
@@ -276,6 +355,7 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
                     header={defaultPDFSettings.header ?? ""}
                     footer={defaultPDFSettings.footer ?? ""}
                     signature={defaultPDFSettings.signature ?? ""}
+                    stamp={defaultPDFSettings.stamp ?? ""}
                     attendanceLogic={attendanceLogic?.at(0)?.chosenLogic ?? 1}
                 />,
             ).toBlob();

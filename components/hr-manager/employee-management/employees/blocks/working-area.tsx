@@ -5,6 +5,23 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import { EmployeeModel } from "@/lib/models/employee";
 
+type PolygonCoordinates = [number, number][];
+
+interface DrawFeatureGeometry {
+    coordinates?: PolygonCoordinates[];
+}
+
+interface DrawFeature {
+    geometry?: DrawFeatureGeometry;
+    properties?: {
+        id?: string;
+    };
+}
+
+interface DrawFeatureCollection {
+    features?: DrawFeature[];
+}
+
 const WorkingLocationMap = ({
     edit,
     data,
@@ -12,13 +29,13 @@ const WorkingLocationMap = ({
     setCoordinates,
 }: {
     edit: boolean;
-    data: [number, number][];
+    data: PolygonCoordinates;
     employee: EmployeeModel;
-    setCoordinates: (coordinate: [number, number]) => void;
+    setCoordinates: (coordinate: PolygonCoordinates[]) => void;
 }) => {
-    const mapContainerRef: any = useRef(null);
-    const mapRef: any = useRef<mapboxgl.Map | null>(null);
-    const drawRef: any = useRef<MapboxDraw | null>(null);
+    const mapContainerRef = useRef<HTMLDivElement | null>(null);
+    const mapRef = useRef<mapboxgl.Map | null>(null);
+    const drawRef = useRef<MapboxDraw | null>(null);
 
     const getCenter = useCallback((): [number, number] => {
         return [38.669, 9.06];
@@ -27,7 +44,7 @@ const WorkingLocationMap = ({
     useEffect(() => {
         if (mapRef.current) return;
 
-        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
 
         mapRef.current = new mapboxgl.Map({
             container: mapContainerRef.current ?? "",
@@ -47,27 +64,28 @@ const WorkingLocationMap = ({
 
         mapRef.current.addControl(drawRef.current);
 
-        mapRef.current.on("draw.create", (e: any) => {
-            const allFeatures = drawRef.current?.getAll();
+        mapRef.current.on("draw.create", () => {
+            const allFeatures = drawRef.current?.getAll() as DrawFeatureCollection | undefined;
 
             setCoordinates(
-                allFeatures?.features?.map((feature: any) =>
-                    feature?.geometry?.coordinates?.at(0),
-                ) || [],
+                allFeatures?.features
+                    ?.map(feature => feature.geometry?.coordinates?.at(0))
+                    .filter((feature): feature is PolygonCoordinates => Array.isArray(feature)) ||
+                    [],
             );
         });
 
-        mapRef.current.on("draw.delete", (e: any) => {
-            const allFeatures = drawRef.current?.getAll();
+        mapRef.current.on("draw.delete", () => {
+            const allFeatures = drawRef.current?.getAll() as DrawFeatureCollection | undefined;
             setCoordinates(allFeatures?.features?.at(0)?.geometry?.coordinates || []);
         });
 
-        mapRef.current.on("draw.update", (e: any) => {
-            const allFeatures = drawRef.current?.getAll();
+        mapRef.current.on("draw.update", () => {
+            const allFeatures = drawRef.current?.getAll() as DrawFeatureCollection | undefined;
             setCoordinates(allFeatures?.features?.at(0)?.geometry?.coordinates || []);
         });
 
-        mapRef.current.on("contextmenu", (e: any) => {
+        mapRef.current.on("contextmenu", e => {
             const features = mapRef.current?.queryRenderedFeatures(e.point, {
                 layers: drawRef.current?.getMode() === "draw_polygon" ? [] : undefined,
             });
@@ -93,7 +111,7 @@ const WorkingLocationMap = ({
         // First clear previous drawings
         draw.deleteAll();
 
-        coordinates.map((coordinate: [number, number][], index: number) => {
+        coordinates.forEach((coordinate: PolygonCoordinates, index: number) => {
             // Create a GeoJSON polygon feature
             const polygon = {
                 id: index,
@@ -106,7 +124,7 @@ const WorkingLocationMap = ({
             };
 
             draw.add(polygon);
-        }, []);
+        });
     }, [edit, employee.workingArea]);
 
     useEffect(() => {

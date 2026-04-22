@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from "@/context/authContext";
 import { deleteOvertimeRequest } from "@/lib/backend/api/attendance/overtime-service";
 import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 import { DailyAttendance } from "@/lib/models/attendance";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import { useToast } from "@/context/toastContext";
@@ -90,7 +90,7 @@ export function OvertimeRequestTab({
     const { showToast } = useToast();
     const [viewingRequest, setViewingRequest] = useState<OvertimeRequestModel | null>(null);
     const [deletingRequest, setDeletingRequest] = useState<OvertimeRequestModel | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
     const canEditOrDelete = (req: OvertimeRequestModel) =>
         req.status === "pending" && req.requestedBy === userData?.uid;

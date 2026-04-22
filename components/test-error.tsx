@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export const TestError: React.FC = () => {
-    const [shouldError, setShouldError] = useState(false);
+    const [shouldError, setShouldError] = useState<boolean>(false);
 
     if (shouldError) {
         throw new Error("This is a test error to verify the error boundary works!");

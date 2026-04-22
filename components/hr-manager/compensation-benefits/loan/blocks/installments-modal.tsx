@@ -1,4 +1,4 @@
-import React from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -14,7 +14,8 @@ import { useToast } from "@/context/toastContext";
 import { updateLoan } from "@/lib/backend/api/compensation-benefit/loan-services";
 import { COMPENSATION_LOG_MESSAGES } from "@/lib/log-descriptions/compensation";
 import { useAuth } from "@/context/authContext";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
+import { LoanByMonth } from "@/lib/models/employeeLoan";
 
 const calculateLoanProgress = (months: ExtendedEmployeeLoan["months"], loanTotalAmount: number) => {
     const paidAmount = months
@@ -35,20 +36,20 @@ interface InstallmentsModalProps {
     isEditingMode: boolean;
     setIsEditingMode: (editing: boolean) => void;
     editValues: { [key: string]: { amount: string; deductFromSalary: string; comment: string } };
-    setEditValues: React.Dispatch<
-        React.SetStateAction<{
+    setEditValues: Dispatch<
+        SetStateAction<{
             [key: string]: { amount: string; deductFromSalary: string; comment: string };
         }>
     >;
     handleSaveEdit: () => void;
     isSaving: boolean;
-    pagedInstallments: any[];
+    pagedInstallments: LoanByMonth[];
     totalInstallments: number;
     installStartIndex: number;
     installEndIndex: number;
     clampedInstallPage: number;
-    setInstallPage: React.Dispatch<React.SetStateAction<number>>;
-    setLoans: React.Dispatch<React.SetStateAction<ExtendedEmployeeLoan[]>>;
+    setInstallPage: Dispatch<SetStateAction<number>>;
+    setLoans: Dispatch<SetStateAction<ExtendedEmployeeLoan[]>>;
 }
 
 export function InstallmentsModal({
@@ -72,7 +73,7 @@ export function InstallmentsModal({
 }: InstallmentsModalProps) {
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const loanTypes = hrSettings.loanTypes;
 
     return (

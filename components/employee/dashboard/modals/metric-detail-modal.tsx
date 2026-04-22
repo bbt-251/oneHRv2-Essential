@@ -1,15 +1,27 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, Megaphone, Bell } from "lucide-react";
-import { useFirestore } from "@/context/firestore-context";
+import { Calendar, Clock, Megaphone, Bell } from "lucide-react";
+import { useAppData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 import { useTheme } from "@/components/theme-provider";
-import { HolidayModel } from "@/lib/backend/firebase/hrSettingsService";
+import { HolidayModel } from "@/lib/backend/hr-settings-service";
 import dayjs from "dayjs";
 import { timestampFormat } from "@/lib/util/dayjs_format";
+import type InAppNotificationModel from "@/lib/models/notification";
+
+interface LeaveBalanceDetail {
+    employeeID: string;
+    leaveType: string;
+    firstDayOfLeave: string;
+    lastDayOfLeave: string;
+    leaveStage: string;
+    numberOfLeaveDaysRequested: number;
+    balanceLeaveDays: number;
+    reason?: string;
+    rollbackStatus?: string;
+}
 
 interface MetricDetailModalProps {
     isOpen: boolean;
@@ -18,7 +30,7 @@ interface MetricDetailModalProps {
 }
 
 export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalProps) {
-    const { notifications, leaveManagements, hrSettings } = useFirestore();
+    const { notifications, leaveManagements, hrSettings } = useAppData();
     const { userData } = useAuth();
     const myNotifications = notifications
         .filter(not => not.uid === userData?.uid)
@@ -30,7 +42,7 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
         .slice(0, 10);
     const { theme } = useTheme();
     const leaveBalanceDetails = leaveManagements.filter(
-        (leave: any) => leave.employeeID === userData?.uid,
+        (leave): leave is LeaveBalanceDetail => leave.employeeID === userData?.uid,
     );
     const upcomingHolidays = hrSettings.holidays
         .filter(
@@ -69,6 +81,8 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
             items: myNotifications,
         },
     }[type];
+    const leaveItems = leaveBalanceDetails;
+    const notificationItems = myNotifications as InAppNotificationModel[];
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -84,67 +98,21 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
                 <div className="space-y-4 mt-4">
                     {type === "announcements" && (
                         <div className="space-y-3">
-                            {content.items?.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <Megaphone className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                                        No announcements yet
-                                    </h3>
-                                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                        Check back later for new updates and announcements.
-                                    </p>
-                                </div>
-                            ) : (
-                                content.items?.map((item: any, index: number) => (
-                                    <div
-                                        key={index}
-                                        className={`p-4 border rounded-lg ${theme === "dark" ? "bg-black" : "bg-white"}`}
-                                    >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <h3
-                                                className={`font-semibold ${theme === "dark" ? "text-white" : "text-navy-900"}`}
-                                            >
-                                                {item.title}
-                                            </h3>
-                                            <Badge
-                                                variant={
-                                                    item.priority === "high"
-                                                        ? "destructive"
-                                                        : "secondary"
-                                                }
-                                                className={
-                                                    item.priority === "high"
-                                                        ? "bg-accent-100 text-accent-700"
-                                                        : item.priority === "medium"
-                                                            ? "bg-primary-100 text-primary-700"
-                                                            : "bg-secondary-100 text-secondary-700"
-                                                }
-                                            >
-                                                {item.priority}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-sm text-secondary-600 mb-3">
-                                            {item.description}
-                                        </p>
-                                        <div className="flex items-center gap-4 text-xs text-secondary-500">
-                                            <div className="flex items-center gap-1">
-                                                <User className="h-3 w-3" />
-                                                <span>{item.author}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3" />
-                                                <span>{item.date}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                            <div className="text-center py-8">
+                                <Megaphone className="mx-auto h-12 w-12 text-gray-400" />
+                                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    No announcements yet
+                                </h3>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Check back later for new updates and announcements.
+                                </p>
+                            </div>
                         </div>
                     )}
 
                     {type === "holidays" && (
                         <div className="space-y-3">
-                            {content.items?.length === 0 ? (
+                            {upcomingHolidays.length === 0 ? (
                                 <div className="text-center py-8">
                                     <Calendar className="mx-auto h-12 w-12 text-gray-400" />
                                     <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -155,7 +123,7 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
                                     </p>
                                 </div>
                             ) : (
-                                content.items?.map((item: any, index: number) => (
+                                upcomingHolidays.map((item, index: number) => (
                                     <div
                                         key={index}
                                         className={`p-4 border rounded-lg ${theme === "dark" ? "bg-black" : "bg-primary-50"}`}
@@ -179,7 +147,7 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
 
                     {type === "leave" && (
                         <div className="space-y-3">
-                            {content.items?.map((item: any, index: number) => (
+                            {leaveItems.map((item, index: number) => (
                                 <div
                                     key={index}
                                     className={`p-4 border rounded-lg mb-4 ${
@@ -311,11 +279,12 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
                                         No notifications yet
                                     </h3>
                                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                        You're all caught up! New notifications will appear here.
+                                        You&apos;re all caught up! New notifications will appear
+                                        here.
                                     </p>
                                 </div>
                             ) : (
-                                content.items?.map((item: any, index: number) => (
+                                notificationItems.map((item, index: number) => (
                                     <div
                                         key={index}
                                         className={[

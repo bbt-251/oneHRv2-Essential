@@ -29,9 +29,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Filter, Search } from "lucide-react";
-import { hrSettingsService, ReasonOfLeavingModel } from "@/lib/backend/firebase/hrSettingsService";
-import { useFirestore } from "@/context/firestore-context";
+import { Plus, Edit, Filter, Search } from "lucide-react";
+import { hrSettingsService, ReasonOfLeavingModel } from "@/lib/backend/hr-settings-service";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import DeleteConfirm from "../../blocks/delete-confirm";
 import { useTheme } from "@/components/theme-provider";
@@ -42,31 +42,46 @@ import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-manageme
 export default function ReasonForLeaving() {
     const { theme } = useTheme();
     const { showToast } = useToast();
-    const { hrSettings } = useFirestore();
+    const { ...hrSettings } = useData();
     const { userData } = useAuth();
     const reasons = hrSettings.reasonOfLeaving;
 
-    const [showModal, setShowModal] = useState(false);
-    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
     const [editingReason, setEditingReason] = useState<ReasonOfLeavingModel | null>(null);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [formData, setFormData] = useState<{
+        name: string;
+        startDate: string;
+        endDate: string;
+        active: "Yes" | "No";
+    }>({
         name: "",
         startDate: "",
         endDate: "",
         active: "Yes" as "Yes" | "No",
     });
 
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState<{
+        name: string;
+        startDate: string;
+        endDate: string;
+        active: string;
+    }>({
         name: "",
         startDate: "",
         endDate: "",
         active: "",
     });
 
-    const [selectedFields, setSelectedFields] = useState({
+    const [selectedFields, setSelectedFields] = useState<{
+        name: boolean;
+        startDate: boolean;
+        endDate: boolean;
+        active: boolean;
+    }>({
         name: true,
         startDate: true,
         endDate: true,
@@ -88,10 +103,6 @@ export default function ReasonForLeaving() {
             active: reason.active,
         });
         setShowModal(true);
-    };
-
-    const handleRowClick = (reason: ReasonOfLeavingModel) => {
-        handleEdit(reason);
     };
 
     const handleSubmit = () => {
@@ -642,7 +653,7 @@ export default function ReasonForLeaving() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredData.map((reason, index) => (
+                        {filteredData.map(reason => (
                             <TableRow
                                 key={reason.id}
                                 className={cn(

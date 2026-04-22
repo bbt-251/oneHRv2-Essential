@@ -1,23 +1,17 @@
 import { AttendanceLogicModel } from "@/lib/models/attendance-logic";
-import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
-import { attendanceLogicCollection } from "../../firebase/collections";
-import { db } from "../../firebase/init";
+import { mutateCompactData } from "@/lib/backend/client/data-client";
 import { createLog } from "../logCollection";
 import { ATTENDANCE_LOGIC_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
-
-const collectionRef = attendanceLogicCollection;
-const collectionName = collectionRef.id;
 
 export async function createAttendanceLogic(
     data: Omit<AttendanceLogicModel, "id">,
     actionBy?: string,
 ): Promise<boolean> {
     try {
-        // Save employee in Firestore
-        const docRef = doc(collectionRef);
-        await setDoc(docRef, {
-            ...data,
-            id: docRef.id,
+        await mutateCompactData({
+            resource: "attendanceLogic",
+            action: "create",
+            payload: data as Record<string, unknown>,
         });
 
         // Log the creation if actionBy is provided
@@ -63,9 +57,13 @@ export async function updateAttendanceLogic(
     data: Partial<AttendanceLogicModel> & { id: string },
     actionBy?: string,
 ): Promise<boolean> {
-    const docRef = doc(db, collectionName, data.id);
     try {
-        await updateDoc(docRef, data as any);
+        await mutateCompactData({
+            resource: "attendanceLogic",
+            action: "update",
+            targetId: data.id,
+            payload: data as Record<string, unknown>,
+        });
 
         // Log the update if actionBy is provided
         if (actionBy) {
@@ -109,9 +107,12 @@ export async function updateAttendanceLogic(
 }
 
 export async function deleteAttendanceLogic(id: string): Promise<boolean> {
-    const docRef = doc(db, collectionName, id);
     try {
-        await deleteDoc(docRef);
+        await mutateCompactData({
+            resource: "attendanceLogic",
+            action: "delete",
+            targetId: id,
+        });
         return true;
     } catch (err) {
         console.error(err);

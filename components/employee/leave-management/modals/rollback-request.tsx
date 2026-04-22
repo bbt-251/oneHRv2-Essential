@@ -8,16 +8,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { updateLeaveManagement } from "@/lib/backend/api/employee-management/leave-management-service";
+import { updateLeaveRequestWithBackend } from "@/lib/backend/client/leave-client";
 
 import { useToast } from "@/context/toastContext";
 import { useAuth } from "@/context/authContext";
 import { sendNotification } from "@/lib/util/notification/send-notification";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
+import { LeaveModel } from "@/lib/models/leave";
 
 interface RollbackRequestModalProps {
-    selectedLeave: any;
+    selectedLeave: LeaveModel;
     isRollbackModalOpen: boolean;
     setIsRollbackModalOpen: (open: boolean) => void;
     onSuccess?: () => void;
@@ -31,7 +32,7 @@ export default function RollbackRequestModal({
 }: RollbackRequestModalProps) {
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const { employees, hrSettings } = useFirestore();
+    const { employees, ...hrSettings } = useData();
     const manager = employees.find(emp => emp.uid === userData?.reportingLineManager);
     const leaveTypes = hrSettings.leaveTypes;
 
@@ -47,25 +48,23 @@ export default function RollbackRequestModal({
 
         setIsLoading(true);
         try {
-            const success = await updateLeaveManagement(
-                {
-                    id: selectedLeave.id,
-                    rollbackStatus: "Requested",
-                    reason: reason.trim(),
-                    comments: [
-                        ...(selectedLeave.comments || []),
-                        {
-                            comment: `Rollback requested: ${reason.trim()}`,
-                            date: new Date().toISOString(),
-                            by: userData?.id,
-                        },
-                    ],
-                },
-                userData?.uid ?? "",
-                EMPLOYEE_MANAGEMENT_LOG_MESSAGES.LEAVE_ROLLBACK_REQUESTED(
-                    leaveTypes.find(lt => lt.id == selectedLeave.leaveType)?.name || "Leave",
-                    userData?.firstName + " " + userData?.surname || "Employee",
-                ),
+            const response = await updateLeaveRequestWithBackend({
+                id: selectedLeave.id,
+                rollbackStatus: "Requested",
+                reason: reason.trim(),
+                comments: [
+                    ...(selectedLeave.comments || []),
+                    {
+                        comment: `Rollback requested: ${reason.trim()}`,
+                        date: new Date().toISOString(),
+                        by: userData?.id,
+                    },
+                ],
+            });
+            const success = Boolean(response);
+            void EMPLOYEE_MANAGEMENT_LOG_MESSAGES.LEAVE_ROLLBACK_REQUESTED(
+                leaveTypes.find(lt => lt.id == selectedLeave.leaveType)?.name || "Leave",
+                userData?.firstName + " " + userData?.surname || "Employee",
             );
 
             if (success) {
@@ -95,8 +94,7 @@ export default function RollbackRequestModal({
             } else {
                 throw new Error("Failed to submit rollback request");
             }
-        } catch (error) {
-            console.error("Error submitting rollback request:", error);
+        } catch {
             showToast("Error", "Failed to submit rollback request. Please try again.", "error");
         } finally {
             setIsLoading(false);

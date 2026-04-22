@@ -1,36 +1,35 @@
-import { useEffect, useState } from "react";
-import { useFirestore } from "@/context/firestore-context";
+import { useMemo } from "react";
+import { useData } from "@/context/app-data-context";
 import dayjs from "dayjs";
+import { EmployeeModel } from "@/lib/models/employee";
 
 interface PaymentEntry {
     id: string;
     timestamp: string;
-    employees: any[]; // EmployeeModel[]
+    employees: EmployeeModel[];
     paymentTypeName: string;
     paymentAmount: number;
-    monthlyAmounts: { [month: string]: number };
+    monthlyAmounts: Record<string, number>;
 }
 
 interface DeductionEntry {
     timestamp: string;
     id: string;
-    employees: any[]; // Employee[]
+    employees: EmployeeModel[];
     deductionTypeName: string;
     deductionAmount: number;
-    monthlyAmounts: { [month: string]: number };
+    monthlyAmounts: Record<string, number>;
 }
 
 export function usePaymentDeductionData() {
-    const { compensations, employees } = useFirestore();
-    const [paymentsData, setPaymentsData] = useState<PaymentEntry[]>([]);
-    const [deductionsData, setDeductionsData] = useState<DeductionEntry[]>([]);
+    const { compensations, employees } = useData();
 
-    useEffect(() => {
+    const { paymentsData, deductionsData } = useMemo(() => {
         const payments: PaymentEntry[] = [];
         const deductions: DeductionEntry[] = [];
 
-        compensations.map(c => {
-            if (c.type == "Payment") {
+        compensations.forEach(c => {
+            if (c.type === "Payment") {
                 payments.push({
                     id: c.id,
                     timestamp: c.timestamp,
@@ -51,11 +50,10 @@ export function usePaymentDeductionData() {
             }
         });
 
-        setPaymentsData(payments);
-        setDeductionsData(deductions);
+        return { paymentsData: payments, deductionsData: deductions };
     }, [compensations, employees]);
 
-    return { paymentsData, setPaymentsData, deductionsData, setDeductionsData };
+    return { paymentsData, deductionsData };
 }
 
 function highestMode(arr: number[]): number | null {
@@ -92,15 +90,4 @@ function arrayToMonthObject<T>(arr: T[]): Record<string, T | number> {
     }
 
     return months;
-}
-
-function monthObjectToArray<T>(obj: Record<string, T | number>): (T | number)[] {
-    const result: (T | number)[] = [];
-
-    for (let i = 0; i < 12; i++) {
-        const monthName = dayjs().month(i).format("MMMM");
-        result.push(obj[monthName] ?? 0);
-    }
-
-    return result;
 }

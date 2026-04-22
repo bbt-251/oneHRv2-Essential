@@ -2,8 +2,6 @@
 
 import { useTheme } from "@/components/theme-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CompetenceDefinition from "./blocks/competence-definition";
-import CompetencePositionAssociation from "./blocks/competence-position-association";
 import ContractHour from "./blocks/contract-hour";
 import ContractType from "./blocks/contract-type";
 import GradeDefinition from "./blocks/grade-definition";
@@ -31,11 +29,11 @@ function JobManagement() {
                             theme === "dark" ? "text-white" : "text-slate-600"
                         }`}
                     >
-                        Configure competencies, grades, positions, contracts, and salary scales.
+                        Configure grades, positions, contracts, probation, and salary scales.
                     </p>
                 </header>
 
-                <Tabs defaultValue="competence" className="w-full">
+                <Tabs defaultValue="grade" className="w-full">
                     <div className="overflow-x-auto">
                         <TabsList
                             className={`inline-flex flex-nowrap gap-2 rounded-xl transition-colors ${
@@ -44,16 +42,6 @@ function JobManagement() {
                                     : "bg-amber-50/60 border border-amber-200"
                             }`}
                         >
-                            <TabsTrigger
-                                value="competence"
-                                className={`transition-colors ${
-                                    theme === "dark"
-                                        ? "data-[state=active]:bg-black data-[state=active]:text-white hover:bg-black/50"
-                                        : "data-[state=active]:bg-white data-[state=active]:text-amber-900 hover:bg-amber-100"
-                                }`}
-                            >
-                                Competence Definition
-                            </TabsTrigger>
                             <TabsTrigger
                                 value="grade"
                                 className={`transition-colors ${
@@ -73,16 +61,6 @@ function JobManagement() {
                                 }`}
                             >
                                 Position Definition
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="association"
-                                className={`transition-colors ${
-                                    theme === "dark"
-                                        ? "data-[state=active]:bg-black data-[state=active]:text-white hover:bg-black/50"
-                                        : "data-[state=active]:bg-white data-[state=active]:text-amber-900 hover:bg-amber-100"
-                                }`}
-                            >
-                                Competence Position Association
                             </TabsTrigger>
                             <TabsTrigger
                                 value="contractType"
@@ -137,10 +115,6 @@ function JobManagement() {
                         </TabsList>
                     </div>
 
-                    <TabsContent value="competence" className="mt-4">
-                        <CompetenceDefinition />
-                    </TabsContent>
-
                     <TabsContent value="grade" className="mt-4">
                         <GradeDefinition />
                     </TabsContent>
@@ -149,9 +123,6 @@ function JobManagement() {
                         <PositionDefinition />
                     </TabsContent>
 
-                    <TabsContent value="association" className="mt-4">
-                        <CompetencePositionAssociation />
-                    </TabsContent>
                     <TabsContent value="contractType" className="mt-4">
                         <ContractType />
                     </TabsContent>

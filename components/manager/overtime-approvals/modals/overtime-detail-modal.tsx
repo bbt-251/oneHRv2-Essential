@@ -15,13 +15,12 @@ import {
     MoreHorizontal,
 } from "lucide-react";
 import { useState } from "react";
-import { useFirestore } from "@/context/firestore-context";
+import { useAppData } from "@/context/app-data-context";
 import getFullName from "@/lib/util/getEmployeeFullName";
-import { EmployeeModel } from "@/lib/models/employee";
 import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
-import { OvertimeConfigurationModel } from "@/lib/backend/firebase/hrSettingsService";
+import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
 import { getPrimaryOvertimeEmployee } from "@/lib/util/overtime-request-display";
 
 interface ManagerOvertimeDetailModalProps {
@@ -37,10 +36,9 @@ export function OvertimeDetailModal({
     request,
     overtimeTypes,
 }: ManagerOvertimeDetailModalProps) {
+    const { employees } = useAppData();
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState<boolean>(false);
     if (!request) return null;
-    const { employees, hrSettings } = useFirestore();
-    const departments = hrSettings.departmentSettings;
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
     const formatTime = (time: string) => {
         const [hours, minutes] = time.split(":");
         const hour = Number.parseInt(hours);

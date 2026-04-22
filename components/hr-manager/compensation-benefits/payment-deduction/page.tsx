@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useFirestore } from "@/context/firestore-context";
+import { useData } from "@/context/app-data-context";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import {
     createCompensation,
@@ -29,10 +29,6 @@ import { EmployeeModal } from "./blocks/employee-modal";
 import { AmountModal } from "./blocks/amount-modal";
 import { validateMultipleSeverancePayEligibility } from "@/lib/backend/functions/calculateSeverancePay";
 
-interface PaymentDeductionsProps {
-    onBack: () => void;
-}
-
 interface PaymentEntry {
     id: string;
     timestamp: string;
@@ -45,17 +41,6 @@ interface PaymentEntry {
     annualLeaveDays?: number;
 }
 
-interface Employee {
-    id: string;
-    uid: string;
-    firstName: string;
-    middleName: string | null;
-    surname: string;
-    gender: string;
-    personalPhoneNumber: string;
-    employmentPosition: string;
-}
-
 interface DeductionEntry {
     timestamp: string;
     id: string;
@@ -63,42 +48,6 @@ interface DeductionEntry {
     deductionTypeName: string;
     deductionAmount: number;
     monthlyAmounts: { [month: string]: number }; // Added monthly deduction amounts tracking
-}
-
-function highestMode(arr: number[]): number | null {
-    if (arr.length === 0) return null;
-
-    const freqMap = new Map<number, number>();
-
-    // Count occurrences
-    for (const num of arr) {
-        freqMap.set(num, (freqMap.get(num) || 0) + 1);
-    }
-
-    let maxFreq = 0;
-    let result: number | null = null;
-
-    // Find highest mode
-    for (const [num, freq] of freqMap) {
-        if (freq > maxFreq || (freq === maxFreq && (result === null || num > result))) {
-            maxFreq = freq;
-            result = num;
-        }
-    }
-
-    return result;
-}
-
-function arrayToMonthObject<T>(arr: T[]): Record<string, T | number> {
-    const months: Record<string, T | number> = {};
-
-    for (let i = 0; i < 12; i++) {
-        // Get full month name (January, February, ...)
-        const monthName = dayjs().month(i).format("MMMM");
-        months[monthName] = arr[i] ?? 0; // handle shorter arrays
-    }
-
-    return months;
 }
 
 function monthObjectToArray<T>(obj: Record<string, T | number>): (T | number)[] {
@@ -115,36 +64,37 @@ function monthObjectToArray<T>(obj: Record<string, T | number>): (T | number)[] 
 export function PaymentDeductions() {
     const { confirm, ConfirmDialog } = useConfirm();
     const { showToast } = useToast();
-    const { activeEmployees: employees, hrSettings } = useFirestore();
+    const { activeEmployees: employees, ...hrSettings } = useData();
     const { userData } = useAuth();
     const positions = hrSettings.positions;
     const paymentTypes = hrSettings.paymentTypes.filter(p => p.active);
     const deductionTypes = hrSettings.deductionTypes.filter(p => p.active);
     const taxes = hrSettings.taxes || [];
     const router = useRouter();
-    const [isAddEditLoading, setIsAddEditLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState("payments");
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
+    const [activeTab, setActiveTab] = useState<"payments" | "deductions">("payments");
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
     const [newPayment, setNewPayment] = useState<Partial<PaymentEntry>>({});
-    const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
-    const [isAmountModalOpen, setIsAmountModalOpen] = useState(false);
+    const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState<boolean>(false);
+    const [isAmountModalOpen, setIsAmountModalOpen] = useState<boolean>(false);
     const [selectedEmployees, setSelectedEmployees] = useState<EmployeeModel[]>([]);
     const [selectedMonthlyAmounts, setSelectedMonthlyAmounts] = useState<{
         [month: string]: number;
     }>({});
     const [selectedEmployeesForForm, setSelectedEmployeesForForm] = useState<EmployeeModel[]>([]);
-    const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
-    const [isEmployeePopoverOpen, setIsEmployeePopoverOpen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
+    const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>("");
+    const [isEmployeePopoverOpen, setIsEmployeePopoverOpen] = useState<boolean>(false);
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
     const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
-    const [isAddDeductionDialogOpen, setIsAddDeductionDialogOpen] = useState(false);
+    const [isAddDeductionDialogOpen, setIsAddDeductionDialogOpen] = useState<boolean>(false);
     const [newDeduction, setNewDeduction] = useState<Partial<DeductionEntry>>({});
     const [selectedEmployeesForDeductionForm, setSelectedEmployeesForDeductionForm] = useState<
         EmployeeModel[]
     >([]);
-    const [deductionEmployeeSearchTerm, setDeductionEmployeeSearchTerm] = useState("");
-    const [isDeductionEmployeePopoverOpen, setIsDeductionEmployeePopoverOpen] = useState(false);
-    const [isDeductionEditMode, setIsDeductionEditMode] = useState(false);
+    const [deductionEmployeeSearchTerm, setDeductionEmployeeSearchTerm] = useState<string>("");
+    const [isDeductionEmployeePopoverOpen, setIsDeductionEmployeePopoverOpen] =
+        useState<boolean>(false);
+    const [isDeductionEditMode, setIsDeductionEditMode] = useState<boolean>(false);
     const [editingDeductionId, setEditingDeductionId] = useState<string | null>(null);
 
     const { paymentsData, deductionsData } = usePaymentDeductionData();
@@ -396,7 +346,6 @@ export function PaymentDeductions() {
     const openEditDialog = (payment: PaymentEntry) => {
         setIsEditMode(true);
         setEditingPaymentId(payment.id);
-        console.log([payment]);
         setNewPayment({
             timestamp: payment.timestamp,
             paymentTypeName: payment.paymentTypeName,
