@@ -70,6 +70,8 @@ The production flow is:
 5. run it with `pm2`
 6. proxy traffic through `nginx`
 
+If `nginx` cannot be used immediately because another service already owns port `80`, you can also run the app directly on another public port such as `8080`.
+
 ---
 
 ## Recommended App Layout
@@ -295,6 +297,54 @@ pm2 logs onehr
 
 By default, `next start` serves the app on port `3000`.
 
+### Direct-Port Fallback Without Nginx
+
+If you do not want to use `nginx` yet, or if port `80` is already occupied by another service such as Docker, you can expose the app directly on another port like `8080`.
+
+Important:
+
+- do not use `pnpm start -- --hostname 0.0.0.0 --port 8080` for this repo
+- that form can be interpreted incorrectly and cause `Invalid project directory provided`
+- use `npx next start` directly instead
+
+Correct PM2 command:
+
+```bash
+cd /var/www/onehr
+pm2 delete onehr-dev
+pm2 start "npx next start -p 8080 -H 0.0.0.0" --name onehr-dev
+pm2 save
+```
+
+Verify:
+
+```bash
+pm2 logs onehr-dev
+curl -I http://127.0.0.1:8080
+```
+
+If that works, open the firewall port:
+
+```bash
+sudo ufw allow 8080/tcp
+sudo ufw status
+```
+
+In that deployment mode, your public app URL becomes:
+
+```text
+http://YOUR_VPS_IP:8080
+```
+
+Because the app uses `NEXT_PUBLIC_*` values at build time, update `.env` first, then rebuild, then restart PM2.
+
+Example:
+
+```env
+NEXT_PUBLIC_API_DOMAIN_DEV=http://195.35.24.110:8080
+NEXT_PUBLIC_STORAGE_DOMAIN_DEV=http://195.35.24.110:8080
+```
+
 ---
 
 ## 7. Nginx Reverse Proxy
@@ -406,6 +456,12 @@ http://YOUR_VPS_IP:3000
 ```
 
 But for normal production use, you should use a real domain or subdomain with HTTPS.
+
+If you are using the direct-port fallback instead of `nginx`, the app may also be exposed like:
+
+```text
+http://YOUR_VPS_IP:8080
+```
 
 ### Practical Recommendation
 
@@ -542,6 +598,71 @@ curl -I http://127.0.0.1:3000
 sudo nginx -t
 sudo systemctl status nginx
 ```
+
+### Nginx fails with `bind() to 0.0.0.0:80 failed (98: Address already in use)`
+
+That means another service already owns port `80`.
+
+Check what is listening:
+
+```bash
+sudo ss -ltnp | grep :80
+sudo lsof -i :80
+```
+
+If you see `docker-proxy`, then Docker is already publishing port `80`.
+
+In that case you have two paths:
+
+1. stop or reconfigure the Docker container so `nginx` can use port `80`
+2. skip `nginx` temporarily and run the app directly on another port such as `8080`
+
+If you choose the direct-port approach, use:
+
+```bash
+cd /var/www/onehr
+pm2 delete onehr-dev
+pm2 start "npx next start -p 8080 -H 0.0.0.0" --name onehr-dev
+pm2 save
+sudo ufw allow 8080/tcp
+```
+
+Then update `.env` so the public URL matches:
+
+```env
+NEXT_PUBLIC_API_DOMAIN_DEV=http://YOUR_VPS_IP:8080
+NEXT_PUBLIC_STORAGE_DOMAIN_DEV=http://YOUR_VPS_IP:8080
+```
+
+Then rebuild and restart:
+
+```bash
+npx next build
+pm2 restart onehr-dev --update-env
+```
+
+Your temporary live URL will then be:
+
+```text
+http://YOUR_VPS_IP:8080
+```
+
+### PM2 shows old errors even after the app is fixed
+
+`pm2 logs` includes previous log lines unless the log files are cleared, so older startup errors may still appear even after the current process is healthy.
+
+What matters most is the newest startup output.
+
+For example, lines like:
+
+```text
+▲ Next.js ...
+- Local:   http://localhost:8080
+- Network: http://0.0.0.0:8080
+✓ Ready
+```
+
+mean the app is currently running correctly on that port.
 
 ---
 
