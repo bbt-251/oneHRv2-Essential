@@ -107,12 +107,12 @@ export default function LeaveDetail({
         let active = true;
         const attachments = selectedLeave.attachments ?? [];
 
-        setAttachmentUrls({});
-        setAttachmentErrors({});
+        const newAttachmentUrls: Record<string, string> = {};
+        const newAttachmentErrors: Record<string, string> = {};
 
         attachments.forEach(attachment => {
             if (isDirectAttachmentUrl(attachment)) {
-                setAttachmentUrls(previous => ({ ...previous, [attachment]: attachment }));
+                newAttachmentUrls[attachment] = attachment;
                 return;
             }
 
@@ -122,21 +122,22 @@ export default function LeaveDetail({
                         return;
                     }
 
-                    setAttachmentUrls(previous => ({ ...previous, [attachment]: downloadUrl }));
+                    newAttachmentUrls[attachment] = downloadUrl;
                 })
                 .catch(() => {
                     if (!active) {
                         return;
                     }
 
-                    setAttachmentErrors(previous => ({
-                        ...previous,
-                        [attachment]: "Attachment unavailable",
-                    }));
+                    newAttachmentErrors[attachment] = "Attachment unavailable";
                 });
         });
 
         return () => {
+            if (active) {
+                setAttachmentUrls(newAttachmentUrls);
+                setAttachmentErrors(newAttachmentErrors);
+            }
             active = false;
         };
     }, [selectedLeave.attachments]);

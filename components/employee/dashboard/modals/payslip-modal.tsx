@@ -283,12 +283,20 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
         attendances,
         attendanceLogic,
         employeeLoans,
-        settingsLookup,
+        taxes,
         compensations,
         overtimeRequests,
+        overtimeTypes,
+        pension,
+        paymentTypes,
+        deductionTypes,
         leaveManagements,
         loanTypes,
+        shiftTypes,
         defaultPDFSettings,
+        holidays,
+        currencies,
+        settingsLookup,
     ]);
 
     const filteredRecords = payslipRecords.filter(record => {
