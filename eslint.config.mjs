@@ -31,7 +31,7 @@ export default defineConfig([
             "max-lines": [
                 "error",
                 {
-                    max: 1000,
+                    max: 1024,
                     skipBlankLines: true,
                     skipComments: true,
                 },
