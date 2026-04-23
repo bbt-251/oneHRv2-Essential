@@ -1,6 +1,6 @@
 "use client";
 
-import { errorBotURL } from "@/lib/backend/error-reporting";
+import { errorBotURL } from "@/lib/shared/error-reporting";
 import { useToast } from "@/context/toastContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { readSessionClaims } from "@/lib/backend/auth/session";
-import { authorizeRequest } from "@/lib/backend/core/authorization";
-import { toErrorResponse } from "@/lib/backend/core/errors";
-import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/backend/config";
+import { readSessionClaims } from "@/lib/server/shared/auth/session";
+import { authorizeRequest } from "@/lib/server/shared/auth/authorization";
+import { toErrorResponse } from "@/lib/server/shared/errors";
+import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/shared/config";
 import {
     requestStorageDownload,
     requestStorageUpload,
     createLegacySignedUploadUrls,
-} from "@/lib/backend/services/storage.service";
+} from "@/lib/server/shared/storage";
 
 const legacyPayloadSchema = z.object({
     path: z.string().min(1),
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         });
 
         if ("originalFilename" in body) {
-            const uploadRequest = requestStorageUpload({
+            const uploadRequest = await requestStorageUpload({
                 instanceKey,
                 ownerUid: authorizedSession.uid,
                 originalFilename: body.originalFilename,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
                 linkage: body.linkage,
             });
 
-            const signedDownload = requestStorageDownload(uploadRequest.metadata.objectKey);
+            const signedDownload = await requestStorageDownload(uploadRequest.metadata.objectKey);
 
             return NextResponse.json({
                 uploadUrl: uploadRequest.signedUpload.uploadUrl,

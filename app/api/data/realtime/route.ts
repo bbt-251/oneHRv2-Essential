@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { readSessionClaims } from "@/lib/backend/auth/session";
-import { authorizeRequest } from "@/lib/backend/core/authorization";
-import { toErrorResponse } from "@/lib/backend/core/errors";
-import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/backend/config";
+import { readSessionClaims } from "@/lib/server/shared/auth/session";
+import { authorizeRequest } from "@/lib/server/shared/auth/authorization";
+import { toErrorResponse } from "@/lib/server/shared/errors";
+import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/shared/config";
 import { AppDataResource } from "@/context/app-data-routes";
 import {
     RealtimeEventMessage,
@@ -13,7 +13,7 @@ import {
     ensureMongoRealtimeWatchers,
     getRealtimeBroker,
     loadInitialRealtimeSnapshot,
-} from "@/lib/backend/services/stream.service";
+} from "@/lib/server/shared/realtime/stream.service";
 
 const encoder = new TextEncoder();
 
@@ -84,15 +84,61 @@ export async function GET(request: NextRequest) {
         const stream = new ReadableStream({
             async start(controller) {
                 const subscriptions = [];
+                let streamClosed = false;
+                let keepAliveId: ReturnType<typeof setInterval> | null = null;
 
-                for (const target of authorizedTargets) {
-                    const initialSnapshot = await loadInitialRealtimeSnapshot({
-                        resource: target.resource,
-                        session: target.session,
-                        instanceKey,
-                        filters: target.filters,
-                    });
+                const safeWriteEvent = (type: string, payload: unknown) => {
+                    if (streamClosed) {
+                        return;
+                    }
 
+                    try {
+                        writeEvent(controller, type, payload);
+                    } catch (error) {
+                        const isClosedControllerError =
+                            error instanceof TypeError &&
+                            error.message.includes("Controller is already closed");
+
+                        if (!isClosedControllerError) {
+                            throw error;
+                        }
+
+                        cleanup();
+                    }
+                };
+
+                const cleanup = () => {
+                    if (streamClosed) {
+                        return;
+                    }
+
+                    streamClosed = true;
+                    if (keepAliveId !== null) {
+                        clearInterval(keepAliveId);
+                        keepAliveId = null;
+                    }
+                    subscriptions.forEach(subscription => subscription.unsubscribe());
+
+                    try {
+                        controller.close();
+                    } catch {
+                        // Ignore double-close races during request teardown.
+                    }
+                };
+
+                const initialSnapshots = await Promise.all(
+                    authorizedTargets.map(async target => ({
+                        target,
+                        initialSnapshot: await loadInitialRealtimeSnapshot({
+                            resource: target.resource,
+                            session: target.session,
+                            instanceKey,
+                            filters: target.filters,
+                        }),
+                    })),
+                );
+
+                for (const { target, initialSnapshot } of initialSnapshots) {
                     const snapshotMessage: RealtimeSnapshotMessage = {
                         type: "snapshot",
                         resource: target.resource,
@@ -101,7 +147,7 @@ export async function GET(request: NextRequest) {
                         receivedAt: new Date().toISOString(),
                     };
 
-                    writeEvent(controller, "snapshot", snapshotMessage);
+                    safeWriteEvent("snapshot", snapshotMessage);
 
                     const subscription = broker.subscribe(
                         {
@@ -127,7 +173,7 @@ export async function GET(request: NextRequest) {
                                     data: resourcePayload,
                                     receivedAt: new Date().toISOString(),
                                 };
-                                writeEvent(controller, "snapshot", snapshotMessage);
+                                safeWriteEvent("snapshot", snapshotMessage);
                                 return;
                             }
 
@@ -145,25 +191,21 @@ export async function GET(request: NextRequest) {
                                 resumeToken: event.resumeToken,
                             };
 
-                            writeEvent(controller, "event", eventMessage);
+                            safeWriteEvent("event", eventMessage);
                         },
                     );
 
                     subscriptions.push(subscription);
                 }
 
-                const keepAliveId = setInterval(() => {
-                    writeEvent(controller, "pong", {
+                keepAliveId = setInterval(() => {
+                    safeWriteEvent("pong", {
                         type: "pong",
                         receivedAt: new Date().toISOString(),
                     });
                 }, 15_000);
 
-                request.signal.addEventListener("abort", () => {
-                    clearInterval(keepAliveId);
-                    subscriptions.forEach(subscription => subscription.unsubscribe());
-                    controller.close();
-                });
+                request.signal.addEventListener("abort", cleanup);
             },
         });
 

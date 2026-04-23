@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
-import { updateProjectAllocationsWithBackend } from "@/lib/backend/client/project-client";
+import { calculateTotalWorkedHours } from "@/lib/util/functions/calculateDuration";
 import { DailyAttendance } from "@/lib/models/attendance";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
+import { ProjectRepository } from "@/lib/repository/projects";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { Clock, DollarSign, Edit } from "lucide-react";
@@ -220,12 +220,15 @@ export const ClockInOut: React.FC<AttendanceModalProps> = ({
                 return;
             }
 
-            await updateProjectAllocationsWithBackend(
+            const result = await ProjectRepository.updateProjectAllocations(
                 updatesToApply.map(update => ({
                     ...update,
                     uid: userData.uid,
                 })),
             );
+            if (!result.success) {
+                throw new Error(result.message);
+            }
             showToast("Allocations saved successfully.", "Success", "success");
         } catch (e) {
             console.error("Error saving allocations", e);

@@ -9,16 +9,18 @@ import { Settings } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { AccrualConfigurationModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    AccrualConfigurationModel,
+    ModuleSettingsRepository as settingsService,
+} from "@/lib/repository/hr-settings";
 import { LEAVE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/leave-management";
 import { useAuth } from "@/context/authContext";
 
 export default function AccrualConfiguration() {
     const { theme } = useTheme();
-    const { ...hrSettings } = useData();
+    const { accrualConfigurations: accrualConfiguration } = useData();
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const accrualConfiguration = hrSettings.accrualConfigurations;
     const [formData, setFormData] = useState<Omit<AccrualConfigurationModel, "id">>({
         limitUnusedDays: accrualConfiguration?.[0]?.limitUnusedDays,
         limitMonths: accrualConfiguration?.[0]?.limitMonths,
@@ -26,7 +28,7 @@ export default function AccrualConfiguration() {
 
     const handleSave = () => {
         if (accrualConfiguration && accrualConfiguration.length > 0) {
-            hrSettingsService
+            settingsService
                 .update(
                     "accrualConfigurations",
                     accrualConfiguration[0].id,
@@ -42,7 +44,7 @@ export default function AccrualConfiguration() {
                     showToast("Failed to update accrual configuration", "error", "error");
                 });
         } else {
-            hrSettingsService
+            settingsService
                 .create(
                     "accrualConfigurations",
                     formData,

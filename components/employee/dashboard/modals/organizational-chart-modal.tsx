@@ -27,7 +27,7 @@ import {
     ChevronDown,
     ChevronUp,
 } from "lucide-react";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { EmployeeModel } from "@/lib/models/employee";
 
 interface OrganizationalChartModalProps {
@@ -49,9 +49,9 @@ interface Employee {
 }
 
 export function OrganizationalChartModal({ isOpen, onClose }: OrganizationalChartModalProps) {
-    const { activeEmployees, hrSettings } = useAppData();
-    const departmentsData = hrSettings?.departmentSettings || [];
-    const positionsData = hrSettings?.positions || [];
+    const { activeEmployees, departmentSettings, positions } = useData();
+    const departmentsData = departmentSettings || [];
+    const positionsData = positions || [];
 
     const transformEmployee = (emp: EmployeeModel): Employee => {
         const name = `${emp.firstName} ${emp.middleName ? emp.middleName + " " : ""}${emp.surname}`;

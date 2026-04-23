@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Maximize2, Minimize2, Download } from "lucide-react";
 import { PayrollData } from "../page";
-import { numberCommaSeparator } from "@/lib/backend/functions/numberCommaSeparator";
+import { numberCommaSeparator } from "@/lib/util/functions/numberCommaSeparator";
 import { ColumnSettings } from "./column-settings";
 import { FilterModal } from "./filter-modal";
 import { TabButtons } from "./tab-buttons";

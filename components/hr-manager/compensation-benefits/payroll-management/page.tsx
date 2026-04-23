@@ -27,17 +27,17 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ColValues } from "@/lib/backend/functions/returnPayslipData";
+import { ColValues } from "@/lib/util/functions/returnPayslipData";
 import { AttendanceModel } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
 import { useData } from "@/context/app-data-context";
 import PayrollPDFSettingsModel from "@/lib/models/payrollPDFSettings";
-import { getPayrollPDFSettings } from "@/lib/backend/api/payroll-settings-service";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
-import { updateOvertimeRequest } from "@/lib/backend/api/attendance/overtime-service";
-import { batchUpdateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
+import { AttendanceRepository } from "@/lib/repository/attendance";
+import { EmployeeRepository } from "@/lib/repository/employee";
+import { PayrollRepository } from "@/lib/repository/payroll";
 import { MoreVertical, Undo2 } from "lucide-react";
 
 export interface PayrollData {
@@ -137,8 +137,17 @@ export function PayrollManagement() {
     const router = useRouter();
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const { employees, attendanceLogic, hrSettings, employeeLoans, overtimeRequests } = useData();
-    const loanTypes = hrSettings.loanTypes;
+    const {
+        employees,
+        attendanceLogic,
+        employeeLoans,
+        overtimeRequests,
+        loanTypes,
+        headerDocuments,
+        footerDocuments,
+        signatureDocuments,
+        stampDocuments,
+    } = useData();
     const [selectedMonth, setSelectedMonth] = useState<string>("January");
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
     const [rollbackLoadingId, setRollbackLoadingId] = useState<string | null>(null);
@@ -151,13 +160,14 @@ export function PayrollManagement() {
     useEffect(() => {
         async function loadPdfSettings() {
             try {
-                const settings = await getPayrollPDFSettings();
+                const result = await PayrollRepository.getPayrollPdfSettings();
+                const settings = result.success ? result.data : null;
                 if (settings) {
-                    // Resolve document IDs to actual URLs from hrSettings
-                    const headerDocs = hrSettings.headerDocuments || [];
-                    const footerDocs = hrSettings.footerDocuments || [];
-                    const signatureDocs = hrSettings.signatureDocuments || [];
-                    const stampDocs = hrSettings.stampDocuments || [];
+                    // Resolve document IDs to actual URLs from document collections
+                    const headerDocs = headerDocuments || [];
+                    const footerDocs = footerDocuments || [];
+                    const signatureDocs = signatureDocuments || [];
+                    const stampDocs = stampDocuments || [];
 
                     const resolvedSettings: PayrollPDFSettingsModel = {
                         ...settings,
@@ -180,15 +190,10 @@ export function PayrollManagement() {
                 console.error("Error loading PDF settings:", error);
             }
         }
-        if (hrSettings.headerDocuments.length > 0) {
+        if (headerDocuments.length > 0) {
             loadPdfSettings();
         }
-    }, [
-        hrSettings.headerDocuments,
-        hrSettings.footerDocuments,
-        hrSettings.signatureDocuments,
-        hrSettings.stampDocuments,
-    ]);
+    }, [footerDocuments, headerDocuments, signatureDocuments, stampDocuments]);
 
     // Use loaded settings or fall back to defaults
     const defaultPDFSettings = useMemo<PayrollPDFSettingsModel>(() => {
@@ -255,7 +260,8 @@ export function PayrollManagement() {
             }));
 
         if (updates.length === 0) return true;
-        return batchUpdateEmployee(updates);
+        const result = await EmployeeRepository.batchUpdateEmployees(updates);
+        return result.success && result.data.success;
     };
 
     const handleFinanceRollback = async (request: OvertimeRequestModel) => {
@@ -269,7 +275,7 @@ export function PayrollManagement() {
         }
 
         setRollbackLoadingId(request.id);
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 status: "pending",
@@ -281,7 +287,7 @@ export function PayrollManagement() {
             userData.uid,
         );
 
-        if (res) {
+        if (res.success) {
             const syncResult = await removeClaimedOvertimeFromEmployees(request);
             if (!syncResult) {
                 showToast(

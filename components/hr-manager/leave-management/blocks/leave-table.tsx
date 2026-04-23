@@ -72,10 +72,8 @@ interface LeaveTableProps {
 
 export default function LeaveTable({ filteredHrRequests, hrVisibleColumns }: LeaveTableProps) {
     const theme = useEffectiveTheme();
-    const { employees, ...hrSettings } = useData();
-    const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
-
-    const departments = hrSettings.departmentSettings;
+    const { employees, leaveTypes: baseLeaveTypes, departmentSettings: departments } = useData();
+    const leaveTypes = [...baseLeaveTypes, annualLeaveType, unpaidLeaveType];
     const getLeaveTypeName = (leaveTypeId: string) => {
         const leaveType = leaveTypes.find(leaveType => leaveType.id === leaveTypeId);
         return leaveType?.name || "Unknown";

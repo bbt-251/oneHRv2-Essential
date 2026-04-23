@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Calculator, PiggyBank } from "lucide-react";
 import { PayrollData } from "../page";
-import { numberCommaSeparator } from "@/lib/backend/functions/numberCommaSeparator";
+import { numberCommaSeparator } from "@/lib/util/functions/numberCommaSeparator";
 
 interface PayrollMetricsProps {
     filteredData: PayrollData[];

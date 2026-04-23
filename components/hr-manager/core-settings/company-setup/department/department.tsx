@@ -24,7 +24,10 @@ import {
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { DepartmentSettingsModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    DepartmentSettingsModel,
+} from "@/lib/repository/hr-settings";
 import { DEPARTMENT_LOG_MESSAGES } from "@/lib/log-descriptions/department-section";
 import { EmployeeModel } from "@/lib/models/employee";
 import { Building2, Edit, Plus, Users } from "lucide-react";
@@ -37,11 +40,11 @@ import AddEditDepartmentModal from "./modals/add-edit-department-modal";
 export function Department() {
     const { theme } = useTheme();
     const { showToast } = useToast();
-    const { employees, ...hrSettings } = useData();
+    const { employees, departmentSettings, locations } = useData();
     const { userData } = useAuth();
-    const departments = hrSettings.departmentSettings.map(d => ({
+    const departments = departmentSettings.map(d => ({
         ...d,
-        location: hrSettings.locations.find(l => l.id === d.location)?.name ?? d.location,
+        location: locations.find(l => l.id === d.location)?.name ?? d.location,
     }));
 
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -90,7 +93,7 @@ export function Department() {
     const handleDelete = async (id: string) => {
         {
             try {
-                await hrSettingsService.remove(
+                await settingsService.remove(
                     "departmentSettings",
                     id,
                     userData?.uid ?? "",
@@ -187,7 +190,7 @@ export function Department() {
         URL.revokeObjectURL(url);
     };
 
-    const locations = Array.from(new Set(departments.map(d => d.location)));
+    const locationOptions = Array.from(new Set(departments.map(d => d.location)));
 
     return (
         <div className={`${theme === "dark" ? "bg-black" : "bg-amber-50/30"} min-h-screen p-6`}>
@@ -320,7 +323,7 @@ export function Department() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All</SelectItem>
-                                            {locations.map(loc => (
+                                            {locationOptions.map(loc => (
                                                 <SelectItem key={loc} value={loc}>
                                                     {loc}
                                                 </SelectItem>

@@ -59,7 +59,6 @@ export function OffboardingModal({
     onManageDependents,
 }: OffboardingModalProps) {
     const { theme } = useTheme();
-    const { ...hrSettings } = useData();
     const {
         sectionSettings,
         contractTypes,
@@ -69,7 +68,17 @@ export function OffboardingModal({
         departmentSettings,
         grades,
         shiftTypes,
-    } = hrSettings;
+    } = useData();
+    const {} = {
+        sectionSettings,
+        contractTypes,
+        contractHours,
+        maritalStatuses,
+        positions,
+        departmentSettings,
+        grades,
+        shiftTypes,
+    };
 
     const getName = (items: { id: string; name: string }[], id: string) =>
         items.find(item => item.id === id)?.name || "Unknown";

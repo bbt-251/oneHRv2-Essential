@@ -18,9 +18,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/context/toastContext";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
-import { updateOvertimeRequest } from "@/lib/backend/api/attendance/overtime-service";
-import { batchUpdateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
+import { EmployeeRepository } from "@/lib/repository/employee";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
@@ -63,7 +63,8 @@ export function HROvertimeApproveModal({ isOpen, onClose, request }: HROvertimeA
 
         if (updates.length === 0) return false;
 
-        return batchUpdateEmployee(updates);
+        const result = await EmployeeRepository.batchUpdateEmployees(updates);
+        return result.success && result.data.success;
     };
 
     const handleApprove = async () => {
@@ -73,7 +74,7 @@ export function HROvertimeApproveModal({ isOpen, onClose, request }: HROvertimeA
 
         setIsSubmitting(true);
 
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 status: "approved",
@@ -85,7 +86,7 @@ export function HROvertimeApproveModal({ isOpen, onClose, request }: HROvertimeA
             userData?.uid,
         );
 
-        if (res) {
+        if (res.success) {
             const syncClaimResult = await syncApprovedOvertimeToEmployeeClaims();
             if (!syncClaimResult) {
                 showToast(

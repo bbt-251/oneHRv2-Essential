@@ -35,19 +35,22 @@ export default function LeaveDetail({
     selectedLeave,
     setIsLeaveModalOpen,
 }: LeaveDetailProps) {
-    const { employees, ...hrSettings } = useData();
+    const {
+        employees,
+        sectionSettings,
+        departmentSettings,
+        leaveTypes: baseLeaveTypes,
+    } = useData();
 
-    const sections = hrSettings.sectionSettings;
-    const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
+    const sections = sectionSettings;
+    const leaveTypes = [...baseLeaveTypes, annualLeaveType, unpaidLeaveType];
 
     const getSectionName = (sectionId: string) => {
         const section = sections.find(section => section.id === sectionId);
         return section?.name || "Unknown";
     };
     const getDepartmentName = (departmentId: string) => {
-        const department = hrSettings.departmentSettings.find(
-            department => department.id === departmentId,
-        );
+        const department = departmentSettings.find(department => department.id === departmentId);
         return department?.name || "Unknown";
     };
     const getLeaveTypeName = (leaveTypeId: string) => {

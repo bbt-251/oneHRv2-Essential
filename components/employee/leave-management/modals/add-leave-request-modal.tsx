@@ -26,11 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTheme } from "@/components/theme-provider";
 import { dateFormat } from "@/lib/util/dayjs_format";
-import { CalendarIcon, Upload, X, FileText, AlertCircle, User, Clock } from "lucide-react";
+import { CalendarIcon, Upload, X, FileText, AlertCircle, User, Clock, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import { useLeaveRequestForm } from "@/lib/util/leave-request/use-leave-request-form";
 import { useAuth } from "@/context/authContext";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const annualLeaveType = {
     id: "annual-paid-leave",
@@ -70,12 +71,14 @@ export function AddLeaveRequestModal({
         handleSubmit,
         handleCancel,
         activeEmployees,
-        hrSettings,
+        settingsLookup,
         user,
         authorizedDays,
+        canSubmit,
+        isLeaveSettingsReady,
     } = useLeaveRequestForm({ onSuccess, onOpenChange });
     const { userData } = useAuth();
-    const { leaveTypes, positions, departmentSettings, backdateCapabilities } = hrSettings;
+    const { leaveTypes, positions, departmentSettings, backdateCapabilities } = settingsLookup;
 
     const allLeaveTypes = [...leaveTypes, annualLeaveType, unpaidLeaveType];
     const filteredLeaveTypes = allLeaveTypes.filter(
@@ -89,7 +92,7 @@ export function AddLeaveRequestModal({
         positions.find(p => p.id === positionId)?.name || "Unknown";
     const getDepartmentName = (departmentId: string) =>
         departmentSettings.find(d => d.id === departmentId)?.name || "Unknown";
-    const selectedEmployee = activeEmployees.find(emp => emp.id === formData.employee);
+    const selectedEmployee = activeEmployees.find(emp => emp.uid === formData.employee);
 
     const availableBalance = userData?.balanceLeaveDays || 0;
 
@@ -105,6 +108,7 @@ export function AddLeaveRequestModal({
         const halfDayValue = value === "none" ? null : (value as "HDM" | "HDA");
         setFormData(prev => ({ ...prev, halfDayOption: halfDayValue }));
     };
+    const shouldShowSettingsLoading = open && !isLeaveSettingsReady;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,6 +133,46 @@ export function AddLeaveRequestModal({
                         <span className="text-red-500">*</span> are required.
                     </DialogDescription>
                 </DialogHeader>
+
+                {shouldShowSettingsLoading && (
+                    <div
+                        className={`rounded-lg border p-4 ${
+                            theme === "dark"
+                                ? "border-blue-700 bg-blue-950/30"
+                                : "border-blue-200 bg-blue-50"
+                        }`}
+                    >
+                        <div className="flex items-start gap-3">
+                            <Loader2
+                                className={`mt-0.5 h-4 w-4 animate-spin ${
+                                    theme === "dark" ? "text-blue-300" : "text-blue-600"
+                                }`}
+                            />
+                            <div className="flex-1 space-y-3">
+                                <div>
+                                    <p
+                                        className={`text-sm font-semibold ${
+                                            theme === "dark" ? "text-blue-200" : "text-blue-800"
+                                        }`}
+                                    >
+                                        Loading leave request settings
+                                    </p>
+                                    <p
+                                        className={`text-xs ${
+                                            theme === "dark" ? "text-blue-300" : "text-blue-700"
+                                        }`}
+                                    >
+                                        Leave types and related setup are still being prepared.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Request ID */}
@@ -310,6 +354,7 @@ export function AddLeaveRequestModal({
                                 onValueChange={value =>
                                     setFormData(prev => ({ ...prev, leaveType: value }))
                                 }
+                                disabled={shouldShowSettingsLoading}
                             >
                                 <SelectTrigger
                                     className={`${
@@ -318,14 +363,27 @@ export function AddLeaveRequestModal({
                                             : "border-slate-300 bg-white"
                                     } ${errors.leaveType ? "border-red-500" : ""}`}
                                 >
-                                    <SelectValue placeholder="Select leave type" />
+                                    <SelectValue
+                                        placeholder={
+                                            shouldShowSettingsLoading
+                                                ? "Loading leave types..."
+                                                : "Select leave type"
+                                        }
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {filteredLeaveTypes.map(lt => (
-                                        <SelectItem key={lt.id} value={lt.id}>
-                                            {lt.name}
-                                        </SelectItem>
-                                    ))}
+                                    {shouldShowSettingsLoading ? (
+                                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Loading leave types...
+                                        </div>
+                                    ) : (
+                                        filteredLeaveTypes.map(lt => (
+                                            <SelectItem key={lt.id} value={lt.id}>
+                                                {lt.name}
+                                            </SelectItem>
+                                        ))
+                                    )}
                                 </SelectContent>
                             </Select>
                             {errors.leaveType && (
@@ -347,6 +405,7 @@ export function AddLeaveRequestModal({
                                     onValueChange={value =>
                                         setFormData(prev => ({ ...prev, standIn: value }))
                                     }
+                                    disabled={shouldShowSettingsLoading}
                                 >
                                     <SelectTrigger
                                         className={`${
@@ -355,7 +414,13 @@ export function AddLeaveRequestModal({
                                                 : "border-slate-300 bg-white"
                                         } ${errors.standIn ? "border-red-500" : ""}`}
                                     >
-                                        <SelectValue placeholder="Select stand-in person" />
+                                        <SelectValue
+                                            placeholder={
+                                                shouldShowSettingsLoading
+                                                    ? "Loading leave settings..."
+                                                    : "Select stand-in person"
+                                            }
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {activeEmployees
@@ -782,6 +847,7 @@ export function AddLeaveRequestModal({
                             type="button"
                             variant="outline"
                             onClick={handleCancel}
+                            disabled={isSubmitting}
                             className={`rounded-xl ${
                                 theme === "dark"
                                     ? "border-gray-600 bg-gray-800 text-slate-200 hover:bg-gray-700"
@@ -793,9 +859,10 @@ export function AddLeaveRequestModal({
                         <Button
                             type="submit"
                             className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !canSubmit || shouldShowSettingsLoading}
                         >
-                            {isSubmitting ? "Submitting..." : "Submit Request"}
+                            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {isSubmitting ? "Submitting Request..." : "Submit Request"}
                         </Button>
                     </DialogFooter>
                 </form>

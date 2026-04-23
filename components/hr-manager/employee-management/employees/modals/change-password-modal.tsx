@@ -10,7 +10,7 @@ import { X, Key, Eye, EyeOff, Loader2 } from "lucide-react";
 import type { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/context/toastContext";
-import { updateEmployeeWithBackend } from "@/lib/backend/client/employee-client";
+import { EmployeeRepository } from "@/lib/repository/employee";
 
 interface ChangePasswordModalProps {
     employee: EmployeeModel;
@@ -47,7 +47,7 @@ export function ChangePasswordModal({ employee, onClose }: ChangePasswordModalPr
         setIsLoading(true);
 
         try {
-            const response = await updateEmployeeWithBackend({
+            const response = await EmployeeRepository.updateEmployee({
                 id: employee.id,
                 password: newPassword,
                 lastChanged: new Date().toISOString(),
@@ -56,11 +56,11 @@ export function ChangePasswordModal({ employee, onClose }: ChangePasswordModalPr
                     token: "",
                 },
             });
-            if (response.employee) {
+            if (response.success) {
                 showToast("Password changed successfully", "Success", "success");
                 onClose();
             } else {
-                showToast("Failed to change password", "Error", "error");
+                showToast(response.message, "Error", "error");
             }
         } catch (error) {
             console.error("Error changing password:", error);

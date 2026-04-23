@@ -4,16 +4,12 @@ import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/data-provider";
 import { useToast } from "@/context/toastContext";
-import { generateAttendanceForEmployee } from "@/lib/backend/api/attendance/attendance-service";
-import {
-    createEmployee,
-    getEmployeeDocumentId,
-    updateEmployee,
-} from "@/lib/backend/api/employee-management/employee-management-service";
-import calculateHourlyWage from "@/lib/backend/functions/payroll/calculateHourlyWage";
+import { LogRepository } from "@/lib/repository/logs/log.repository";
+import calculateHourlyWage from "@/lib/util/functions/payroll/calculateHourlyWage";
 import { ATTENDANCE_LOG_MESSAGES } from "@/lib/log-descriptions/attendance";
-import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
 import { EmployeeModel } from "@/lib/models/employee";
+import { AttendanceRepository } from "@/lib/repository/attendance";
+import { EmployeeRepository } from "@/lib/repository/employee";
 import { useState } from "react";
 import { EmployeeForm } from "./blocks/employee-form";
 import { EmployeeTable } from "./blocks/employee-table";
@@ -27,10 +23,12 @@ import { DeleteEmployeeModal } from "./modals/delete-employee-modal";
 
 export default function EmployeeManagement() {
     const { showToast } = useToast();
-    const { employees, ...hrSettings } = useData();
+    const { employees, payrollSettings, isResourceHydrated } = useData();
     const { userData } = useAuth();
-    const monthlyWorkingHours = hrSettings.payrollSettings?.at(0)?.monthlyWorkingHours ?? 173;
+    const monthlyWorkingHours = payrollSettings?.at(0)?.monthlyWorkingHours ?? 173;
     const { theme } = useTheme();
+    const payrollReferenceDataReady =
+        isResourceHydrated("currencies") && isResourceHydrated("taxes");
 
     const [showForm, setShowForm] = useState<boolean>(false);
     const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
@@ -109,31 +107,22 @@ export default function EmployeeManagement() {
                 } as EmployeeModel;
 
                 // Then update the database record
-                const actualDocumentId = await getEmployeeDocumentId(updatedEmployee.uid);
+                const employeeLookup = await EmployeeRepository.getEmployeeByUid(
+                    updatedEmployee.uid,
+                );
+                const actualDocumentId = employeeLookup.success ? employeeLookup.data.id : null;
                 if (actualDocumentId) {
                     const employeeForUpdate = { ...updatedEmployee, id: actualDocumentId };
-                    const updateResult = await updateEmployee(
-                        employeeForUpdate,
-                        userData?.uid ?? "",
-                        EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_UPDATED(
-                            `${updatedEmployee.firstName} ${updatedEmployee.surname}`,
-                        ),
-                    );
-                    if (updateResult) {
+                    const updateResult = await EmployeeRepository.updateEmployee(employeeForUpdate);
+                    if (updateResult.success) {
                         showToast("Employee updated successfully.", "success", "success");
                     } else {
                         showToast("Failed to update employee record", "error", "error");
                     }
                 } else {
                     // Fallback: try with original ID if UID lookup failed
-                    const fallbackResult = await updateEmployee(
-                        updatedEmployee,
-                        userData?.uid ?? "",
-                        EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_UPDATED(
-                            `${updatedEmployee.firstName} ${updatedEmployee.surname}`,
-                        ),
-                    );
-                    if (fallbackResult) {
+                    const fallbackResult = await EmployeeRepository.updateEmployee(updatedEmployee);
+                    if (fallbackResult.success) {
                         showToast("Employee updated successfully.", "success", "success");
                     } else {
                         showToast("Failed to find and update employee record", "error", "error");
@@ -147,24 +136,22 @@ export default function EmployeeManagement() {
                     languageSkills: employee.languageSkills ?? [],
                 } as EmployeeModel;
 
-                const createdEmployee = await createEmployee(
-                    newEmployee,
-                    userData?.uid ?? "",
-                    EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_CREATED(
-                        `${newEmployee.firstName} ${newEmployee.surname}`,
-                    ),
-                );
-                if (createdEmployee) {
+                const createResult = await EmployeeRepository.createEmployee(newEmployee);
+                if (createResult.success) {
+                    const createdEmployee = createResult.data;
                     showToast("Employee saved successfully", "success", "success");
-                    const res3 = await generateAttendanceForEmployee(
+                    const res3 = await AttendanceRepository.generateAttendanceForEmployee(
                         createdEmployee.uid,
                         createdEmployee.shiftType,
-                        userData?.uid ?? "",
-                        ATTENDANCE_LOG_MESSAGES.GENERATED(
-                            `${newEmployee.firstName} ${newEmployee.surname}`,
-                        ),
                     );
                     if (res3.success) {
+                        await LogRepository.create(
+                            ATTENDANCE_LOG_MESSAGES.GENERATED(
+                                `${newEmployee.firstName} ${newEmployee.surname}`,
+                            ),
+                            userData?.uid ?? "",
+                            "Success",
+                        );
                         showToast("Attendance generated successfully", "Success", "success");
                     } else {
                         showToast(
@@ -190,13 +177,10 @@ export default function EmployeeManagement() {
                     const updatedReportees = Array.isArray(previousManager.reportees)
                         ? previousManager.reportees.filter(r => r !== employee.uid)
                         : [];
-                    await updateEmployee(
-                        { id: previousManager.id, reportees: updatedReportees },
-                        userData?.uid ?? "",
-                        EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_UPDATED(
-                            `${previousManager.firstName} ${previousManager.surname}`,
-                        ),
-                    );
+                    await EmployeeRepository.updateEmployee({
+                        id: previousManager.id,
+                        reportees: updatedReportees,
+                    });
                 }
             }
 
@@ -207,13 +191,10 @@ export default function EmployeeManagement() {
                     const updatedReportees = Array.isArray(newManager.reportees)
                         ? [...newManager.reportees.filter(r => r !== employee.uid), employee.uid]
                         : [employee.uid];
-                    await updateEmployee(
-                        { id: newManager.id, reportees: updatedReportees },
-                        userData?.uid ?? "",
-                        EMPLOYEE_MANAGEMENT_LOG_MESSAGES.EMPLOYEE_UPDATED(
-                            `${newManager.firstName} ${newManager.surname}`,
-                        ),
-                    );
+                    await EmployeeRepository.updateEmployee({
+                        id: newManager.id,
+                        reportees: updatedReportees,
+                    });
                 }
             }
 
@@ -241,6 +222,17 @@ export default function EmployeeManagement() {
         setShowDependentsModal(false);
         setSelectedEmployee(undefined);
     };
+
+    if (!payrollReferenceDataReady) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-4 text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`min-h-screen ${theme === "dark" ? "bg-black" : "bg-secondary-50"}`}>

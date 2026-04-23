@@ -13,10 +13,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    NotificationTypeModel,
+} from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
-import { NotificationTypeModel } from "@/lib/backend/hr-settings-service";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/authContext";
@@ -99,7 +101,7 @@ export function AddNotificationType({
         setIsSubmitting(true);
         try {
             if (editingNotification) {
-                await hrSettingsService.update(
+                await settingsService.update(
                     "notificationTypes",
                     editingNotification.id,
                     formData,
@@ -113,7 +115,7 @@ export function AddNotificationType({
                 );
                 showToast("Notification type updated successfully", "success", "success");
             } else {
-                await hrSettingsService.create(
+                await settingsService.create(
                     "notificationTypes",
                     formData,
                     userData?.uid ?? "",

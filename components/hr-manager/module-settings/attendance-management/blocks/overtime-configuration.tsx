@@ -28,8 +28,11 @@ import {
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService, OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
-import { saveBackendPayrollSettings } from "@/lib/backend/client/payroll-settings-client";
+import {
+    ModuleSettingsRepository as settingsService,
+    OvertimeConfigurationModel,
+} from "@/lib/repository/hr-settings";
+import { PayrollRepository } from "@/lib/repository/payroll";
 import { timestampFormat } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import { Edit, Loader2, Plus, Timer, Trash2 } from "lucide-react";
@@ -40,8 +43,8 @@ import { useAuth } from "@/context/authContext";
 import { OVERTIME_CONFIGURATION_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function OvertimeConfiguration() {
-    const { ...hrSettings } = useData();
-    const payrollSettingsDoc = hrSettings.payrollSettings?.at(0) ?? null;
+    const { payrollSettings, overtimeTypes, currencies } = useData();
+    const payrollSettingsDoc = payrollSettings?.at(0) ?? null;
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { theme } = useTheme();
@@ -63,7 +66,7 @@ export function OvertimeConfiguration() {
         useState<boolean>(false);
     const [showSetMonthlyWorkingHoursDialog, setShowSetMonthlyWorkingHoursDialog] =
         useState<boolean>(false);
-    const overtimeConfigs: OvertimeConfigurationModel[] = hrSettings.overtimeTypes;
+    const overtimeConfigs: OvertimeConfigurationModel[] = overtimeTypes;
 
     const isWholeNumberPercent = (value: number) =>
         Number.isFinite(value) && Number.isInteger(value) && value > 0;
@@ -134,29 +137,29 @@ export function OvertimeConfiguration() {
 
         setIsSavingStandardMonthlyWorkingHours(true);
         try {
-            const existingDoc = hrSettings.payrollSettings?.at(0) ?? null;
+            const existingDoc = payrollSettings?.at(0) ?? null;
             let saved = false;
 
             if (existingDoc?.id) {
-                const res = await saveBackendPayrollSettings({
+                const res = await PayrollRepository.savePayrollPdfSettings({
                     ...existingDoc,
                     monthlyWorkingHours: nextValue,
                 });
 
-                if (res) {
+                if (res.success) {
                     saved = true;
                 } else {
                     showToast("Error updating Standard Monthly Working Hours", "Error", "error");
                 }
             } else {
-                const baseCurrency = hrSettings.currencies?.at(0)?.name ?? "USD";
-                const res = await saveBackendPayrollSettings({
+                const baseCurrency = currencies?.at(0)?.name ?? "USD";
+                const res = await PayrollRepository.savePayrollPdfSettings({
                     baseCurrency,
                     taxRate: 0,
                     monthlyWorkingHours: nextValue,
                 });
 
-                if (res) {
+                if (res.success) {
                     saved = true;
                 } else {
                     showToast("Error creating Standard Monthly Working Hours", "Error", "error");
@@ -212,7 +215,7 @@ export function OvertimeConfiguration() {
 
         if (editingConfig) {
             const { id: _id, ...data } = formData;
-            const res = await hrSettingsService.update(
+            const res = await settingsService.update(
                 "overtimeTypes",
                 editingConfig.id,
                 data,
@@ -231,7 +234,7 @@ export function OvertimeConfiguration() {
                 showToast("Error updating Overtime types", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create(
+            const res = await settingsService.create(
                 "overtimeTypes",
                 newConfig,
                 userData?.uid ?? "",
@@ -264,7 +267,7 @@ export function OvertimeConfiguration() {
 
     const handleDeleteConfig = (id: string) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
+            const res = await settingsService.remove(
                 "overtimeTypes",
                 id,
                 userData?.uid ?? "",

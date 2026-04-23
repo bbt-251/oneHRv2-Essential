@@ -7,7 +7,7 @@ import { X, Calendar, Info } from "lucide-react";
 import {
     calculateLeaveBalanceBreakdown,
     BalanceBreakdownResult,
-} from "@/lib/backend/functions/calculateLeaveBalanceBreakdown";
+} from "@/lib/util/functions/calculateLeaveBalanceBreakdown";
 
 interface BalanceDetailsModalProps {
     isOpen: boolean;

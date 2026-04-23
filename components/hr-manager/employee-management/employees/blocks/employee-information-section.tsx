@@ -186,8 +186,11 @@ export const EmployeeInformationSection: React.FC<EmployeeInformationProps> = ({
     setShowPassword,
     employee,
 }) => {
-    const { ...hrSettings } = useData();
-    const maritalStatus = hrSettings.maritalStatuses || [];
+    const {
+        maritalStatuses: maritalStatus = [],
+        levelOfEducations,
+        yearsOfExperiences,
+    } = useData();
     const filteredMaritalStatus = maritalStatus.filter(status => status.active === true);
     const labelClasses = theme === "dark" ? "text-gray-200" : "text-primary-800";
     const inputClasses =
@@ -272,7 +275,7 @@ export const EmployeeInformationSection: React.FC<EmployeeInformationProps> = ({
                     "Level Of Education",
                     formData.levelOfEducation || "",
                     value => handleInputChange("levelOfEducation", value),
-                    hrSettings.levelOfEducations
+                    levelOfEducations
                         .filter(levelOfEducation => levelOfEducation.active)
                         .map(levelOfEducation => ({
                             value: levelOfEducation.id,
@@ -290,7 +293,7 @@ export const EmployeeInformationSection: React.FC<EmployeeInformationProps> = ({
                     "Years of Experience",
                     formData.yearsOfExperience || "",
                     value => handleInputChange("yearsOfExperience", value),
-                    hrSettings.yearsOfExperiences
+                    yearsOfExperiences
                         .filter(yearsOfExperience => yearsOfExperience.active)
                         .map(yearsOfExperience => ({
                             value: yearsOfExperience.id,

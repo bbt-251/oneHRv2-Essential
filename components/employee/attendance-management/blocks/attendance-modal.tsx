@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { requestAttendanceModification } from "@/lib/backend/api/attendance/request-modification";
 import {
     AttendanceModel,
     DailyAttendance,
@@ -13,6 +12,7 @@ import {
     WorkedHoursModel,
 } from "@/lib/models/attendance";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import {
     dateFormat,
     formatHour,
@@ -51,8 +51,7 @@ interface AttendanceModalProps {
 export function AttendanceModal({ day, attendance, onClose }: AttendanceModalProps) {
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const { requestModifications, overtimeRequests, employees, ...hrSettings } = useData();
-    const overtimeTypes = hrSettings.overtimeTypes;
+    const { requestModifications, overtimeRequests, employees, overtimeTypes } = useData();
     const [activeTab, setActiveTab] = useState<string>("clockinout");
     const [showChangeForm, setShowChangeForm] = useState<boolean>(false);
     const [showOvertimeForm, setShowOvertimeForm] = useState<boolean>(false);
@@ -171,9 +170,9 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
                     hrComments: null,
                 };
 
-                await requestAttendanceModification(newData)
-                    .then(async (res: boolean) => {
-                        if (res === true) {
+                await AttendanceRepository.requestAttendanceModification(newData)
+                    .then(async result => {
+                        if (result.success) {
                             showToast("Change requested successfully", "Success", "success");
 
                             setShowChangeForm(false);
@@ -223,8 +222,12 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
                             }
                         }
 
-                        if (res === false) {
-                            showToast("Something went wrong, please try again", "Error", "error");
+                        if (!result.success) {
+                            showToast(
+                                result.message || "Something went wrong, please try again",
+                                "Error",
+                                "error",
+                            );
                             return;
                         }
                     })
@@ -242,7 +245,14 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
     };
 
     return (
-        <Dialog open={true} onOpenChange={onClose}>
+        <Dialog
+            open={true}
+            onOpenChange={open => {
+                if (!open) {
+                    onClose();
+                }
+            }}
+        >
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <div className="flex items-center justify-between">

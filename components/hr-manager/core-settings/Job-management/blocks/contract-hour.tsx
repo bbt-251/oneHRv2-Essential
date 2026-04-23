@@ -30,7 +30,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Filter, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ContractHourModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    ContractHourModel,
+    CoreSettingsRepository as settingsService,
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import DeleteConfirm from "../../blocks/delete-confirm";
 import { useToast } from "@/context/toastContext";
@@ -40,11 +43,10 @@ import { useAuth } from "@/context/authContext";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 
 export default function ContractHour() {
-    const { ...hrSettings } = useData();
+    const { contractHours } = useData();
     const { theme } = useTheme();
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const contractHours = hrSettings.contractHours;
 
     const [showModal, setShowModal] = useState<boolean>(false);
     const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -130,7 +132,7 @@ export default function ContractHour() {
             }
 
             if (editingContractHour) {
-                hrSettingsService.update(
+                settingsService.update(
                     "contractHours",
                     editingContractHour.id,
                     formData,
@@ -142,7 +144,7 @@ export default function ContractHour() {
                 );
                 showToast("Contract hour updated successfully", "success", "success");
             } else {
-                hrSettingsService.create(
+                settingsService.create(
                     "contractHours",
                     formData,
                     userData?.uid ?? "",
@@ -161,7 +163,7 @@ export default function ContractHour() {
     };
 
     const handleDelete = (id: string) => {
-        hrSettingsService.remove(
+        settingsService.remove(
             "contractHours",
             id,
             userData?.uid ?? "",

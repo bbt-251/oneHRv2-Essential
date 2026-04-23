@@ -4,7 +4,7 @@ import { DailyAttendance, WorkedHoursModel } from "@/lib/models/attendance";
 export type SeedRecord = Record<string, unknown>;
 
 export interface SeedContext {
-    hrSettings: Record<string, string[]>;
+    settingsCollections: Record<string, string[]>;
 }
 
 export const MONTH_NAMES = [
@@ -22,7 +22,7 @@ export const MONTH_NAMES = [
     "December",
 ] as const;
 
-export function getIndependentHrSettingsSeed(): Record<string, SeedRecord | SeedRecord[]> {
+export function getIndependentSettingsSeed(): Record<string, SeedRecord | SeedRecord[]> {
     return {
         maritalStatuses: [
             { name: "Single", active: true },

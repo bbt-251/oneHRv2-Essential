@@ -13,7 +13,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { hrSettingsService, LocationModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    LocationModel,
+} from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { Textarea } from "@/components/ui/textarea";
@@ -165,7 +168,7 @@ export function AddLocation({
                 ...formData,
                 updatedAt: new Date().toISOString(),
             };
-            await hrSettingsService.update(
+            await settingsService.update(
                 "locations",
                 editingLocation.id,
                 locationDataToUpdate,
@@ -187,7 +190,7 @@ export function AddLocation({
                 ...formData,
                 parentId: selectedParent?.id || null,
             };
-            await hrSettingsService.create(
+            await settingsService.create(
                 "locations",
                 newLocationData,
                 userData?.uid ?? "",

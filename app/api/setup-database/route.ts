@@ -1,17 +1,25 @@
 import crypto from "node:crypto";
 import dayjs from "dayjs";
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentConfig, getCurrentInstance, getCurrentInstanceKey } from "@/lib/backend/config";
-import { createEmployeeRecord, listEmployees } from "@/lib/backend/persistence/employee.repository";
-import { getMongoDb } from "@/lib/backend/persistence/mongo";
-import { inMemoryStore } from "@/lib/backend/persistence/in-memory-store";
-import { COMPACT_DATA_RESOURCES } from "@/lib/backend/services/resource-types";
-import { mutateAttendance } from "@/lib/backend/services/attendance.service";
+import { getCurrentConfig, getCurrentInstance, getCurrentInstanceKey } from "@/lib/shared/config";
+import { createEmployeeRecord, listEmployees } from "@/lib/server/employee/employee.repository";
+import { getMongoDb } from "@/lib/server/shared/db/mongo";
 import { AttendanceModel } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
+import { AttendanceServerRepository } from "@/lib/server/attendance/attendance.repository";
+import { CoreSettingsServerRepository } from "@/lib/server/hr-settings/core-settings/core-settings.repository";
+import {
+    CORE_SETTINGS_RESOURCES,
+    isCoreSettingsResource,
+} from "@/lib/server/hr-settings/core-settings/core-settings.types";
+import { ModuleSettingsServerRepository } from "@/lib/server/hr-settings/module-settings/module-settings.repository";
+import {
+    isModuleSettingsResource,
+    MODULE_SETTINGS_RESOURCES,
+} from "@/lib/server/hr-settings/module-settings/module-settings.types";
 import {
     generateDailyAttendance,
-    getIndependentHrSettingsSeed,
+    getIndependentSettingsSeed,
     MONTH_NAMES,
     type SeedRecord,
 } from "./seed-helpers";
@@ -21,10 +29,10 @@ interface SeedingResult {
     message: string;
     data?: {
         instance: string;
-        hrSettings: Record<string, string[]>;
+        settingsCollections: Record<string, string[]>;
         employees: string[];
         summary: {
-            totalHrSettings: number;
+            totalSettingsCollections: number;
             totalEmployees: number;
             totalAttendanceRecords: number;
             duration: number;
@@ -34,7 +42,7 @@ interface SeedingResult {
 }
 
 interface CreatedEntities {
-    hrSettings: Record<string, string[]>;
+    settingsCollections: Record<string, string[]>;
     employees: string[];
 }
 
@@ -69,31 +77,38 @@ const getTimestamp = (): string => dayjs().format(TIMESTAMP_FORMAT);
 const getErrorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : "Unknown error occurred";
 
-const createSeedDocument = (
+const createSeedDocument = async (
     collectionPath: string,
     data: SeedRecord,
     id: string = crypto.randomUUID(),
-): string => {
-    inMemoryStore.createDocument(
-        collectionPath,
-        {
-            ...data,
+): Promise<string> => {
+    if (isCoreSettingsResource(collectionPath)) {
+        const created = await CoreSettingsServerRepository.create(collectionPath, {
+            ...(data as Record<string, unknown>),
             id,
-        },
-        id,
-    );
+        } as never);
+        return created.id;
+    }
+
+    if (isModuleSettingsResource(collectionPath)) {
+        const created = await ModuleSettingsServerRepository.create(collectionPath, {
+            ...(data as Record<string, unknown>),
+            id,
+        } as never);
+        return created.id;
+    }
+
+    const db = await getMongoDb();
+    await db.collection(collectionPath).insertOne({
+        _id: id,
+        ...(data as Record<string, unknown>),
+    });
+
     return id;
 };
 
-const createSeedDocuments = (collectionPath: string, data: SeedRecord[]): string[] =>
-    data.map(entry => createSeedDocument(collectionPath, entry));
-
-const clearInMemoryCollection = (collectionPath: string): void => {
-    const documents = inMemoryStore.queryCollection(collectionPath);
-    for (const document of documents) {
-        inMemoryStore.deleteDocument(`${collectionPath}/${document.id}`);
-    }
-};
+const createSeedDocuments = async (collectionPath: string, data: SeedRecord[]): Promise<string[]> =>
+    Promise.all(data.map(entry => createSeedDocument(collectionPath, entry)));
 
 const clearExistingData = async (): Promise<void> => {
     const db = await getMongoDb();
@@ -106,47 +121,44 @@ const clearExistingData = async (): Promise<void> => {
         "authVerifications",
         "leaveManagements",
         "requestModifications",
-        "overtimeRequest",
-        "compensations",
+        "overtimeRequests",
+        "employeeCompensation",
         "employeeLoan",
         "notifications",
         "projects",
         "documents",
         "logs",
+        "dependents",
+        "headerDocuments",
+        "footerDocuments",
+        "signatureDocuments",
+        "stampDocuments",
+        "initialDocuments",
+        ...CORE_SETTINGS_RESOURCES,
+        ...MODULE_SETTINGS_RESOURCES,
     ];
 
     await Promise.all(mongoCollections.map(name => db.collection(name).deleteMany({})));
-
-    const inMemoryCollections = [
-        ...COMPACT_DATA_RESOURCES,
-        "overtimeRequest",
-        "employeeLoan",
-        "employeeCompensation",
-    ];
-
-    for (const collectionPath of inMemoryCollections) {
-        clearInMemoryCollection(collectionPath);
-    }
 };
 
-const createIndependentHrSettings = (createdEntities: CreatedEntities): void => {
-    const independentData = getIndependentHrSettingsSeed();
+const createIndependentSettings = async (createdEntities: CreatedEntities): Promise<void> => {
+    const independentData = getIndependentSettingsSeed();
 
     for (const [resource, data] of Object.entries(independentData)) {
         const ids = Array.isArray(data)
-            ? createSeedDocuments(resource, data)
-            : [createSeedDocument(resource, data)];
-        createdEntities.hrSettings[resource] = ids;
+            ? await createSeedDocuments(resource, data)
+            : [await createSeedDocument(resource, data)];
+        createdEntities.settingsCollections[resource] = ids;
     }
 };
 
-const createContractSettings = (
+const createContractSettings = async (
     createdEntities: CreatedEntities,
-): {
+): Promise<{
     contractTypeIds: string[];
     contractHourIds: string[];
-} => {
-    const contractTypeIds = createSeedDocuments("contractTypes", [
+}> => {
+    const contractTypeIds = await createSeedDocuments("contractTypes", [
         {
             name: "Full-time Permanent",
             startDate: "2024-01-01",
@@ -167,7 +179,7 @@ const createContractSettings = (
         },
     ]);
 
-    const contractHourIds = createSeedDocuments("contractHours", [
+    const contractHourIds = await createSeedDocuments("contractHours", [
         {
             name: "40 Hours",
             hourPerWeek: 40,
@@ -184,14 +196,14 @@ const createContractSettings = (
         },
     ]);
 
-    createdEntities.hrSettings.contractTypes = contractTypeIds;
-    createdEntities.hrSettings.contractHours = contractHourIds;
+    createdEntities.settingsCollections.contractTypes = contractTypeIds;
+    createdEntities.settingsCollections.contractHours = contractHourIds;
 
     return { contractTypeIds, contractHourIds };
 };
 
-const createLocationHierarchy = (createdEntities: CreatedEntities): string[] => {
-    const headquartersId = createSeedDocument("locations", {
+const createLocationHierarchy = async (createdEntities: CreatedEntities): Promise<string[]> => {
+    const headquartersId = await createSeedDocument("locations", {
         name: "Headquarters",
         type: "building",
         parentId: null,
@@ -202,7 +214,7 @@ const createLocationHierarchy = (createdEntities: CreatedEntities): string[] => 
         address: "123 Main St, City, Country",
     });
 
-    const mainOfficeId = createSeedDocument("locations", {
+    const mainOfficeId = await createSeedDocument("locations", {
         name: "Main Office",
         type: "office",
         parentId: headquartersId,
@@ -212,7 +224,7 @@ const createLocationHierarchy = (createdEntities: CreatedEntities): string[] => 
         description: "Primary office space",
     });
 
-    const branchOfficeId = createSeedDocument("locations", {
+    const branchOfficeId = await createSeedDocument("locations", {
         name: "Branch Office",
         type: "office",
         parentId: headquartersId,
@@ -223,12 +235,12 @@ const createLocationHierarchy = (createdEntities: CreatedEntities): string[] => 
     });
 
     const locationIds = [headquartersId, mainOfficeId, branchOfficeId];
-    createdEntities.hrSettings.locations = locationIds;
+    createdEntities.settingsCollections.locations = locationIds;
     return locationIds;
 };
 
-const createShiftHours = (createdEntities: CreatedEntities): string[] => {
-    const shiftHourIds = createSeedDocuments("shiftHours", [
+const createShiftHours = async (createdEntities: CreatedEntities): Promise<string[]> => {
+    const shiftHourIds = await createSeedDocuments("shiftHours", [
         {
             name: "Morning Shift",
             shiftHours: [{ startTime: "08:00", endTime: "16:00" }],
@@ -249,12 +261,15 @@ const createShiftHours = (createdEntities: CreatedEntities): string[] => {
         },
     ]);
 
-    createdEntities.hrSettings.shiftHours = shiftHourIds;
+    createdEntities.settingsCollections.shiftHours = shiftHourIds;
     return shiftHourIds;
 };
 
-const createShiftTypes = (createdEntities: CreatedEntities, shiftHourIds: string[]): string[] => {
-    const shiftTypeIds = createSeedDocuments("shiftTypes", [
+const createShiftTypes = async (
+    createdEntities: CreatedEntities,
+    shiftHourIds: string[],
+): Promise<string[]> => {
+    const shiftTypeIds = await createSeedDocuments("shiftTypes", [
         {
             name: "Standard Day Shift",
             workingDays: [
@@ -285,12 +300,15 @@ const createShiftTypes = (createdEntities: CreatedEntities, shiftHourIds: string
         },
     ]);
 
-    createdEntities.hrSettings.shiftTypes = shiftTypeIds;
+    createdEntities.settingsCollections.shiftTypes = shiftTypeIds;
     return shiftTypeIds;
 };
 
-const createPositions = (createdEntities: CreatedEntities, gradeIds: string[]): string[] => {
-    const positionIds = createSeedDocuments("positions", [
+const createPositions = async (
+    createdEntities: CreatedEntities,
+    gradeIds: string[],
+): Promise<string[]> => {
+    const positionIds = await createSeedDocuments("positions", [
         {
             name: "Software Engineer",
             startDate: "2024-01-01",
@@ -347,12 +365,15 @@ const createPositions = (createdEntities: CreatedEntities, gradeIds: string[]): 
         },
     ]);
 
-    createdEntities.hrSettings.positions = positionIds;
+    createdEntities.settingsCollections.positions = positionIds;
     return positionIds;
 };
 
-const createDepartments = (createdEntities: CreatedEntities, locationIds: string[]): string[] => {
-    const departmentIds = createSeedDocuments("departmentSettings", [
+const createDepartments = async (
+    createdEntities: CreatedEntities,
+    locationIds: string[],
+): Promise<string[]> => {
+    const departmentIds = await createSeedDocuments("departmentSettings", [
         {
             name: "Engineering",
             code: "ENG",
@@ -373,12 +394,15 @@ const createDepartments = (createdEntities: CreatedEntities, locationIds: string
         },
     ]);
 
-    createdEntities.hrSettings.departmentSettings = departmentIds;
+    createdEntities.settingsCollections.departmentSettings = departmentIds;
     return departmentIds;
 };
 
-const createSections = (createdEntities: CreatedEntities, departmentIds: string[]): string[] => {
-    const sectionIds = createSeedDocuments("sectionSettings", [
+const createSections = async (
+    createdEntities: CreatedEntities,
+    departmentIds: string[],
+): Promise<string[]> => {
+    const sectionIds = await createSeedDocuments("sectionSettings", [
         {
             name: "Backend Development",
             code: "BE",
@@ -399,7 +423,7 @@ const createSections = (createdEntities: CreatedEntities, departmentIds: string[
         },
     ]);
 
-    createdEntities.hrSettings.sectionSettings = sectionIds;
+    createdEntities.settingsCollections.sectionSettings = sectionIds;
     return sectionIds;
 };
 
@@ -622,19 +646,19 @@ const seedEmployees = async ({
         employees.push(createdEmployee);
     }
 
-    inMemoryStore.updateDocument(`departmentSettings/${departmentIds[0]}`, {
+    await CoreSettingsServerRepository.update("departmentSettings", departmentIds[0], {
         manager: "mgr_user_002",
         updatedAt: getTimestamp(),
     });
-    inMemoryStore.updateDocument(`departmentSettings/${departmentIds[1]}`, {
+    await CoreSettingsServerRepository.update("departmentSettings", departmentIds[1], {
         manager: "hr_mgr_user_003",
         updatedAt: getTimestamp(),
     });
-    inMemoryStore.updateDocument(`sectionSettings/${sectionIds[0]}`, {
+    await CoreSettingsServerRepository.update("sectionSettings", sectionIds[0], {
         supervisor: "mgr_user_002",
         updatedAt: getTimestamp(),
     });
-    inMemoryStore.updateDocument(`sectionSettings/${sectionIds[1]}`, {
+    await CoreSettingsServerRepository.update("sectionSettings", sectionIds[1], {
         supervisor: "hr_mgr_user_003",
         updatedAt: getTimestamp(),
     });
@@ -652,10 +676,8 @@ const seedAttendance = async (
 
     await Promise.all(
         employees.map(employee =>
-            mutateAttendance({
-                action: "create",
-                instanceKey,
-                payload: {
+            AttendanceServerRepository.create(
+                {
                     generatedAt: getTimestamp(),
                     uid: employee.uid,
                     month: MONTH_NAMES[currentMonth] ?? MONTH_NAMES[0],
@@ -672,8 +694,9 @@ const seedAttendance = async (
                     absentDays: 2,
                     claimedOvertimes: [],
                     lastClockInTimestamp: dayjs().subtract(1, "day").format(TIMESTAMP_FORMAT),
-                } satisfies Omit<AttendanceModel, "id"> as Record<string, unknown>,
-            }),
+                } satisfies Omit<AttendanceModel, "id">,
+                instanceKey,
+            ),
         ),
     );
 
@@ -717,21 +740,21 @@ export async function POST(request: NextRequest) {
         }
 
         const createdEntities: CreatedEntities = {
-            hrSettings: {},
+            settingsCollections: {},
             employees: [],
         };
 
-        createIndependentHrSettings(createdEntities);
-        createContractSettings(createdEntities);
-        const locationIds = createLocationHierarchy(createdEntities);
-        const shiftHourIds = createShiftHours(createdEntities);
-        const shiftTypeIds = createShiftTypes(createdEntities, shiftHourIds);
-        const positionIds = createPositions(
+        await createIndependentSettings(createdEntities);
+        await createContractSettings(createdEntities);
+        const locationIds = await createLocationHierarchy(createdEntities);
+        const shiftHourIds = await createShiftHours(createdEntities);
+        const shiftTypeIds = await createShiftTypes(createdEntities, shiftHourIds);
+        const positionIds = await createPositions(
             createdEntities,
-            createdEntities.hrSettings.grades ?? [],
+            createdEntities.settingsCollections.grades ?? [],
         );
-        const departmentIds = createDepartments(createdEntities, locationIds);
-        const sectionIds = createSections(createdEntities, departmentIds);
+        const departmentIds = await createDepartments(createdEntities, locationIds);
+        const sectionIds = await createSections(createdEntities, departmentIds);
 
         const employees = await seedEmployees({
             createdEntities,
@@ -754,10 +777,12 @@ export async function POST(request: NextRequest) {
                 message: "Development database seeded successfully.",
                 data: {
                     instance: getCurrentInstance(),
-                    hrSettings: createdEntities.hrSettings,
+                    settingsCollections: createdEntities.settingsCollections,
                     employees: createdEntities.employees,
                     summary: {
-                        totalHrSettings: Object.values(createdEntities.hrSettings).flat().length,
+                        totalSettingsCollections: Object.values(
+                            createdEntities.settingsCollections,
+                        ).flat().length,
                         totalEmployees: employees.length,
                         totalAttendanceRecords,
                         duration: Date.now() - startTime,

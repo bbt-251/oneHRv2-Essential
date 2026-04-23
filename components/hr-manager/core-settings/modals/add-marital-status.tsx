@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService, MaritalStatusModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    MaritalStatusModel,
+} from "@/lib/repository/hr-settings";
 import { MARITAL_STATUS_LOG_MESSAGES } from "@/lib/log-descriptions/marital-document";
 import { useEffect, useState } from "react";
 
@@ -57,7 +60,7 @@ export function AddMaritalStatusModal({
 
         try {
             if (editingStatus) {
-                await hrSettingsService.update(
+                await settingsService.update(
                     "maritalStatuses",
                     editingStatus.id,
                     formData,
@@ -69,7 +72,7 @@ export function AddMaritalStatusModal({
                     }),
                 );
             } else {
-                await hrSettingsService.create(
+                await settingsService.create(
                     "maritalStatuses",
                     formData,
                     userData?.uid ?? "",

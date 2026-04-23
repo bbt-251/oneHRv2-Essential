@@ -59,7 +59,6 @@ export function EmployeeTable({
     onManageDependents,
     onDeleteEmployee,
 }: EmployeeTableProps) {
-    const { ...hrSettings } = useData();
     const {
         sectionSettings,
         locations,
@@ -72,7 +71,20 @@ export function EmployeeTable({
         shiftTypes,
         yearsOfExperiences,
         levelOfEducations,
-    } = hrSettings;
+    } = useData();
+    const {} = {
+        sectionSettings,
+        locations,
+        contractTypes,
+        contractHours,
+        maritalStatuses,
+        positions,
+        departmentSettings,
+        grades,
+        shiftTypes,
+        yearsOfExperiences,
+        levelOfEducations,
+    };
 
     const getName = (items: { id: string; name: string }[], id: string) =>
         items.find(item => item.id === id)?.name || "Unknown";
@@ -182,7 +194,7 @@ export function EmployeeTable({
 
     const getComparableValue = (employee: EmployeeModel, field: keyof EmployeeModel) => {
         const raw = employee[field];
-        // For fields that are references to hrSettings, we prefer to compare ids for equals/in
+        // For reference fields, prefer comparing ids for equals/in
         if (field === "department") return raw as string;
         if (field === "employmentPosition") return raw as string;
         if (field === "contractType") return raw as string;
@@ -529,7 +541,16 @@ export function EmployeeTable({
                     <ColumnSelector columns={columns} onColumnToggle={handleColumnToggle} />
                     <AdvancedFilter
                         employees={employees}
-                        hrSettings={hrSettings}
+                        settingsOptions={{
+                            positions,
+                            departmentSettings,
+                            contractTypes,
+                            levelOfEducations,
+                            maritalStatuses,
+                            sectionSettings,
+                            grades,
+                            shiftTypes,
+                        }}
                         onFiltersChange={setFilters}
                     />
                     <DensitySelector density={density} onDensityChange={setDensity} />

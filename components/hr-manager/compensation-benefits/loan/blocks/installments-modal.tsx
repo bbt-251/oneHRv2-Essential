@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { ExtendedEmployeeLoan } from "@/lib/models/employeeLoan";
 import { ArrowLeft, Check, Edit, Loader2, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/context/toastContext";
-import { updateLoan } from "@/lib/backend/api/compensation-benefit/loan-services";
+import { LogRepository } from "@/lib/repository/logs/log.repository";
 import { COMPENSATION_LOG_MESSAGES } from "@/lib/log-descriptions/compensation";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { LoanByMonth } from "@/lib/models/employeeLoan";
+import { PayrollRepository } from "@/lib/repository/payroll";
 
 const calculateLoanProgress = (months: ExtendedEmployeeLoan["months"], loanTotalAmount: number) => {
     const paidAmount = months
@@ -73,8 +74,7 @@ export function InstallmentsModal({
 }: InstallmentsModalProps) {
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const { ...hrSettings } = useData();
-    const loanTypes = hrSettings.loanTypes;
+    const { loanTypes } = useData();
 
     return (
         <Dialog open={isInstallmentsModalOpen} onOpenChange={setIsInstallmentsModalOpen}>
@@ -288,12 +288,7 @@ export function InstallmentsModal({
                                                                             : l,
                                                                     ),
                                                                 );
-                                                                await updateLoan(
-                                                                    {
-                                                                        id: updatedLoan.id,
-                                                                        months: updatedLoan.months,
-                                                                    },
-                                                                    userData?.uid ?? "",
+                                                                const logInfo =
                                                                     installment.confirmed
                                                                         ? COMPENSATION_LOG_MESSAGES.PAYMENT_ROLLBACK(
                                                                             loanTypes.find(
@@ -310,17 +305,32 @@ export function InstallmentsModal({
                                                                                       updatedLoan.loanType,
                                                                             )?.loanName ?? "",
                                                                             installment.date,
-                                                                        ),
-                                                                )
-                                                                    .then(() =>
+                                                                        );
+                                                                await PayrollRepository.updateLoan({
+                                                                    id: updatedLoan.id,
+                                                                    months: updatedLoan.months,
+                                                                })
+                                                                    .then(async result => {
+                                                                        await LogRepository.create(
+                                                                            logInfo,
+                                                                            userData?.uid ?? "",
+                                                                            result.success
+                                                                                ? "Success"
+                                                                                : "Failure",
+                                                                        );
+                                                                        if (!result.success) {
+                                                                            throw new Error(
+                                                                                result.message,
+                                                                            );
+                                                                        }
                                                                         showToast(
                                                                             installment.confirmed
                                                                                 ? "Rollback Success"
                                                                                 : "Confirmed",
                                                                             "Success",
                                                                             "success",
-                                                                        ),
-                                                                    )
+                                                                        );
+                                                                    })
                                                                     .catch(err => {
                                                                         showToast(
                                                                             "Error. Please Try Again!",

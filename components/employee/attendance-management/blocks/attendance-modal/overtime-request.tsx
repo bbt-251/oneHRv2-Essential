@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/authContext";
-import { deleteOvertimeRequest } from "@/lib/backend/api/attendance/overtime-service";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 import { DailyAttendance } from "@/lib/models/attendance";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import { useToast } from "@/context/toastContext";
 import {
     AlertCircle,
@@ -124,14 +124,13 @@ export function OvertimeRequestTab({
     const handleDelete = async () => {
         if (!deletingRequest || !userData?.uid) return;
         setIsDeleting(true);
-        const res = await deleteOvertimeRequest(
+        const res = await AttendanceRepository.deleteOvertimeRequest(
             deletingRequest.id,
-            userData.uid,
             deletingRequest.employeeUids,
         );
         setIsDeleting(false);
         setDeletingRequest(null);
-        if (res) {
+        if (res.success) {
             showToast("Overtime request deleted.", "Success", "success");
         } else {
             showToast("Failed to delete request.", "Error", "error");

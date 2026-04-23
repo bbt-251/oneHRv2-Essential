@@ -25,7 +25,16 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/theme-provider";
 import { LeaveModel } from "@/lib/models/leave";
 import { dateFormat } from "@/lib/util/dayjs_format";
-import { CalendarIcon, Upload, X, FileText, AlertCircle, User, AlertTriangle } from "lucide-react";
+import {
+    CalendarIcon,
+    Upload,
+    X,
+    FileText,
+    AlertCircle,
+    User,
+    AlertTriangle,
+    Loader2,
+} from "lucide-react";
 import dayjs from "dayjs";
 import { useLeaveRequestForm } from "@/lib/util/leave-request/use-leave-request-form";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,9 +67,10 @@ export function EditLeaveRequestModal({
         handleSubmit,
         handleCancel,
         activeEmployees,
-        hrSettings,
+        settingsLookup,
         user,
         authorizedDays,
+        canSubmit,
     } = useLeaveRequestForm({
         initialData: leaveRequest,
         isEditing: true,
@@ -69,7 +79,7 @@ export function EditLeaveRequestModal({
     });
     const { userData } = useAuth();
 
-    const { leaveTypes, positions, departmentSettings, backdateCapabilities } = hrSettings;
+    const { leaveTypes, positions, departmentSettings, backdateCapabilities } = settingsLookup;
     const annualLeaveType = {
         id: "annual-paid-leave",
         name: "Annual Paid Leave",
@@ -94,7 +104,7 @@ export function EditLeaveRequestModal({
         positions.find(p => p.id === positionId)?.name || "Unknown";
     const getDepartmentName = (departmentId: string) =>
         departmentSettings.find(d => d.id === departmentId)?.name || "Unknown";
-    const selectedEmployee = activeEmployees.find(emp => emp.id === formData.employee);
+    const selectedEmployee = activeEmployees.find(emp => emp.uid === formData.employee);
 
     // Prevent editing if leave is not in requested state
     const canEdit = leaveRequest.leaveState === "Requested";
@@ -733,6 +743,7 @@ export function EditLeaveRequestModal({
                             type="button"
                             variant="outline"
                             onClick={handleCancel}
+                            disabled={isSubmitting}
                             className={`rounded-xl ${
                                 theme === "dark"
                                     ? "border-gray-600 bg-gray-800 text-slate-200 hover:bg-gray-700"
@@ -744,9 +755,10 @@ export function EditLeaveRequestModal({
                         <Button
                             type="submit"
                             className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={isSubmitting || !canEdit}
+                            disabled={isSubmitting || !canEdit || !canSubmit}
                         >
-                            {isSubmitting ? "Updating..." : "Update Request"}
+                            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {isSubmitting ? "Updating Request..." : "Update Request"}
                         </Button>
                     </DialogFooter>
                 </form>

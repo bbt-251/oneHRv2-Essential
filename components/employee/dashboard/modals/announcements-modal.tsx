@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/authContext";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
+import { EmployeeRepository } from "@/lib/repository/employee";
 import { Calendar, Clock, Pin, User, Volume2 } from "lucide-react";
 import { useState } from "react";
 
@@ -34,15 +34,10 @@ export function AnnouncementsModal({
     userAnnouncements,
 }: AnnouncementsModalProps) {
     const { userData } = useAuth();
-    const { hrSettings } = useAppData();
+    const { announcementTypes } = useData();
     const { showToast } = useToast();
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
-    const criticity =
-        (
-            hrSettings as typeof hrSettings & {
-                criticity?: Array<{ id: string; name: string }>;
-            }
-        ).criticity ?? [];
+    const criticity: Array<{ id: string; name: string }> = [];
 
     const markAsRead = async (announcementId: string) => {
         if (!userData) return;
@@ -72,10 +67,11 @@ export function AnnouncementsModal({
                 ];
             }
 
-            const success = await updateEmployee({
+            const result = await EmployeeRepository.updateEmployee({
                 id: userData.id,
                 announcements: updatedAnnouncements,
             });
+            const success = result.success;
 
             if (success) {
                 showToast("Announcement marked as read", "success", "success");
@@ -121,10 +117,11 @@ export function AnnouncementsModal({
                 ];
             }
 
-            const success = await updateEmployee({
+            const result = await EmployeeRepository.updateEmployee({
                 id: userData.id,
                 announcements: updatedAnnouncements,
             });
+            const success = result.success;
 
             if (success) {
                 showToast(
@@ -182,10 +179,11 @@ export function AnnouncementsModal({
                 }
             });
 
-            const success = await updateEmployee({
+            const result = await EmployeeRepository.updateEmployee({
                 id: userData.id,
                 announcements: updatedAnnouncements,
             });
+            const success = result.success;
 
             if (success) {
                 showToast("All announcements marked as read", "success", "success");
@@ -269,7 +267,7 @@ export function AnnouncementsModal({
                                                 )?.name || announcement.criticity}
                                             </Badge>
                                             <Badge className="bg-brand-100 text-brand-700 border-brand-200">
-                                                {hrSettings.announcementTypes?.find(
+                                                {announcementTypes?.find(
                                                     t => t.id === announcement.announcementType,
                                                 )?.name || announcement.announcementType}
                                             </Badge>

@@ -25,16 +25,18 @@ import {
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService, SalaryScaleModel, ScaleModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    SalaryScaleModel,
+    ScaleModel,
+} from "@/lib/repository/hr-settings";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 import { cn } from "@/lib/utils";
 import { Plus, Settings } from "lucide-react";
 import { useState } from "react";
 
 export default function SalaryScale() {
-    const { ...hrSettings } = useData();
-    const salaryScales = hrSettings.salaryScales;
-    const GradeDefinition = hrSettings.grades;
+    const { salaryScales, grades: GradeDefinition } = useData();
 
     const getGradeName = (grade: string) => {
         const gradeName = GradeDefinition.find(g => g.id === grade);
@@ -161,7 +163,7 @@ export default function SalaryScale() {
 
             if (salaryScales.length > 0) {
                 const firstScaleId = salaryScales[0].id;
-                await hrSettingsService.update(
+                await settingsService.update(
                     "salaryScales",
                     firstScaleId,
                     currentScale,
@@ -182,7 +184,7 @@ export default function SalaryScale() {
                 showToast("Salary scale updated successfully", "success", "success");
             } else {
                 // Only create a new document if none exists
-                const docId = await hrSettingsService.create(
+                const docId = await settingsService.create(
                     "salaryScales",
                     {
                         ...currentScale,

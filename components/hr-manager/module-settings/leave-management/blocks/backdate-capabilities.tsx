@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { useData } from "@/context/app-data-context";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { LEAVE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/leave-management";
 import { useAuth } from "@/context/authContext";
@@ -16,8 +16,7 @@ import { useAuth } from "@/context/authContext";
 
 // Backdate Capabi
 export default function BackdateCapabilities() {
-    const { ...hrSettings } = useData();
-    const backdateCapabilities = hrSettings?.backdateCapabilities || [];
+    const { backdateCapabilities = [] } = useData();
 
     const { theme } = useTheme();
     const { showToast } = useToast();
@@ -33,7 +32,7 @@ export default function BackdateCapabilities() {
         };
 
         if (backdateCapabilities.length > 0) {
-            hrSettingsService.update(
+            settingsService.update(
                 "backdateCapabilities",
                 backdateCapabilities[0].id,
                 updateData,
@@ -44,7 +43,7 @@ export default function BackdateCapabilities() {
             );
             showToast("Backdate capabilities updated successfully", "success", "success");
         } else {
-            hrSettingsService.create(
+            settingsService.create(
                 "backdateCapabilities",
                 {
                     ...updateData,

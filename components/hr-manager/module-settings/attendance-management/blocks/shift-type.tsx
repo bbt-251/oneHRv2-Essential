@@ -29,7 +29,10 @@ import {
 import { Edit, Loader2, Plus, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { useData } from "@/context/app-data-context";
-import { hrSettingsService, ShiftTypeModel } from "@/lib/backend/hr-settings-service";
+import {
+    ModuleSettingsRepository as settingsService,
+    ShiftTypeModel,
+} from "@/lib/repository/hr-settings";
 import { timestampFormat } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
 import { useToast } from "@/context/toastContext";
@@ -40,7 +43,7 @@ import { useAuth } from "@/context/authContext";
 import { SHIFT_TYPE_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function ShiftType() {
-    const { ...hrSettings } = useData();
+    const { shiftTypes, shiftHours } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { theme } = useTheme();
@@ -90,8 +93,7 @@ export function ShiftType() {
         "Sunday",
     ];
 
-    const shiftTypes: ShiftTypeModel[] = hrSettings.shiftTypes;
-    const shiftHours: { label: string; value: string }[] = hrSettings.shiftHours.map(sh => ({
+    const shiftHourOptions: { label: string; value: string }[] = shiftHours.map(sh => ({
         label: sh.name,
         value: sh.id,
     }));
@@ -124,7 +126,7 @@ export function ShiftType() {
 
         if (editingShiftType) {
             const { id: _id, ...data } = formData;
-            const res = await hrSettingsService.update(
+            const res = await settingsService.update(
                 "shiftTypes",
                 editingShiftType.id,
                 data,
@@ -145,7 +147,7 @@ export function ShiftType() {
                 showToast("Error updating shift type", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create(
+            const res = await settingsService.create(
                 "shiftTypes",
                 newShiftType,
                 userData?.uid ?? "",
@@ -181,7 +183,7 @@ export function ShiftType() {
 
     const handleDeleteShiftType = (id: string) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
+            const res = await settingsService.remove(
                 "shiftTypes",
                 id,
                 userData?.uid ?? "",
@@ -342,7 +344,7 @@ export function ShiftType() {
                                                             handleDaySelection(
                                                                 day,
                                                                 checked as boolean,
-                                                                shiftHours?.at(0)?.value,
+                                                                shiftHourOptions?.at(0)?.value,
                                                             )
                                                         }
                                                     />
@@ -369,7 +371,7 @@ export function ShiftType() {
                                                             <SelectContent
                                                                 className={dialogContentClass}
                                                             >
-                                                                {shiftHours.map(shiftHour => (
+                                                                {shiftHourOptions.map(shiftHour => (
                                                                     <SelectItem
                                                                         key={shiftHour.value}
                                                                         value={shiftHour.value}
@@ -459,7 +461,7 @@ export function ShiftType() {
                                                 <div key={index} className="text-xs">
                                                     <Badge variant="outline" className={badgeChip}>
                                                         {workingDay.dayOfTheWeek}:{" "}
-                                                        {hrSettings.shiftHours.find(
+                                                        {shiftHours.find(
                                                             sh =>
                                                                 sh.id ==
                                                                 workingDay.associatedShiftHour,

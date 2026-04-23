@@ -3,13 +3,10 @@
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/data-provider";
 import { useToast } from "@/context/toastContext";
-import { updateAttendance } from "@/lib/backend/api/attendance/attendance-service";
-import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
-import {
-    getLeaveRequestByIdWithBackend,
-    updateLeaveRequestWithBackend,
-} from "@/lib/backend/client/leave-client";
-import getListOfDays, { months } from "@/lib/backend/functions/getListOfDays";
+import { AttendanceRepository } from "@/lib/repository/attendance";
+import { EmployeeRepository } from "@/lib/repository/employee";
+import { LeaveRepository } from "@/lib/repository/leave";
+import getListOfDays, { months } from "@/lib/util/functions/getListOfDays";
 import { AttendanceModel, DailyAttendance } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
 import { LeaveCommentModel, LeaveModel } from "@/lib/models/leave";
@@ -22,10 +19,9 @@ export const useLeaveActions = (
     selectedLeave: LeaveModel,
     setIsLeaveDetailModalOpen: (open: boolean) => void,
 ) => {
-    const { activeEmployees, attendances, ...hrSettings } = useData();
+    const { activeEmployees, attendances, leaveTypes } = useData();
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const leaveTypes = hrSettings.leaveTypes;
 
     const getLeaveTypeName = (positionId: string) =>
         leaveTypes.find(p => p.id === positionId)?.name || "Unknown";
@@ -38,11 +34,12 @@ export const useLeaveActions = (
     const handleRefuseLeaveRequest = async (leaveRequestId: string, comment: string) => {
         setIsRefuseLeaveLoading(true);
         try {
-            const existingLeave = await getLeaveRequestByIdWithBackend(leaveRequestId);
-            if (!existingLeave) {
-                showToast("Error", "Leave request not found", "error");
+            const existingLeaveResult = await LeaveRepository.getLeaveRequestById(leaveRequestId);
+            if (!existingLeaveResult.success) {
+                showToast("Error", existingLeaveResult.message, "error");
                 return;
             }
+            const existingLeave = existingLeaveResult.data;
 
             const newComment: LeaveCommentModel = {
                 by: userData?.employeeID || "",
@@ -53,16 +50,16 @@ export const useLeaveActions = (
                 ? [...existingLeave.comments, newComment]
                 : [newComment];
 
-            const response = await updateLeaveRequestWithBackend({
+            const response = await LeaveRepository.updateLeaveRequest({
+                ...existingLeave,
                 id: leaveRequestId,
                 leaveStage: "Refused",
                 leaveState: "Closed",
                 comments: updatedComments,
             });
-            const result = Boolean(response);
 
-            if (result) {
-                showToast("Leave Refused", "Leave request has been refused.", "success");
+            if (response.success) {
+                showToast("Leave Refused", response.message, "success");
                 setIsLeaveDetailModalOpen(false);
 
                 await sendNotification({
@@ -179,17 +176,18 @@ export const useLeaveActions = (
             });
 
             const updatePromises = Array.from(updatedAttendancesMap.values()).map(att =>
-                updateAttendance(att, userData?.uid || ""),
+                AttendanceRepository.updateAttendance(att).then(result => result.success),
             );
             updatePromises.push(
-                updateLeaveRequestWithBackend({
+                LeaveRepository.updateLeaveRequest({
+                    ...leaveRequest,
                     id: leaveRequest.id,
                     leaveStage: "Approved",
                     leaveState: "Closed",
                 }),
             );
             updatePromises.push(
-                updateEmployee({
+                EmployeeRepository.updateEmployee({
                     id: employee.id,
                     balanceLeaveDays:
                         (employee.balanceLeaveDays || 0) - leaveRequest.numberOfLeaveDaysRequested,
@@ -198,7 +196,15 @@ export const useLeaveActions = (
 
             const results = await Promise.all(updatePromises);
 
-            if (results.every(res => res)) {
+            const leaveUpdateResult = results[results.length - 2] as Awaited<
+                ReturnType<typeof LeaveRepository.updateLeaveRequest>
+            >;
+
+            if (
+                results.every((res, index) =>
+                    index === results.length - 2 ? leaveUpdateResult.success : Boolean(res),
+                )
+            ) {
                 showToast(
                     "Leave Approved",
                     "Leave request has been approved and records updated.",
@@ -322,10 +328,11 @@ export const useLeaveActions = (
             });
 
             const updatePromises = Array.from(updatedAttendancesMap.values()).map(att =>
-                updateAttendance(att, userData?.uid || ""),
+                AttendanceRepository.updateAttendance(att).then(result => result.success),
             );
             updatePromises.push(
-                updateLeaveRequestWithBackend({
+                LeaveRepository.updateLeaveRequest({
+                    ...leaveRequest,
                     id: leaveRequest.id,
                     leaveStage: "Cancelled",
                     leaveState: "Closed",
@@ -333,7 +340,7 @@ export const useLeaveActions = (
                 }),
             );
             updatePromises.push(
-                updateEmployee({
+                EmployeeRepository.updateEmployee({
                     id: employee.id,
                     balanceLeaveDays:
                         (employee.balanceLeaveDays || 0) + leaveRequest.numberOfLeaveDaysRequested,
@@ -341,7 +348,15 @@ export const useLeaveActions = (
             );
 
             const results = await Promise.all(updatePromises);
-            if (results.every(res => res)) {
+            const leaveUpdateResult = results[results.length - 2] as Awaited<
+                ReturnType<typeof LeaveRepository.updateLeaveRequest>
+            >;
+
+            if (
+                results.every((res, index) =>
+                    index === results.length - 2 ? leaveUpdateResult.success : Boolean(res),
+                )
+            ) {
                 showToast(
                     "Rollback Accepted",
                     "Leave request rolled back and balance updated.",
@@ -384,11 +399,12 @@ export const useLeaveActions = (
     const handleRefuseRollbackRequest = async (leaveRequestId: string, refuseComment: string) => {
         setIsRefuseRollbackLoading(true);
         try {
-            const existingLeave = await getLeaveRequestByIdWithBackend(leaveRequestId);
-            if (!existingLeave) {
-                showToast("Error", "Leave request not found", "error");
+            const existingLeaveResult = await LeaveRepository.getLeaveRequestById(leaveRequestId);
+            if (!existingLeaveResult.success) {
+                showToast("Error", existingLeaveResult.message, "error");
                 return;
             }
+            const existingLeave = existingLeaveResult.data;
 
             const newComment: LeaveCommentModel = {
                 by: userData?.employeeID || "",
@@ -399,14 +415,14 @@ export const useLeaveActions = (
                 ? [...existingLeave.comments, newComment]
                 : [newComment];
 
-            const response = await updateLeaveRequestWithBackend({
+            const response = await LeaveRepository.updateLeaveRequest({
+                ...existingLeave,
                 id: leaveRequestId,
                 rollbackStatus: "Refused",
                 comments: updatedComments,
             });
-            const result = Boolean(response);
 
-            if (result) {
+            if (response.success) {
                 showToast("Rollback Refused", "The leave request will remain active.", "success");
                 setIsLeaveDetailModalOpen(false);
                 await sendNotification({
@@ -427,7 +443,7 @@ export const useLeaveActions = (
                     title: "Leave Rollback Refused",
                 });
             } else {
-                showToast("Error", "Failed to update the leave request.", "error");
+                showToast("Error", response.message, "error");
             }
         } catch (error) {
             console.error("Error rejecting rollback request:", error);

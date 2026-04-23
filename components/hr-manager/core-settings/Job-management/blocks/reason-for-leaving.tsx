@@ -30,7 +30,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Edit, Filter, Search } from "lucide-react";
-import { hrSettingsService, ReasonOfLeavingModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    ReasonOfLeavingModel,
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import DeleteConfirm from "../../blocks/delete-confirm";
@@ -42,9 +45,8 @@ import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-manageme
 export default function ReasonForLeaving() {
     const { theme } = useTheme();
     const { showToast } = useToast();
-    const { ...hrSettings } = useData();
+    const { reasonOfLeaving: reasons } = useData();
     const { userData } = useAuth();
-    const reasons = hrSettings.reasonOfLeaving;
 
     const [showModal, setShowModal] = useState<boolean>(false);
     const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -133,7 +135,7 @@ export default function ReasonForLeaving() {
             }
             setIsSubmitting(true);
             if (editingReason) {
-                hrSettingsService.update(
+                settingsService.update(
                     "reasonOfLeaving",
                     editingReason.id,
                     formData,
@@ -145,7 +147,7 @@ export default function ReasonForLeaving() {
                 );
                 showToast("Reason for leaving updated successfully", "success", "success");
             } else {
-                hrSettingsService.create(
+                settingsService.create(
                     "reasonOfLeaving",
                     formData,
                     userData?.uid ?? "",
@@ -165,7 +167,7 @@ export default function ReasonForLeaving() {
 
     const handleDelete = async (id: string) => {
         try {
-            await hrSettingsService.remove(
+            await settingsService.remove(
                 "reasonOfLeaving",
                 id,
                 userData?.uid ?? "",

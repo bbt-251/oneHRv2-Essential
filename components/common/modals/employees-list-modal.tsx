@@ -27,8 +27,7 @@ export function EmployeesListModal({
     employeeUids,
     title = "Employees",
 }: EmployeesListModalProps) {
-    const { ...hrSettings } = useData();
-    const departments = hrSettings?.departmentSettings;
+    const { departmentSettings: departments } = useData();
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl">

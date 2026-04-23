@@ -1,13 +1,13 @@
 import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAttendance } from "@/hooks/use-attendance";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { AttendanceCalendar } from "./blocks/attendance-calendar";
 import { AttendanceFilter } from "./blocks/attendance-filter";
 import { AttendanceLegend } from "./blocks/attendance-legend";
 import { useAuth } from "@/context/authContext";
 import dayjs from "dayjs";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 
 interface Summary {
     totalPresent: number;
@@ -20,18 +20,19 @@ export const AttendanceManagement = () => {
     const { userData } = useAuth();
     const { theme } = useTheme();
     const { attendance } = useAttendance({ role: "Employee" });
-    const { leaveManagements } = useAppData();
+    const { leaveManagements } = useData();
     const [selectedMonth, setSelectedMonth] = useState<string>("All Months");
     const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-    const [summary, setSummary] = useState<Summary>({
-        totalPresent: 0,
-        totalAbsent: 0,
-        totalLeave: 0,
-        attendanceRate: 0,
-    });
+    const summary = useMemo<Summary>(() => {
+        if (!attendance || attendance.length === 0) {
+            return {
+                totalPresent: 0,
+                totalAbsent: 0,
+                totalLeave: 0,
+                attendanceRate: 0,
+            };
+        }
 
-    useEffect(() => {
-        if (!attendance || attendance.length === 0) return;
         let totalPresent = 0;
         let totalAbsent = 0;
 
@@ -57,13 +58,13 @@ export const AttendanceManagement = () => {
         const totalDays = totalPresent + totalAbsent;
         const attendanceRate = totalDays > 0 ? (totalPresent / totalDays) * 100 : 0;
 
-        setSummary({
+        return {
             totalPresent,
             totalAbsent,
             totalLeave: numberOfLeaveDays,
             attendanceRate: parseFloat(attendanceRate.toFixed(2)),
-        });
-    }, [attendance, leaveManagements, userData]);
+        };
+    }, [attendance, leaveManagements, userData?.uid]);
 
     const handleClearFilters = () => {
         setSelectedMonth("All Months");

@@ -23,9 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { DependentModel, DependentRelationship } from "@/lib/models/dependent";
 import { format } from "date-fns";
-import { addDependent } from "@/lib/backend/api/employee-management/dependent-service";
-import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
-import { useAuth } from "@/context/authContext";
+import { DependentRepository } from "@/lib/repository/employee";
 import { formatDate } from "@/lib/util/dayjs_format";
 import { CalendarIcon } from "lucide-react";
 
@@ -54,7 +52,6 @@ export function AddDependentModal({
     onClose,
     onSuccess,
 }: AddDependentModalProps) {
-    const { userData } = useAuth();
     const [formData, setFormData] = useState<DependentFormState>({
         firstName: "",
         middleName: "",
@@ -122,15 +119,10 @@ export function AddDependentModal({
                 relatedTo: employeeUid,
             };
 
-            await addDependent(
-                dependentData,
-                userData?.uid ?? "",
-                EMPLOYEE_MANAGEMENT_LOG_MESSAGES.DEPENDENT_CREATED(
-                    `${formData.firstName} ${formData.lastName}`,
-                    formData.relationship,
-                    employeeName,
-                ),
-            );
+            const result = await DependentRepository.createDependent(dependentData);
+            if (!result.success) {
+                throw new Error(result.message);
+            }
 
             onSuccess();
             resetForm();

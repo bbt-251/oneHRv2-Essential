@@ -19,14 +19,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 import { EmployeeModel } from "@/lib/models/employee";
 import { Download, Eye, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export default function TeamDirectoryPage() {
-    const { employees, ...hrSettings } = useAppData();
+    const { employees, departmentSettings, locations, positions, shiftTypes } = useData();
     const { userData } = useAuth();
 
     // Filters and results state
@@ -38,34 +38,34 @@ export default function TeamDirectoryPage() {
     // Helper functions to get human-readable names from IDs
     const getDepartmentName = useMemo<(id: string) => string>(
         () => (id: string) => {
-            const dept = hrSettings?.departmentSettings?.find(d => d.id === id);
+            const dept = departmentSettings?.find(d => d.id === id);
             return dept?.name || id;
         },
-    [hrSettings?.departmentSettings],
+    [departmentSettings],
     );
 
     const getLocationName = useMemo<(id: string) => string>(
         () => (id: string) => {
-            const loc = hrSettings?.locations?.find(l => l.id === id);
+            const loc = locations?.find(l => l.id === id);
             return loc?.name || id;
         },
-    [hrSettings?.locations],
+    [locations],
     );
 
     const getPositionName = useMemo<(id: string) => string>(
         () => (id: string) => {
-            const pos = hrSettings?.positions?.find(p => p.id === id);
+            const pos = positions?.find(p => p.id === id);
             return pos?.name || id;
         },
-    [hrSettings?.positions],
+    [positions],
     );
 
     const getShiftTypeName = useMemo<(id: string) => string>(
         () => (id: string) => {
-            const shift = hrSettings?.shiftTypes?.find(s => s.id === id);
+            const shift = shiftTypes?.find(s => s.id === id);
             return shift?.name || id;
         },
-    [hrSettings?.shiftTypes],
+    [shiftTypes],
     );
 
     // Filter employees to only current user's reportees (own + delegated)

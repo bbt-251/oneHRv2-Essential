@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { SectionSettingsModel } from "@/lib/backend/hr-settings-service";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { SectionSettingsModel } from "@/lib/repository/hr-settings";
+import { CoreSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -38,9 +38,8 @@ export function AddSection({
 }: AddSectionProps) {
     const { showToast } = useToast();
     const { theme } = useTheme();
-    const { employees, ...hrSettings } = useData();
+    const { employees, departmentSettings: departments } = useData();
     const { userData } = useAuth();
-    const departments = hrSettings.departmentSettings;
     const supervisors = employees.filter(e => e.managerPosition === true);
 
     // Helper: given a stored department value (could be id or name), return the department id
@@ -129,7 +128,7 @@ export function AddSection({
 
         try {
             if (editingSection) {
-                await hrSettingsService.update(
+                await settingsService.update(
                     "sectionSettings",
                     editingSection.id,
                     formData,
@@ -145,7 +144,7 @@ export function AddSection({
                 );
                 showToast("Section updated successfully", "success", "success");
             } else {
-                await hrSettingsService.create(
+                await settingsService.create(
                     "sectionSettings",
                     formData,
                     userData?.uid ?? "",

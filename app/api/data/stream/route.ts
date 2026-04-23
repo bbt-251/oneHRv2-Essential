@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { readSessionClaims } from "@/lib/backend/auth/session";
-import { authorizeRequest } from "@/lib/backend/core/authorization";
-import { toErrorResponse } from "@/lib/backend/core/errors";
-import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/backend/config";
+import { readSessionClaims } from "@/lib/server/shared/auth/session";
+import { authorizeRequest } from "@/lib/server/shared/auth/authorization";
+import { toErrorResponse } from "@/lib/server/shared/errors";
+import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/shared/config";
 import {
     getRealtimeBroker,
     loadInitialRealtimeSnapshot,
-} from "@/lib/backend/services/stream.service";
+} from "@/lib/server/shared/realtime/stream.service";
 
 const encoder = new TextEncoder();
 

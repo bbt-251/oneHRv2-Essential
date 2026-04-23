@@ -276,7 +276,7 @@ Notes:
 - `README.md` now reflects the compact backend architecture instead of the removed Firebase/gateway shape
 - app-facing helpers for notifications and generic uploads now go through the compact backend path instead of importing legacy compat storage helpers directly
 - backend internals that previously depended on the legacy compat data shim (`attendance.service.ts`, `leave.service.ts`, `project.service.ts`, `notification.service.ts`, `hr-settings-resource.service.ts`, and realtime snapshot loading) now use the isolated persistence layer in `lib/backend/persistence/in-memory-store.ts` instead
-- `hrSettingsService` now uses the compact `/api/data/query` and `/api/data/mutate` routes through a generic backend HR settings service, so the settings UI no longer depends on the legacy compat layer directly
+- the settings service now uses the compact `/api/data/query` and `/api/data/mutate` routes through a generic backend settings service, so the settings UI no longer depends on the legacy compat layer directly
 - the old `lib/backend/manual/*` tree has been removed after migrating active runtime pieces into:
     - `lib/backend/auth/*`
     - `lib/backend/core/*`

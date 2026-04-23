@@ -18,22 +18,19 @@ import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import {
-    createCompensation,
-    deleteCompensation,
-    updateCompensation,
-} from "@/lib/backend/api/compensation-benefit/compensation-service";
-import { months } from "@/lib/backend/functions/getListOfDays";
-import { numberCommaSeparator } from "@/lib/backend/functions/numberCommaSeparator";
-import calculateIncomeTax from "@/lib/backend/functions/payroll/calculateIncomeTax";
-import { calculateSeverancePay } from "@/lib/backend/functions/calculateSeverancePay";
-import { calculateAnnualLeavePay } from "@/lib/backend/functions/calculateAnnualLeavePay";
+import { LogRepository } from "@/lib/repository/logs/log.repository";
+import { months } from "@/lib/util/functions/getListOfDays";
+import { numberCommaSeparator } from "@/lib/util/functions/numberCommaSeparator";
+import calculateIncomeTax from "@/lib/util/functions/payroll/calculateIncomeTax";
+import { calculateSeverancePay } from "@/lib/util/functions/calculateSeverancePay";
+import { calculateAnnualLeavePay } from "@/lib/util/functions/calculateAnnualLeavePay";
 import { COMPENSATION_LOG_MESSAGES } from "@/lib/log-descriptions/compensation";
 import type { EmployeeModel } from "@/lib/models/employee";
 import { EmployeeCompensationModel } from "@/lib/models/employeeCompensation";
+import { PayrollRepository } from "@/lib/repository/payroll";
 import { getTimestamp } from "@/lib/util/dayjs_format";
-import { validateMultipleSeverancePayEligibility } from "@/lib/backend/functions/calculateSeverancePay";
-import { validateMultipleAnnualLeavePayEligibility } from "@/lib/backend/functions/calculateAnnualLeavePay";
+import { validateMultipleSeverancePayEligibility } from "@/lib/util/functions/calculateSeverancePay";
+import { validateMultipleAnnualLeavePayEligibility } from "@/lib/util/functions/calculateAnnualLeavePay";
 import dayjs from "dayjs";
 import { DollarSign, Edit, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -116,10 +113,17 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
     const { showToast } = useToast();
     const { userData } = useAuth();
     const { confirm, ConfirmDialog } = useConfirm();
-    const { compensations, employees, ...hrSettings } = useData();
-    const paymentTypes = hrSettings.paymentTypes.filter(p => p.active);
-    const deductionTypes = hrSettings.deductionTypes.filter(p => p.active);
-    const pension = hrSettings.pension?.[0] || null;
+    const {
+        compensations,
+        employees,
+        paymentTypes: allPaymentTypes,
+        deductionTypes: allDeductionTypes,
+        pension: pensionDocs,
+        taxes,
+    } = useData();
+    const paymentTypes = allPaymentTypes.filter(p => p.active);
+    const deductionTypes = allDeductionTypes.filter(p => p.active);
+    const pension = pensionDocs?.[0] || null;
     // Filter compensations for this employee
     const employeeAllowances = compensations.filter(
         comp => comp.type === "Payment" && comp.employees?.includes(employee.uid),
@@ -134,7 +138,7 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
 
     // Add Income Tax
     if (employee.associatedTax) {
-        const tax = hrSettings.taxes.find(t => t.id === employee.associatedTax);
+        const tax = taxes.find(t => t.id === employee.associatedTax);
         if (tax) {
             // Calculate income tax based on base salary
             const baseSalary = employee.salary;
@@ -217,8 +221,7 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
         setSelectedEmployeesForForm(selectedEmployeesForForm.filter(emp => emp.id !== employeeId));
     };
 
-    // Get taxes from hrSettings
-    const taxes = hrSettings.taxes || [];
+    // Get taxes from top-level collections
 
     // Check if selected payment type is Severance Pay or Annual Leave
     const selectedPaymentType = paymentTypes.find(pt => pt.id === newPayment.paymentTypeName);
@@ -583,15 +586,17 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
                     deductionAmount: null,
                 };
 
-                const res = await updateCompensation(
-                    updateData,
+                const logInfo = COMPENSATION_LOG_MESSAGES.UPDATED(
+                    `payment: ${paymentTypes.find(pt => pt.id === newPayment.paymentTypeName)?.paymentName ?? ""}`,
+                );
+                const result = await PayrollRepository.updateCompensation(updateData);
+                await LogRepository.create(
+                    logInfo,
                     userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.UPDATED(
-                        `payment: ${paymentTypes.find(pt => pt.id === newPayment.paymentTypeName)?.paymentName ?? ""}`,
-                    ),
+                    result.success ? "Success" : "Failure",
                 );
 
-                if (res) {
+                if (result.success) {
                     showToast("Payment updated successfully", "Success", "success");
                     handleResetPayment();
                 } else {
@@ -609,15 +614,17 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
                     deductionAmount: null,
                 };
 
-                const res = await createCompensation(
-                    newPaymentData,
+                const logInfo = COMPENSATION_LOG_MESSAGES.CREATED(
+                    `payment: ${paymentTypes.find(pt => pt.id === newPayment.paymentTypeName)?.paymentName ?? ""}`,
+                );
+                const result = await PayrollRepository.createCompensation(newPaymentData);
+                await LogRepository.create(
+                    logInfo,
                     userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.CREATED(
-                        `payment: ${paymentTypes.find(pt => pt.id === newPayment.paymentTypeName)?.paymentName ?? ""}`,
-                    ),
+                    result.success ? "Success" : "Failure",
                 );
 
-                if (res) {
+                if (result.success) {
                     showToast("Payment created successfully", "Success", "success");
                     handleResetPayment();
                 } else {
@@ -656,15 +663,17 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
                     paymentType: null,
                 };
 
-                const res = await updateCompensation(
-                    updateData,
+                const logInfo = COMPENSATION_LOG_MESSAGES.UPDATED(
+                    `deduction: ${deductionTypes.find(dt => dt.id === newDeduction.deductionTypeName)?.deductionName ?? ""}`,
+                );
+                const result = await PayrollRepository.updateCompensation(updateData);
+                await LogRepository.create(
+                    logInfo,
                     userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.UPDATED(
-                        `deduction: ${deductionTypes.find(dt => dt.id === newDeduction.deductionTypeName)?.deductionName ?? ""}`,
-                    ),
+                    result.success ? "Success" : "Failure",
                 );
 
-                if (res) {
+                if (result.success) {
                     showToast("Deduction updated successfully", "Success", "success");
                     handleResetDeduction();
                 } else {
@@ -682,15 +691,17 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
                     paymentType: null,
                 };
 
-                const res = await createCompensation(
-                    newDeductionData,
+                const logInfo = COMPENSATION_LOG_MESSAGES.CREATED(
+                    `deduction: ${deductionTypes.find(dt => dt.id === newDeduction.deductionTypeName)?.deductionName ?? ""}`,
+                );
+                const result = await PayrollRepository.createCompensation(newDeductionData);
+                await LogRepository.create(
+                    logInfo,
                     userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.CREATED(
-                        `deduction: ${deductionTypes.find(dt => dt.id === newDeduction.deductionTypeName)?.deductionName ?? ""}`,
-                    ),
+                    result.success ? "Success" : "Failure",
                 );
 
-                if (res) {
+                if (result.success) {
                     showToast("Deduction created successfully", "Success", "success");
                     handleResetDeduction();
                 } else {
@@ -740,17 +751,19 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
         confirm("Are you sure you want to delete this allowance?", async () => {
             setIsLoading(true);
             try {
-                const res = await deleteCompensation(
-                    id,
+                const logInfo = COMPENSATION_LOG_MESSAGES.DELETED(
+                    paymentTypes.find(
+                        pt => pt.id === employeeAllowances.find(a => a.id === id)?.paymentType,
+                    )?.paymentName ?? "",
+                );
+                const result = await PayrollRepository.deleteCompensation(id);
+                await LogRepository.create(
+                    logInfo,
                     userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.DELETED(
-                        paymentTypes.find(
-                            pt => pt.id === employeeAllowances.find(a => a.id === id)?.paymentType,
-                        )?.paymentName ?? "",
-                    ),
+                    result.success ? "Success" : "Failure",
                 );
 
-                if (res) {
+                if (result.success) {
                     showToast("Allowance deleted successfully", "Success", "success");
                 } else {
                     showToast("Error deleting allowance", "Error", "error");
@@ -768,17 +781,19 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
         confirm("Are you sure you want to delete this deduction?", async () => {
             setIsLoading(true);
             try {
-                const res = await deleteCompensation(
-                    id,
+                const logInfo = COMPENSATION_LOG_MESSAGES.DELETED(
+                    deductionTypes.find(
+                        dt => dt.id === deductions.find(d => d.id === id)?.deduction,
+                    )?.deductionName ?? "",
+                );
+                const result = await PayrollRepository.deleteCompensation(id);
+                await LogRepository.create(
+                    logInfo,
                     userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.DELETED(
-                        deductionTypes.find(
-                            dt => dt.id === deductions.find(d => d.id === id)?.deduction,
-                        )?.deductionName ?? "",
-                    ),
+                    result.success ? "Success" : "Failure",
                 );
 
-                if (res) {
+                if (result.success) {
                     showToast("Deduction deleted successfully", "Success", "success");
                 } else {
                     showToast("Error deleting deduction", "Error", "error");
@@ -858,7 +873,12 @@ export function CompensationModal({ isOpen, employee, onClose }: CompensationMod
                                         isAddEditLoading={isLoading}
                                         paymentsData={[]}
                                         taxes={taxes}
-                                        hrSettings={hrSettings}
+                                        settingsLookup={{
+                                            paymentTypes: allPaymentTypes,
+                                            deductionTypes: allDeductionTypes,
+                                            pension: pensionDocs,
+                                            taxes,
+                                        }}
                                     />
                                 </div>
 

@@ -31,16 +31,13 @@ import { AlertTriangle, Clock, Edit, Loader2, Plus, Settings, Trash2 } from "luc
 import { useState } from "react";
 import { useToast } from "@/context/toastContext";
 import {
-    hrSettingsService,
+    ModuleSettingsRepository as settingsService,
     ShiftHourDivision,
     ShiftHourModel,
-} from "@/lib/backend/hr-settings-service";
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { FlexibilityParameterModel } from "@/lib/models/flexibilityParameter";
-import {
-    createParameter,
-    updateParameter,
-} from "@/lib/backend/api/hr-settings/flexibility-parameter";
+import { createParameter, updateParameter } from "@/lib/repository/hr-settings";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
@@ -50,7 +47,7 @@ import { useAuth } from "@/context/authContext";
 import { SHIFT_HOURS_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function ShiftHours() {
-    const { flexibilityParameter: parameterData, ...hrSettings } = useData();
+    const { flexibilityParameter: parameterData, shiftHours } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { confirm, ConfirmDialog } = useConfirm();
@@ -70,7 +67,6 @@ export function ShiftHours() {
         shiftHours: [{ startTime: "", endTime: "" }],
         active: "Yes",
     });
-    const shiftHours: ShiftHourModel[] = hrSettings.shiftHours;
     const flexibilityParameter: FlexibilityParameterModel = {
         id: parameterData?.at(0)?.id ?? "",
         minute: flexibilityMinute,
@@ -141,7 +137,7 @@ export function ShiftHours() {
 
         if (editingShiftHour) {
             const { timestamp: _timestamp, ...data } = newShiftHour;
-            const res = await hrSettingsService.update(
+            const res = await settingsService.update(
                 "shiftHours",
                 editingShiftHour.id,
                 data,
@@ -160,7 +156,7 @@ export function ShiftHours() {
                 showToast("Error updating shift hour", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create(
+            const res = await settingsService.create(
                 "shiftHours",
                 newShiftHour,
                 userData?.uid ?? "",
@@ -197,7 +193,7 @@ export function ShiftHours() {
 
     const handleDeleteShiftHour = async (id: string) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
+            const res = await settingsService.remove(
                 "shiftHours",
                 id,
                 userData?.uid ?? "",

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/components/theme-provider";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
+import { EmployeeRepository } from "@/lib/repository/employee";
 import type {
     EmployeeModel,
     EducationDetailModel,
@@ -149,9 +149,8 @@ export function EmployeeProfileModal({
     onSaveSuccess,
 }: EmployeeProfileModalProps) {
     const { theme } = useTheme();
-    const { ...hrSettings } = useData();
+    const { departmentSettings, positions } = useData();
     const { showToast } = useToast();
-    const { departmentSettings, positions } = hrSettings;
     const isDark = theme === "dark";
 
     // System theme–aligned (match offboarding and rest of app)
@@ -234,8 +233,8 @@ export function EmployeeProfileModal({
     const persist = async (patch: Partial<EmployeeModel>) => {
         setSaving(true);
         try {
-            const ok = await updateEmployee({ id: employee.id, ...patch });
-            if (ok) {
+            const result = await EmployeeRepository.updateEmployee({ id: employee.id, ...patch });
+            if (result.success) {
                 showToast("Profile updated.", "Success", "success");
                 const merged = { ...employee, ...patch };
                 onSaveSuccess?.(merged);

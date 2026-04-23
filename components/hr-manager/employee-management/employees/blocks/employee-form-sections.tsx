@@ -21,8 +21,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useData } from "@/context/app-data-context";
-import { LocationModel } from "@/lib/backend/hr-settings-service";
-import { canBeReportee } from "@/lib/backend/functions/canBeReportee";
+import { LocationModel } from "@/lib/models/hr-settings";
+import { canBeReportee } from "@/lib/util/functions/canBeReportee";
 import { CustomField, CustomFieldSection, EmployeeModel } from "@/lib/models/employee";
 import { calculateProbationEndDate } from "@/lib/util/calculate-probation-end-date";
 import getFullName from "@/lib/util/getEmployeeFullName";
@@ -209,15 +209,16 @@ export const PositionInformationSection: React.FC<PositionInformationProps> = ({
     theme,
     employee,
 }) => {
-    const { activeEmployees: employees, ...hrSettings } = useData();
-
-    const sections = hrSettings.sectionSettings || [];
-    const locations = hrSettings.locations || [];
-    const positions = hrSettings.positions || [];
-    const departments = hrSettings.departmentSettings || [];
-    const GradeDefinition = hrSettings.grades || [];
-    const shiftTypes = hrSettings.shiftTypes || [];
-    const salaryScales = hrSettings.salaryScales || [];
+    const {
+        activeEmployees: employees,
+        sectionSettings: sections = [],
+        locations = [],
+        positions = [],
+        departmentSettings: departments = [],
+        grades: GradeDefinition = [],
+        shiftTypes = [],
+        salaryScales = [],
+    } = useData();
 
     const filteredSections = sections.filter(section => section.active === true);
     const filteredLocations = locations.filter(location => location.active === "Yes");
@@ -631,14 +632,18 @@ export const ContractInformationSection: React.FC<ContractInformationProps> = ({
     errors,
     theme,
 }) => {
-    const { ...hrSettings } = useData();
-    const currencies = hrSettings.currencies.filter(c => c.active);
-    const taxes = hrSettings.taxes.filter(c => c.active);
-
-    const contractTypes = hrSettings.contractTypes || [];
-    const contractHours = hrSettings.contractHours || [];
-    const ProbationDays = (hrSettings.probationDays && hrSettings.probationDays[0]) || null;
-    const salaryScales = hrSettings.salaryScales || [];
+    const {
+        currencies,
+        taxes,
+        contractTypes = [],
+        contractHours = [],
+        probationDays,
+        salaryScales = [],
+        shiftTypes = [],
+    } = useData();
+    const activeCurrencies = currencies.filter(c => c.active);
+    const activeTaxes = taxes.filter(c => c.active);
+    const probationDayConfig = probationDays?.[0] || null;
 
     const filteredContractTypes = contractTypes.filter(
         contractType => contractType.active === "Yes",
@@ -756,14 +761,14 @@ export const ContractInformationSection: React.FC<ContractInformationProps> = ({
                         try {
                             if (value && formData.shiftType) {
                                 const startDate = dayjs(value);
-                                const selectedShiftType = (hrSettings.shiftTypes || []).find(
+                                const selectedShiftType = shiftTypes.find(
                                     shift => shift.id === formData.shiftType,
                                 );
-                                if (selectedShiftType && ProbationDays?.value) {
+                                if (selectedShiftType && probationDayConfig?.value) {
                                     const workingProbationDays = calculateProbationEndDate(
                                         startDate,
                                         selectedShiftType,
-                                        ProbationDays.value,
+                                        probationDayConfig.value,
                                     );
                                     const probationPeriodEndDate = startDate.add(
                                         workingProbationDays,
@@ -821,7 +826,7 @@ export const ContractInformationSection: React.FC<ContractInformationProps> = ({
                     "Associated Tax",
                     formData.associatedTax || "",
                     value => handleInputChange("associatedTax", value),
-                    taxes.map(t => ({ label: t.taxName, value: t.id })),
+                    activeTaxes.map(t => ({ label: t.taxName, value: t.id })),
                     errors,
                     labelClasses,
                     inputClasses,
@@ -834,7 +839,7 @@ export const ContractInformationSection: React.FC<ContractInformationProps> = ({
                     "Currency",
                     formData.currency || "",
                     value => handleInputChange("currency", value),
-                    currencies.map(c => ({ label: c.name, value: c.id })),
+                    activeCurrencies.map(c => ({ label: c.name, value: c.id })),
                     errors,
                     labelClasses,
                     inputClasses,

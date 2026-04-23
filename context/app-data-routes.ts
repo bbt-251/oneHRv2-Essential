@@ -83,14 +83,22 @@ const employeeLeaveResources: readonly AppDataResource[] = [
     "backdateCapabilities",
     "accrualConfigurations",
     "holidays",
+    "shiftTypes",
 ];
 
 const dashboardResources: readonly AppDataResource[] = [
     ...shellResources,
     "attendances",
     "leaveManagements",
+    "leaveSettings",
+    "leaveTypes",
+    "eligibleLeaveDays",
+    "backdateCapabilities",
     "holidays",
     "accrualConfigurations",
+    "flexibilityParameter",
+    "shiftHours",
+    "shiftTypes",
 ];
 
 const managerDirectoryResources: readonly AppDataResource[] = [
@@ -126,7 +134,6 @@ const hrLeaveResources: readonly AppDataResource[] = [
 
 const hrEmployeeResources: readonly AppDataResource[] = [
     ...shellResources,
-    "dependents",
     "compensations",
     "employeeLoans",
     "locations",
@@ -145,6 +152,7 @@ const hrEmployeeResources: readonly AppDataResource[] = [
     "taxes",
     "currencies",
     "pension",
+    "shiftTypes",
 ];
 
 const hrCompensationResources: readonly AppDataResource[] = [
@@ -170,6 +178,7 @@ const hrCompensationResources: readonly AppDataResource[] = [
 
 const hrCoreSettingsResources: readonly AppDataResource[] = [
     ...shellResources,
+    "departmentSettings",
     "sectionSettings",
     "locations",
     "maritalStatuses",

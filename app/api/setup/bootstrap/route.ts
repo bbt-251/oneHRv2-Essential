@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentInstanceKey } from "@/lib/backend/config";
-import { createEmployeeRecord, listEmployees } from "@/lib/backend/persistence/employee.repository";
-import { mutateAttendance } from "@/lib/backend/services/attendance.service";
+import { getCurrentInstanceKey } from "@/lib/shared/config";
+import { createEmployeeRecord, listEmployees } from "@/lib/server/employee/employee.repository";
 import { monthNames, getTimestamp } from "@/lib/util/dayjs_format";
 import { EmployeeModel } from "@/lib/models/employee";
 import { AttendanceModel } from "@/lib/models/attendance";
+import { AttendanceServerRepository } from "@/lib/server/attendance/attendance.repository";
 
 const SETUP_CONFIRMATION_CODE = "851745";
 
@@ -116,11 +116,7 @@ export async function POST(request: NextRequest) {
         );
         await Promise.all(
             attendancePayloads.map(payload =>
-                mutateAttendance({
-                    action: "create",
-                    instanceKey,
-                    payload: payload as Record<string, unknown>,
-                }),
+                AttendanceServerRepository.create(payload, instanceKey),
             ),
         );
 

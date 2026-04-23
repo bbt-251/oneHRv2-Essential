@@ -10,13 +10,10 @@ import { useRouter } from "next/navigation";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { EmployeeModel } from "@/lib/models/employee";
 import { useToast } from "@/context/toastContext";
-import {
-    createLoan,
-    deleteLoan as _deleteLoan,
-    updateLoan,
-} from "@/lib/backend/api/compensation-benefit/loan-services";
 import { COMPENSATION_LOG_MESSAGES } from "@/lib/log-descriptions/compensation";
 import { useAuth } from "@/context/authContext";
+import { LogRepository } from "@/lib/repository/logs/log.repository";
+import { PayrollRepository } from "@/lib/repository/payroll";
 dayjs.extend(isSameOrBefore);
 
 export interface ExtendedEmployeeLoan extends EmployeeLoanModel {
@@ -45,9 +42,9 @@ export function useLoanManagement(
 ) {
     const router = useRouter();
     const { showToast } = useToast();
-    const { employees, employeeLoans, ...hrSettings } = useData();
+    const { employees, employeeLoans, loanTypes: allLoanTypes } = useData();
     const { userData } = useAuth();
-    const loanTypes = hrSettings.loanTypes.filter(l => l.active === true);
+    const loanTypes = allLoanTypes.filter(l => l.active === true);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
     const [editingLoan, setEditingLoan] = useState<ExtendedEmployeeLoan | null>(null);
@@ -266,17 +263,20 @@ export function useLoanManagement(
         };
 
         try {
-            let res: boolean;
+            let success = false;
             if (isEditMode && editingLoan) {
                 const { timestamp: _timestamp, ...data } = loan;
-                res = await updateLoan(
-                    { id: editingLoan.id, ...data },
-                    userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.UPDATED(
-                        `loan: ${loanTypes.find(lt => lt.id == loan.loanType)?.loanName ?? ""}`,
-                    ),
+                const logInfo = COMPENSATION_LOG_MESSAGES.UPDATED(
+                    `loan: ${loanTypes.find(lt => lt.id == loan.loanType)?.loanName ?? ""}`,
                 );
-                if (res) {
+                const result = await PayrollRepository.updateLoan({ id: editingLoan.id, ...data });
+                success = result.success;
+                await LogRepository.create(
+                    logInfo,
+                    userData?.uid ?? "",
+                    success ? "Success" : "Failure",
+                );
+                if (success) {
                     showToast("Loan updated successfully", "Success", "success");
                     setIsEditMode(false);
                     setEditingLoan(null);
@@ -285,14 +285,17 @@ export function useLoanManagement(
                     showToast("Error updating loan", "Error", "error");
                 }
             } else {
-                res = await createLoan(
-                    loan,
-                    userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.CREATED(
-                        `loan: ${loanTypes.find(lt => lt.id == loan.loanType)?.loanName ?? ""}`,
-                    ),
+                const logInfo = COMPENSATION_LOG_MESSAGES.CREATED(
+                    `loan: ${loanTypes.find(lt => lt.id == loan.loanType)?.loanName ?? ""}`,
                 );
-                if (res) {
+                const result = await PayrollRepository.createLoan(loan);
+                success = result.success;
+                await LogRepository.create(
+                    logInfo,
+                    userData?.uid ?? "",
+                    success ? "Success" : "Failure",
+                );
+                if (success) {
                     showToast("Loan created successfully", "Success", "success");
                     setIsEditMode(false);
                     setEditingLoan(null);
@@ -381,14 +384,19 @@ export function useLoanManagement(
             });
         }
 
-        await updateLoan(
-            update,
-            userData?.uid ?? "",
-            COMPENSATION_LOG_MESSAGES.UPDATED(
-                `loan: ${loanTypes.find(lt => lt.id == update.loanType)?.loanName ?? ""}`,
-            ),
-        )
-            .then(() => {
+        const logInfo = COMPENSATION_LOG_MESSAGES.UPDATED(
+            `loan: ${loanTypes.find(lt => lt.id == update.loanType)?.loanName ?? ""}`,
+        );
+        await PayrollRepository.updateLoan(update)
+            .then(async result => {
+                await LogRepository.create(
+                    logInfo,
+                    userData?.uid ?? "",
+                    result.success ? "Success" : "Failure",
+                );
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
                 showToast("Installments updated successfully", "Success", "success");
                 setIsEditingMode(false);
                 setEditValues({});
@@ -444,14 +452,16 @@ export function useLoanManagement(
 
     const deleteLoan = (id: string) => {
         confirm("Are you sure ?", async () => {
-            const res = await _deleteLoan(
-                id,
-                userData?.uid ?? "",
-                COMPENSATION_LOG_MESSAGES.DELETED(
-                    `loan: ${loanTypes.find(lt => loans.find(l => l.id == id)?.loanType == lt.id)?.loanName ?? ""}`,
-                ),
+            const logInfo = COMPENSATION_LOG_MESSAGES.DELETED(
+                `loan: ${loanTypes.find(lt => loans.find(l => l.id == id)?.loanType == lt.id)?.loanName ?? ""}`,
             );
-            if (res) {
+            const result = await PayrollRepository.deleteLoan(id);
+            await LogRepository.create(
+                logInfo,
+                userData?.uid ?? "",
+                result.success ? "Success" : "Failure",
+            );
+            if (result.success) {
                 showToast("Loan deleted successfully", "Success", "success");
             } else {
                 showToast("Error deleting loan", "Error", "error");
@@ -510,7 +520,7 @@ export function useLoanManagement(
     return {
         router,
         showToast,
-        hrSettings,
+        settingsLookup: { loanTypes: allLoanTypes },
         employees,
         employeeLoans,
         loanTypes,

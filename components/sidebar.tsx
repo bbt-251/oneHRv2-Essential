@@ -90,7 +90,7 @@ export const hrMonitorItems: Item[] = [
     },
 ];
 
-export const hrSettingsItems: Item[] = [
+export const settingsItems: Item[] = [
     {
         title: "Core Settings",
         icon: Settings,
@@ -231,7 +231,7 @@ export function AppSidebar() {
                         <SidebarSection
                             label="HR Settings"
                             role="HR Manager"
-                            items={hrSettingsItems}
+                            items={settingsItems}
                             activePath={path}
                             theme={theme}
                             attendanceLogic={attendanceLogic}

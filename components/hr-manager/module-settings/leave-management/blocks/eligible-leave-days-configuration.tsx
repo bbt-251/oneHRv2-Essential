@@ -9,7 +9,10 @@ import { Label } from "@/components/ui/label";
 import { useTheme } from "@/components/theme-provider";
 import { Clock } from "lucide-react";
 import { useData } from "@/context/app-data-context";
-import { EligibleLeaveDaysModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    EligibleLeaveDaysModel,
+    ModuleSettingsRepository as settingsService,
+} from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { LEAVE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/leave-management";
 import { useAuth } from "@/context/authContext";
@@ -18,10 +21,9 @@ import { useAuth } from "@/context/authContext";
 
 export default function EligibleLeaveDaysConfiguration() {
     const { theme } = useTheme();
-    const { ...hrSettings } = useData();
+    const { eligibleLeaveDays } = useData();
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const eligibleLeaveDays = hrSettings.eligibleLeaveDays;
 
     const [formData, setFormData] = useState<Omit<EligibleLeaveDaysModel, "id">>({
         numberOfYears: eligibleLeaveDays?.[0]?.numberOfYears,
@@ -37,7 +39,7 @@ export default function EligibleLeaveDaysConfiguration() {
             return;
         }
         if (eligibleLeaveDays.length > 0) {
-            hrSettingsService.update(
+            settingsService.update(
                 "eligibleLeaveDays",
                 eligibleLeaveDays[0].id,
                 formData,
@@ -48,7 +50,7 @@ export default function EligibleLeaveDaysConfiguration() {
                 }),
             );
         } else {
-            hrSettingsService.create(
+            settingsService.create(
                 "eligibleLeaveDays",
                 formData,
                 userData?.uid,

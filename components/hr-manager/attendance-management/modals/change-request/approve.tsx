@@ -9,12 +9,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, User, Calendar, Clock, Edit, Check, X } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/context/toastContext";
-import { approveAttendanceModification } from "@/lib/backend/api/attendance/request-modification";
 import { RequestModificationModel } from "@/lib/models/attendance";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import { AttendanceChangeRequest } from "../../page";
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
-import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
+import { calculateTotalWorkedHours } from "@/lib/util/functions/calculateDuration";
 import { useData } from "@/context/app-data-context";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients } from "@/lib/util/notification/recipients";
@@ -48,13 +48,13 @@ export function HRAttendanceApproveModal({
 
         setIsSubmitting(true);
 
-        const res = await approveAttendanceModification({
+        const res = await AttendanceRepository.approveAttendanceModification({
             ...requestData,
             reviewedBy: userData?.uid ?? null,
             reviewedDate: getTimestamp(),
             hrComments: comments.trim() ? comments : null,
         } as RequestModificationModel);
-        if (res) {
+        if (res.success) {
             showToast(
                 "Attendance change request approved successfully",
                 "Approval Successful",

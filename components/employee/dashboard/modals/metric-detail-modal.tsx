@@ -3,10 +3,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Megaphone, Bell } from "lucide-react";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 import { useTheme } from "@/components/theme-provider";
-import { HolidayModel } from "@/lib/backend/hr-settings-service";
+import { HolidayModel } from "@/lib/models/hr-settings";
 import dayjs from "dayjs";
 import { timestampFormat } from "@/lib/util/dayjs_format";
 import type InAppNotificationModel from "@/lib/models/notification";
@@ -30,7 +30,7 @@ interface MetricDetailModalProps {
 }
 
 export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalProps) {
-    const { notifications, leaveManagements, hrSettings } = useAppData();
+    const { notifications, leaveManagements, holidays, leaveTypes, reasonOfLeaving } = useData();
     const { userData } = useAuth();
     const myNotifications = notifications
         .filter(not => not.uid === userData?.uid)
@@ -44,7 +44,7 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
     const leaveBalanceDetails = leaveManagements.filter(
         (leave): leave is LeaveBalanceDetail => leave.employeeID === userData?.uid,
     );
-    const upcomingHolidays = hrSettings.holidays
+    const upcomingHolidays = holidays
         .filter(
             (holiday: HolidayModel) =>
                 new Date(holiday.date) >= new Date() && holiday.active === "Yes",
@@ -53,8 +53,7 @@ export function MetricDetailModal({ isOpen, onClose, type }: MetricDetailModalPr
             (a: HolidayModel, b: HolidayModel) =>
                 new Date(a.date).getTime() - new Date(b.date).getTime(),
         );
-    const leaveTypes = hrSettings.leaveTypes;
-    const reasons = hrSettings.reasonOfLeaving;
+    const reasons = reasonOfLeaving;
     const getLeaveTypeName = (leaveTypeId: string) => {
         const leaveType = leaveTypes.find(leaveType => leaveType.id === leaveTypeId);
         return leaveType?.name || "Unknown";

@@ -23,12 +23,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { DependentModel, DependentRelationship } from "@/lib/models/dependent";
 import { format } from "date-fns";
-import { updateDependent } from "@/lib/backend/api/employee-management/dependent-service";
-import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
-import { useAuth } from "@/context/authContext";
+import { DependentRepository } from "@/lib/repository/employee";
 import { formatDate } from "@/lib/util/dayjs_format";
 import { CalendarIcon } from "lucide-react";
-import { useData } from "@/context/app-data-context";
 
 interface EditDependentModalProps {
     dependent: DependentModel | null;
@@ -53,8 +50,6 @@ export function EditDependentModal({
     onClose,
     onSuccess,
 }: EditDependentModalProps) {
-    const { userData } = useAuth();
-    const { activeEmployees } = useData();
     const [formData, setFormData] = useState<DependentFormState>({
         firstName: "",
         middleName: "",
@@ -155,20 +150,10 @@ export function EditDependentModal({
                 relationship: formData.relationship,
             };
 
-            const dependentName = `${formData.firstName} ${formData.lastName}`;
-            const employee = activeEmployees.find(e => e.uid === dependent.relatedTo);
-            const employeeName = employee
-                ? `${employee.firstName} ${employee.surname}`
-                : "Unknown Employee";
-            await updateDependent(
-                updatedDependent,
-                userData?.uid ?? "",
-                EMPLOYEE_MANAGEMENT_LOG_MESSAGES.DEPENDENT_UPDATED(
-                    dependentName,
-                    formData.relationship,
-                    employeeName,
-                ),
-            );
+            const result = await DependentRepository.updateDependent(updatedDependent);
+            if (!result.success) {
+                throw new Error(result.message);
+            }
 
             onSuccess();
         } catch (error) {

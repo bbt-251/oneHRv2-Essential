@@ -25,7 +25,7 @@ import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 
 interface ManagerOvertimeFormProps {
     isOpen: boolean;

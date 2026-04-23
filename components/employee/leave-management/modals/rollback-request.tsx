@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { updateLeaveRequestWithBackend } from "@/lib/backend/client/leave-client";
+import { LeaveRepository } from "@/lib/repository/leave";
 
 import { useToast } from "@/context/toastContext";
 import { useAuth } from "@/context/authContext";
@@ -32,9 +32,8 @@ export default function RollbackRequestModal({
 }: RollbackRequestModalProps) {
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const { employees, ...hrSettings } = useData();
+    const { employees, leaveTypes } = useData();
     const manager = employees.find(emp => emp.uid === userData?.reportingLineManager);
-    const leaveTypes = hrSettings.leaveTypes;
 
     const [reason, setReason] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -48,7 +47,7 @@ export default function RollbackRequestModal({
 
         setIsLoading(true);
         try {
-            const response = await updateLeaveRequestWithBackend({
+            const response = await LeaveRepository.updateLeaveRequest({
                 id: selectedLeave.id,
                 rollbackStatus: "Requested",
                 reason: reason.trim(),
@@ -61,14 +60,13 @@ export default function RollbackRequestModal({
                     },
                 ],
             });
-            const success = Boolean(response);
             void EMPLOYEE_MANAGEMENT_LOG_MESSAGES.LEAVE_ROLLBACK_REQUESTED(
                 leaveTypes.find(lt => lt.id == selectedLeave.leaveType)?.name || "Leave",
                 userData?.firstName + " " + userData?.surname || "Employee",
             );
 
-            if (success) {
-                showToast("Rollback Requested", "Rollback request has been submitted.", "success");
+            if (response.success) {
+                showToast("Rollback Requested", response.message, "success");
                 setIsRollbackModalOpen(false);
                 setReason("");
                 onSuccess?.();
@@ -92,7 +90,7 @@ export default function RollbackRequestModal({
                     title: "Leave Rollback Initiated",
                 });
             } else {
-                throw new Error("Failed to submit rollback request");
+                throw new Error(response.message);
             }
         } catch {
             showToast("Error", "Failed to submit rollback request. Please try again.", "error");

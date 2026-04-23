@@ -20,11 +20,9 @@ export function PositionSelect({
     disabled = false,
     className,
 }: PositionSelectProps) {
-    const { ...hrSettings } = useData();
+    const { positions = [] } = useData();
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [searchTerm, setSearchTerm] = useState<string>("");
-
-    const positions = hrSettings.positions || [];
     const filteredPositions = positions.filter(pos =>
         pos.name?.toLowerCase().includes(searchTerm.toLowerCase()),
     );

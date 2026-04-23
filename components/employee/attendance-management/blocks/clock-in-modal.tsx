@@ -2,19 +2,28 @@
 
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { confirmPassword } from "@/lib/backend/api/user-service";
-import { ShiftTypeModel } from "@/lib/backend/hr-settings-service";
-import { clockInOrOut } from "@/lib/backend/functions/clockInOrOut";
+import { AuthRepository } from "@/lib/repository/auth";
+import { ShiftTypeModel } from "@/lib/models/hr-settings";
+import { clockInOrOut } from "@/lib/util/functions/clockInOrOut";
 import { AttendanceModel } from "@/lib/models/attendance";
 import { EmployeeModel } from "@/lib/models/employee";
 import getFullName from "@/lib/util/getEmployeeFullName";
-import { getCurrentLocation, isLocationInPolygons } from "@/lib/util/location";
-import { DialogTitle } from "@radix-ui/react-dialog";
+import {
+    GeoCoordinate,
+    GeofenceValidationResult,
+    validateWorkingAreaGeofenceForCurrentLocation,
+} from "@/lib/util/geofence";
 import { AlertTriangle, MapPin, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -26,7 +35,7 @@ interface ClockInModalProps {
 
 export function ClockInModal({ currentMonthAttendance, isOpen, onClose }: ClockInModalProps) {
     const { userData } = useAuth();
-    const { attendanceLogic, flexibilityParameter, ...hrSettings } = useData();
+    const { attendanceLogic, flexibilityParameter, shiftTypes, shiftHours } = useData();
     const flexParam = flexibilityParameter?.at(0) ?? null;
     const [currentTime, setCurrentTime] = useState<Date>(new Date());
     const { theme } = useTheme();
@@ -61,13 +70,22 @@ export function ClockInModal({ currentMonthAttendance, isOpen, onClose }: ClockI
     const isDark = theme === "dark";
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogTitle />
+        <Dialog
+            open={isOpen}
+            onOpenChange={open => {
+                if (!open) {
+                    onClose();
+                }
+            }}
+        >
             <DialogContent
                 className={`max-w-md p-0 gap-0 rounded-2xl border-0 shadow-xl ${
                     isDark ? "bg-slate-900" : "bg-white"
                 }`}
             >
+                <DialogTitle className="sr-only">
+                    {currentMonthAttendance?.lastClockInTimestamp ? "Clock Out" : "Clock In"}
+                </DialogTitle>
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 pb-4">
                     <div className="flex items-center gap-3">
@@ -141,11 +159,13 @@ export function ClockInModal({ currentMonthAttendance, isOpen, onClose }: ClockI
                             currentMonthAttendance?.lastClockInTimestamp ? "Clock Out" : "Clock In"
                         }
                         currentMonthAttendance={currentMonthAttendance}
-                        onConfirm={async (type, password) => {
+                        onConfirm={async (type, payload) => {
                             const logic = attendanceLogic?.at(0);
 
                             if (logic?.presentThreshold && logic?.halfPresentThreshold) {
-                                const match = await confirmPassword(password);
+                                const match = await AuthRepository.confirmPassword(
+                                    payload.password,
+                                );
 
                                 if (!match) {
                                     showToast("Incorrect password", "Warning", "warning");
@@ -158,16 +178,16 @@ export function ClockInModal({ currentMonthAttendance, isOpen, onClose }: ClockI
                                 const res = await clockInOrOut(
                                     type,
                                     currentMonthAttendance ?? ({} as AttendanceModel),
-                                    hrSettings.shiftTypes.find(
-                                        st => st.id == userData?.shiftType,
-                                    ) ?? ({} as ShiftTypeModel),
+                                    shiftTypes.find(st => st.id == userData?.shiftType) ??
+                                        ({} as ShiftTypeModel),
                                     logic,
-                                    hrSettings.shiftHours,
+                                    shiftHours,
                                     flexParam,
                                     userData?.uid ?? "",
                                     userData as EmployeeModel,
                                     getFullName(userData ?? ({} as EmployeeModel)),
                                     userTimezone,
+                                    payload.location,
                                 );
 
                                 if (res?.status) {
@@ -204,7 +224,10 @@ export function ClockInModal({ currentMonthAttendance, isOpen, onClose }: ClockI
 interface PasswordConfirmProps {
     type: "Clock In" | "Clock Out";
     currentMonthAttendance: AttendanceModel | null;
-    onConfirm: (type: "Clock In" | "Clock Out", password: string) => Promise<void>;
+    onConfirm: (
+        type: "Clock In" | "Clock Out",
+        payload: { password: string; location: GeoCoordinate | null },
+    ) => Promise<void>;
 }
 
 export function PasswordConfirmDialog({
@@ -217,18 +240,19 @@ export function PasswordConfirmDialog({
     const [open, setOpen] = useState<boolean>(false);
     const [password, setPassword] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
+    const [validatedLocation, setValidatedLocation] = useState<GeoCoordinate | null>(null);
 
     const handleConfirm = async () => {
         setLoading(true);
-        await onConfirm(type, password);
+        await onConfirm(type, { password, location: validatedLocation });
         setLoading(false);
         setPassword("");
+        setValidatedLocation(null);
         setOpen(false);
     };
 
-    const isWithinTheGeoFence = async () => {
-        const currentLocation = await getCurrentLocation();
-        if (!currentLocation) {
+    const showGeofenceFailureToast = (result: GeofenceValidationResult) => {
+        if (result.reason === "location_unavailable") {
             showToast(
                 `Couldn't get your current location, please enable it on your browser.`,
                 "Warning",
@@ -236,31 +260,37 @@ export function PasswordConfirmDialog({
             );
             return;
         }
-        const workArea: [number, number][][] = userData?.workingArea
-            ? JSON.parse(userData.workingArea)
-            : [];
-        // console.log(workArea,'work area');
-        // console.log('current location',currentLocation);
 
-        let allowClockInOut = true;
-        if (workArea.length) {
-            allowClockInOut = isLocationInPolygons(workArea, currentLocation);
+        if (result.reason === "invalid_working_area") {
+            showToast(
+                "Your working area is invalid. Please contact HR Manager.",
+                "Warning",
+                "warning",
+            );
+            return;
         }
 
-        return allowClockInOut;
+        showToast(`You must be around your work place`, "Warning", "warning");
+    };
+
+    const isWithinTheGeoFence = async () => {
+        const result = await validateWorkingAreaGeofenceForCurrentLocation(userData?.workingArea);
+        if (!result.ok) {
+            showGeofenceFailureToast(result);
+            return result;
+        }
+
+        setValidatedLocation(result.location);
+        return result;
     };
 
     return (
         <>
             <Button
                 onClick={async () => {
-                    const allowClockInOut = await isWithinTheGeoFence();
-                    if (allowClockInOut == undefined) return; // makes sure the below else message is not displayed
-
-                    if (allowClockInOut) {
+                    const geofenceResult = await isWithinTheGeoFence();
+                    if (geofenceResult?.ok) {
                         setOpen(true);
-                    } else {
-                        showToast(`You must be around your work place`, "Warning", "warning");
                     }
                 }}
                 className={`${
@@ -274,7 +304,16 @@ export function PasswordConfirmDialog({
                 {type} Now
             </Button>
 
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+                open={open}
+                onOpenChange={nextOpen => {
+                    setOpen(nextOpen);
+                    if (!nextOpen) {
+                        setPassword("");
+                        setValidatedLocation(null);
+                    }
+                }}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">

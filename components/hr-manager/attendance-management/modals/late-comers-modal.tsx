@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/table";
 import { useCallback, useEffect, useState } from "react";
 import { LateComersModel } from "@/lib/models/late-comers";
-import { getLateComersByMonth } from "@/lib/backend/api/attendance/late-comers-service";
 import { useData } from "@/context/app-data-context";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import dayjs from "dayjs";
 
@@ -54,8 +54,11 @@ export function LateComersModal({ isOpen, onClose }: LateComersModalProps) {
         setLoading(true);
         try {
             const currentYear = dayjs().year();
-            const data = await getLateComersByMonth(selectedMonth, currentYear);
-            setLateComers(data);
+            const result = await AttendanceRepository.listLateComers({
+                month: selectedMonth,
+                year: currentYear,
+            });
+            setLateComers(result.success ? result.data : []);
         } catch (error) {
             console.error("Error fetching late comers:", error);
         } finally {

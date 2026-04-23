@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { PayrollData } from "@/components/hr-manager/compensation-benefits/payroll-management/page";
-import returnPayrollData from "@/lib/backend/functions/returnPayslipData";
+import returnPayrollData from "@/lib/util/functions/returnPayslipData";
 import { useData } from "@/context/app-data-context";
 import { EmployeeLoanModel } from "@/lib/models/employeeLoan";
 import { LoanTypeModel } from "@/lib/models/hr-settings";
@@ -17,19 +17,34 @@ export function usePayrollData(
         employees,
         attendanceLogic,
         attendances,
-        hrSettings,
         overtimeRequests,
         leaveManagements,
         compensations,
+        overtimeTypes,
+        shiftTypes,
+        holidays,
+        currencies,
+        deductionTypes,
+        paymentTypes,
+        pension,
+        taxes,
+        positions,
+        departmentSettings,
+        sectionSettings,
+        locations,
+        contractTypes,
     } = useData();
-    const overtimeTypes = hrSettings.overtimeTypes;
-    const shiftTypes = hrSettings.shiftTypes;
-    const holidays = hrSettings.holidays;
-    const currencies = hrSettings.currencies;
-    const deductionTypes = hrSettings.deductionTypes;
-    const paymentTypes = hrSettings.paymentTypes;
-    const pension = hrSettings.pension?.at(0) || null;
-    const taxes = hrSettings.taxes;
+
+    const settingsLookup = useMemo(
+        () => ({
+            positions,
+            departmentSettings,
+            sectionSettings,
+            locations,
+            contractTypes,
+        }),
+        [contractTypes, departmentSettings, locations, positions, sectionSettings],
+    );
 
     const payslipData = useMemo<PayrollData[]>(() => {
         return returnPayrollData({
@@ -46,12 +61,12 @@ export function usePayrollData(
             shifts: shiftTypes,
             taxes,
             payrollPDFSettings,
-            pension,
+            pension: pension?.at(0) || null,
             attendanceLogic: attendanceLogic?.at(0)?.chosenLogic ?? 1,
             holidays,
             leaveDocs: leaveManagements,
             currencies,
-            hrSettings,
+            settingsLookup,
         });
     }, [
         selectedMonth,
@@ -72,7 +87,7 @@ export function usePayrollData(
         holidays,
         leaveManagements,
         currencies,
-        hrSettings,
+        settingsLookup,
     ]);
 
     const selectedEmployeeData = useMemo<PayrollData[]>(

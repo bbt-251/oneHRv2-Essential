@@ -21,9 +21,8 @@ interface EmployeeDetailsModalProps {
 
 export function EmployeeDetailsModal({ employee, onClose, onEdit }: EmployeeDetailsModalProps) {
     const { theme } = useTheme();
-    const { employees, ...hrSettings } = useData();
-    const [isReporteesOpen, setIsReporteesOpen] = useState<boolean>(false);
     const {
+        employees,
         sectionSettings,
         locations,
         contractTypes,
@@ -36,7 +35,9 @@ export function EmployeeDetailsModal({ employee, onClose, onEdit }: EmployeeDeta
         yearsOfExperiences,
         levelOfEducations,
         taxes,
-    } = hrSettings;
+        currencies,
+    } = useData();
+    const [isReporteesOpen, setIsReporteesOpen] = useState<boolean>(false);
 
     const getName = (items: { id: string; name: string }[], id: string) =>
         items.find(item => item.id === id)?.name || "Unknown";
@@ -74,7 +75,7 @@ export function EmployeeDetailsModal({ employee, onClose, onEdit }: EmployeeDeta
         const tax = taxes.find(t => t.id === taxId);
         return tax?.taxName || taxId;
     };
-    const getCurrency = (id: string) => hrSettings.currencies.find(c => c.id === id)?.name ?? "";
+    const getCurrency = (id: string) => currencies.find(c => c.id === id)?.name ?? "";
 
     const getManagerFullName = (managerId: string) => {
         if (!managerId) return "Unknown";

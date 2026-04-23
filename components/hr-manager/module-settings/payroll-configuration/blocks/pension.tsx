@@ -3,14 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 import { PensionModel } from "@/lib/models/hr-settings";
 import { Loader2, PiggyBank } from "lucide-react";
 import { useState } from "react";
 
 export function Pension() {
-    const { ...hrSettings } = useData();
-    const pension = hrSettings.pension?.at(0) || null;
+    const { pension: pensionSettings } = useData();
+    const pension = pensionSettings?.at(0) || null;
     const { showToast } = useToast();
     const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
     const [employeeContributionDraft, setEmployeeContributionDraft] = useState<number | null>(null);
@@ -29,14 +29,14 @@ export function Pension() {
         };
 
         if (pension) {
-            const res = await hrSettingsService.update("pension", pension.id, newData);
+            const res = await settingsService.update("pension", pension.id, newData);
             if (res) {
                 showToast("Pension updated successfully", "Success", "success");
             } else {
                 showToast("Error updating pension", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create("pension", newData);
+            const res = await settingsService.create("pension", newData);
             if (res) {
                 showToast("Pension created successfully", "Success", "success");
             } else {

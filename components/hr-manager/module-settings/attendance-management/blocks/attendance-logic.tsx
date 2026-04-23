@@ -9,10 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AttendanceLogicModel } from "@/lib/models/attendance-logic";
 import { useData } from "@/context/app-data-context";
-import {
-    createAttendanceLogic,
-    updateAttendanceLogic,
-} from "@/lib/backend/api/hr-settings/attendance-logic-service";
+import { createAttendanceLogic, updateAttendanceLogic } from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -43,6 +40,7 @@ export function AttendanceLogic() {
     const handleLogicChange = (logic: 1 | 2 | 3 | 4) => {
         setConfig(prev => ({
             ...prev,
+            id: prev.id || savedConfig?.id || "",
             chosenLogic: logic,
             halfPresentThreshold: logic === 3 || logic === 4 ? prev.halfPresentThreshold : null,
             presentThreshold: logic === 3 || logic === 4 ? prev.presentThreshold : null,
@@ -57,6 +55,7 @@ export function AttendanceLogic() {
             value === "" ? null : Math.min(100, Math.max(0, Number.parseInt(value) || 0));
         setConfig(prev => ({
             ...prev,
+            id: prev.id || savedConfig?.id || "",
             [field]: numValue,
         }));
     };
@@ -64,11 +63,12 @@ export function AttendanceLogic() {
     const handleSave = async () => {
         setSaveLoading(true);
         if (savedConfig) {
+            const payload = {
+                ...activeConfig,
+                id: activeConfig.id || savedConfig.id,
+            } as AttendanceLogicModel;
             // update logic
-            const res = await updateAttendanceLogic(
-                activeConfig as AttendanceLogicModel,
-                userData?.uid ?? "",
-            );
+            const res = await updateAttendanceLogic(payload, userData?.uid ?? "");
             if (res) {
                 showToast("Logic updated successfully", "Success", "success");
             } else {

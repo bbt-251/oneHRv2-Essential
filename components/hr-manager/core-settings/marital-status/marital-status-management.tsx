@@ -24,7 +24,10 @@ import {
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService, MaritalStatusModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    MaritalStatusModel,
+} from "@/lib/repository/hr-settings";
 import { MARITAL_STATUS_LOG_MESSAGES } from "@/lib/log-descriptions/marital-document";
 import { Edit, Heart, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -33,8 +36,7 @@ import DeleteConfirm from "../blocks/delete-confirm";
 import { AddMaritalStatusModal } from "../modals/add-marital-status";
 
 export function MaritalStatusManagement() {
-    const { ...hrSettings } = useData();
-    const maritalStatuses = hrSettings?.maritalStatuses;
+    const { maritalStatuses } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { userData } = useAuth();
@@ -62,7 +64,7 @@ export function MaritalStatusManagement() {
 
     const handleDelete = async (id: string) => {
         try {
-            await hrSettingsService.remove(
+            await settingsService.remove(
                 "maritalStatuses",
                 id,
                 userData?.uid ?? "",

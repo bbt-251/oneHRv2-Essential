@@ -18,12 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import {
-    createOvertimeRequest,
-    updateOvertimeRequest,
-} from "@/lib/backend/api/attendance/overtime-service";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import { dateFormat, timestampFormat } from "@/lib/util/dayjs_format";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { getNotificationRecipients } from "@/lib/util/notification/recipients";
@@ -169,7 +166,7 @@ export function EmployeeOvertimeForm({
         setIsSubmitting(true);
         try {
             if (isEdit) {
-                const res = await updateOvertimeRequest(
+                const res = await AttendanceRepository.updateOvertimeRequest(
                     {
                         id: editingRequest.id,
                         overtimeDate: dayjs(formData.overtimeDate).format(dateFormat),
@@ -182,7 +179,7 @@ export function EmployeeOvertimeForm({
                     },
                     userData.uid,
                 );
-                if (res) {
+                if (res.success) {
                     showToast("Overtime request updated successfully.", "Success", "success");
                     onSuccess();
                 } else {
@@ -209,8 +206,8 @@ export function EmployeeOvertimeForm({
                     hrComments: null,
                     duration: durationHours,
                 };
-                const res = await createOvertimeRequest(newRequest, userData.uid);
-                if (res) {
+                const res = await AttendanceRepository.createOvertimeRequest(newRequest);
+                if (res.success) {
                     try {
                         const validRecipients = getNotificationRecipients(
                             employees,

@@ -31,7 +31,7 @@ import { TaxModel } from "@/lib/models/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 
 function TaxObligationTable({
     data,
@@ -202,8 +202,7 @@ function TaxObligationTable({
 }
 
 export function TaxConfiguration() {
-    const { ...hrSettings } = useData();
-    const taxes = hrSettings.taxes;
+    const { taxes } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
@@ -241,7 +240,7 @@ export function TaxConfiguration() {
 
     const handleDelete = (item: TaxModel) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove("taxes", item.id);
+            const res = await settingsService.remove("taxes", item.id);
             if (res) {
                 showToast("Tax deleted successfully", "Success", "success");
             } else {
@@ -255,7 +254,7 @@ export function TaxConfiguration() {
 
         const { id: _id, ...data } = formData;
         if (editingItem) {
-            const res = await hrSettingsService.update("taxes", editingItem.id, data);
+            const res = await settingsService.update("taxes", editingItem.id, data);
             if (res) {
                 showToast("Tax updated successfully", "Success", "success");
                 setShowDialog(false);
@@ -264,7 +263,7 @@ export function TaxConfiguration() {
                 showToast("Error updating tax", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create("taxes", data);
+            const res = await settingsService.create("taxes", data);
             if (res) {
                 showToast("Tax type created successfully", "Success", "success");
                 setShowDialog(false);

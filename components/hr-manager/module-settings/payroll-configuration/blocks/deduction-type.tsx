@@ -31,11 +31,10 @@ import { DeductionTypeModel } from "@/lib/models/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 
 export function DeductionType() {
-    const { ...hrSettings } = useData();
-    const deductionTypes = hrSettings.deductionTypes;
+    const { deductionTypes } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
@@ -69,7 +68,7 @@ export function DeductionType() {
 
     const handleDelete = (item: DeductionTypeModel) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove("deductionTypes", item.id);
+            const res = await settingsService.remove("deductionTypes", item.id);
             if (res) {
                 showToast("Deduction type deleted successfully", "Success", "success");
             } else {
@@ -83,7 +82,7 @@ export function DeductionType() {
 
         const { id: _id, ...data } = formData;
         if (editingItem) {
-            const res = await hrSettingsService.update("deductionTypes", editingItem.id, data);
+            const res = await settingsService.update("deductionTypes", editingItem.id, data);
             if (res) {
                 showToast("Deduction type updated successfully", "Success", "success");
                 setShowDialog(false);
@@ -92,7 +91,7 @@ export function DeductionType() {
                 showToast("Error updating deduction type", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create("deductionTypes", data);
+            const res = await settingsService.create("deductionTypes", data);
             if (res) {
                 showToast("Deduction type created successfully", "Success", "success");
                 setShowDialog(false);

@@ -1,8 +1,8 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAppData } from "@/context/app-data-context";
-import { getEmployeesByUid } from "@/lib/backend/api/employee-management/employee-management-service";
+import { useData } from "@/context/app-data-context";
+import { EmployeeRepository } from "@/lib/repository/employee";
 import { RequestModificationModel } from "@/lib/models/attendance";
 import { dateFormat, timestampFormat } from "@/lib/util/dayjs_format";
 import getFullName from "@/lib/util/getEmployeeFullName";
@@ -71,9 +71,8 @@ export function AttendanceManagementHR() {
         overtimeRequests: overtimeRequestsData,
         loading,
         activeEmployees,
-        hrSettings,
-    } = useAppData();
-    const overtimeTypes = hrSettings.overtimeTypes;
+        overtimeTypes,
+    } = useData();
     const [error] = useState<string | null>(null);
     const [isLateComersModalOpen, setIsLateComersModalOpen] = useState<boolean>(false);
 
@@ -111,7 +110,10 @@ export function AttendanceManagementHR() {
     useEffect(() => {
         (async () => {
             const employeeUids = requestModifications.map(rm => rm.uid).filter(Boolean);
-            const employees = employeeUids.length ? await getEmployeesByUid(employeeUids) : [];
+            const employeeResult = employeeUids.length
+                ? await EmployeeRepository.listEmployees({ uids: employeeUids })
+                : null;
+            const employees = employeeResult?.success ? employeeResult.data : [];
 
             const adoptedData = requestModifications.map(rm => {
                 const employee = employees.find(e => e.uid == rm.uid);

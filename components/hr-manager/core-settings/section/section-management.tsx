@@ -23,10 +23,10 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit, Layers, Users } from "lucide-react";
 import { DataToolbar, type Density, getDensityRowClasses } from "../blocks/data-toolbar";
-import { SectionSettingsModel } from "@/lib/backend/hr-settings-service";
+import { SectionSettingsModel } from "@/lib/repository/hr-settings";
 import { EmployeeModel } from "@/lib/models/employee";
 // Add these imports
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { CoreSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { AddSection } from "../modals/add-section-modal";
@@ -38,12 +38,10 @@ import { SECTION_LOG_MESSAGES } from "@/lib/log-descriptions/department-section"
 
 export function SectionManagement() {
     const { theme } = useTheme();
-    const { employees, ...hrSettings } = useData();
+    const { employees, departmentSettings: departments, sectionSettings: sections } = useData();
     const { userData } = useAuth();
-    const departments = hrSettings.departmentSettings;
     // Keep original sections (department stored as id) and create a display copy
     // where department is the department name for showing in the table.
-    const sections = hrSettings.sectionSettings; // original data (department is id)
     const displaySections = sections.map(s => ({
         ...s,
         department: departments.find(d => d.id == s.department)?.name ?? "",
@@ -113,7 +111,7 @@ export function SectionManagement() {
 
     const handleDelete = async (id: string) => {
         try {
-            await hrSettingsService.remove(
+            await settingsService.remove(
                 "sectionSettings",
                 id,
                 userData?.uid ?? "",

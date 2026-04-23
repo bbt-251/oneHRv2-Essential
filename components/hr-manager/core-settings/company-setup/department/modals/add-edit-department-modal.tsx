@@ -15,10 +15,10 @@ import {
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import {
+    CoreSettingsRepository as settingsService,
     DepartmentSettingsModel,
-    hrSettingsService,
     LocationModel,
-} from "@/lib/backend/hr-settings-service";
+} from "@/lib/repository/hr-settings";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
@@ -49,12 +49,11 @@ const AddEditDepartmentModal = ({
     const { theme } = useTheme();
     const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const { employees, ...hrSettings } = useData();
+    const { employees, locations } = useData();
     const { userData } = useAuth();
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
     const managers = employees.filter(e => e.role.includes("Manager"));
-    const locations = hrSettings.locations;
     const filteredLocations = locations.filter(location => location.active === "Yes");
 
     const buildLocationTree = (
@@ -173,7 +172,7 @@ const AddEditDepartmentModal = ({
 
         try {
             if (editingDepartment) {
-                await hrSettingsService.update(
+                await settingsService.update(
                     "departmentSettings",
                     editingDepartment.id,
                     formData,
@@ -189,7 +188,7 @@ const AddEditDepartmentModal = ({
                 );
                 showToast("Department updated successfully", "success", "success");
             } else {
-                await hrSettingsService.create(
+                await settingsService.create(
                     "departmentSettings",
                     formData,
                     userData?.uid ?? "",

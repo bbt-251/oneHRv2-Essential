@@ -30,7 +30,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Edit } from "lucide-react";
 import { useData } from "@/context/app-data-context";
-import { hrSettingsService, LeaveTypeModel } from "@/lib/backend/hr-settings-service";
+import {
+    LeaveTypeModel,
+    ModuleSettingsRepository as settingsService,
+} from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
@@ -41,11 +44,10 @@ import { useAuth } from "@/context/authContext";
 // Leave Types Component
 
 export default function LeaveTypes() {
-    const { ...hrSettings } = useData();
+    const { leaveTypes } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const leaveTypes = hrSettings.leaveTypes;
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [editingLeaveType, setEditingLeaveType] = useState<LeaveTypeModel | null>(null);
@@ -76,7 +78,7 @@ export default function LeaveTypes() {
     };
 
     const handleDelete = (id: string) => {
-        hrSettingsService.remove(
+        settingsService.remove(
             "leaveTypes",
             id,
             userData?.uid,
@@ -128,7 +130,7 @@ export default function LeaveTypes() {
             }
 
             if (editingLeaveType) {
-                hrSettingsService.update(
+                settingsService.update(
                     "leaveTypes",
                     editingLeaveType.id,
                     formData,
@@ -144,7 +146,7 @@ export default function LeaveTypes() {
                 showToast("Leave type updated successfully", "success", "success");
             } else {
                 // Add new leave type
-                hrSettingsService.create(
+                settingsService.create(
                     "leaveTypes",
                     formData,
                     userData?.uid,

@@ -1,17 +1,29 @@
 import { EmployeeModel } from "@/lib/models/employee";
-import type { HrSettingsState } from "@/hooks/use-hr-settings";
+interface SettingsLookupState {
+    positions?: Array<{ id: string; name: string }>;
+    departmentSettings?: Array<{ id: string; name: string }>;
+    sectionSettings?: Array<{ id: string; name: string }>;
+    grades?: Array<{ id: string; grade: string }>;
+    shiftTypes?: Array<{ id: string; name: string }>;
+    locations?: Array<{ id: string; name: string }>;
+    contractTypes?: Array<{ id: string; name: string }>;
+    currencies?: Array<{ id: string; name: string }>;
+    levelOfEducations?: Array<{ id: string; name: string }>;
+    yearsOfExperiences?: Array<{ id: string; name: string }>;
+    maritalStatuses?: Array<{ id: string; name: string }>;
+}
 
 /**
  * Replace dynamic placeholders in document content with actual employee data
  * @param content - The template content with placeholders (e.g., {employeeName}, {employeeID})
  * @param employee - The employee data to use for replacement
- * @param hrSettings - HR settings data to look up IDs for names
+ * @param settingsLookup - settings data to look up IDs for names
  * @returns The content with all placeholders replaced
  */
 export function replaceDynamicFields(
     content: string,
     employee: EmployeeModel | null,
-    hrSettings?: HrSettingsState,
+    settingsLookup?: SettingsLookupState,
 ): string {
     if (!employee) return content;
 
@@ -21,78 +33,78 @@ export function replaceDynamicFields(
 
     // Helper function to get position name by ID
     const getPositionName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.positions) return id || "";
-        const position = hrSettings.positions.find(p => p.id === id);
+        if (!id || !settingsLookup?.positions) return id || "";
+        const position = settingsLookup.positions.find(p => p.id === id);
         return position?.name || id;
     };
 
     // Helper function to get department name by ID
     const getDepartmentName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.departmentSettings) return id || "";
-        const department = hrSettings.departmentSettings.find(d => d.id === id);
+        if (!id || !settingsLookup?.departmentSettings) return id || "";
+        const department = settingsLookup.departmentSettings.find(d => d.id === id);
         return department?.name || id;
     };
 
     // Helper function to get section name by ID
     const getSectionName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.sectionSettings) return id || "";
-        const section = hrSettings.sectionSettings.find(s => s.id === id);
+        if (!id || !settingsLookup?.sectionSettings) return id || "";
+        const section = settingsLookup.sectionSettings.find(s => s.id === id);
         return section?.name || id;
     };
 
     // Helper function to get grade name by ID
     const getGradeName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.grades) return id || "";
-        const grade = hrSettings.grades.find(g => g.id === id);
+        if (!id || !settingsLookup?.grades) return id || "";
+        const grade = settingsLookup.grades.find(g => g.id === id);
         return grade?.grade || id;
     };
 
     // Helper function to get shift type name by ID
     const getShiftTypeName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.shiftTypes) return id || "";
-        const shiftType = hrSettings.shiftTypes.find(s => s.id === id);
+        if (!id || !settingsLookup?.shiftTypes) return id || "";
+        const shiftType = settingsLookup.shiftTypes.find(s => s.id === id);
         return shiftType?.name || id;
     };
 
     // Helper function to get location name by ID
     const getLocationName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.locations) return id || "";
-        const location = hrSettings.locations.find(l => l.id === id);
+        if (!id || !settingsLookup?.locations) return id || "";
+        const location = settingsLookup.locations.find(l => l.id === id);
         return location?.name || id;
     };
 
     // Helper function to get contract type name by ID
     const getContractTypeName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.contractTypes) return id || "";
-        const contractType = hrSettings.contractTypes.find(c => c.id === id);
+        if (!id || !settingsLookup?.contractTypes) return id || "";
+        const contractType = settingsLookup.contractTypes.find(c => c.id === id);
         return contractType?.name || id;
     };
 
     // Helper function to get currency name by ID
     const getCurrencyName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.currencies) return id || "";
-        const currency = hrSettings.currencies.find(c => c.id === id);
+        if (!id || !settingsLookup?.currencies) return id || "";
+        const currency = settingsLookup.currencies.find(c => c.id === id);
         return currency?.name || id;
     };
 
     // Helper function to get level of education name by ID
     const getLevelOfEducationName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.levelOfEducations) return id || "";
-        const level = hrSettings.levelOfEducations.find(l => l.id === id);
+        if (!id || !settingsLookup?.levelOfEducations) return id || "";
+        const level = settingsLookup.levelOfEducations.find(l => l.id === id);
         return level?.name || id;
     };
 
     // Helper function to get years of experience name by ID
     const getYearsOfExperienceName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.yearsOfExperiences) return id || "";
-        const years = hrSettings.yearsOfExperiences.find(y => y.id === id);
+        if (!id || !settingsLookup?.yearsOfExperiences) return id || "";
+        const years = settingsLookup.yearsOfExperiences.find(y => y.id === id);
         return years?.name || id;
     };
 
     // Helper function to get marital status name by ID
     const getMaritalStatusName = (id: string | undefined): string => {
-        if (!id || !hrSettings?.maritalStatuses) return id || "";
-        const status = hrSettings.maritalStatuses.find(s => s.id === id);
+        if (!id || !settingsLookup?.maritalStatuses) return id || "";
+        const status = settingsLookup.maritalStatuses.find(s => s.id === id);
         return status?.name || id;
     };
 

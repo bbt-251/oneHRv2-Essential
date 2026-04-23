@@ -1,6 +1,6 @@
 // hooks/auth/usePasswordReset.ts
 import { useState } from "react";
-import { requestPasswordResetWithBackend } from "@/lib/backend/client/auth-client";
+import { AuthRepository } from "@/lib/repository/auth";
 
 interface PasswordResetProps {
     email: string;
@@ -29,7 +29,7 @@ export const usePasswordReset = (): PasswordResetHook => {
         setError(null);
 
         try {
-            const data = await requestPasswordResetWithBackend({ email });
+            const data = await AuthRepository.requestPasswordReset({ email });
 
             if (!data.success) {
                 return {

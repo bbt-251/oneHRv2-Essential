@@ -29,7 +29,7 @@ import {
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 import { CurrencyModel } from "@/lib/models/hr-settings";
 import { formatTimestamp } from "@/lib/util/dayjs_format";
 import { Calculator, Edit, Eye, Loader2, Plus, Trash2 } from "lucide-react";
@@ -159,8 +159,7 @@ function CurrencyForm({ data, isAddEditLoading, onSave, onCancel }: CurrencyForm
 }
 
 export function Currency() {
-    const { ...hrSettings } = useData();
-    const currencies = hrSettings.currencies;
+    const { currencies } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
@@ -196,7 +195,7 @@ export function Currency() {
 
     const handleDelete = (item: CurrencyModel) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove("currencies", item.id);
+            const res = await settingsService.remove("currencies", item.id);
             if (res) {
                 showToast("Currency deleted successfully", "Success", "success");
             } else {
@@ -210,7 +209,7 @@ export function Currency() {
 
         const { id: _id, ...data } = formData;
         if (editingItem) {
-            const res = await hrSettingsService.update("currencies", editingItem.id, data);
+            const res = await settingsService.update("currencies", editingItem.id, data);
             if (res) {
                 showToast("Currency updated successfully", "Success", "success");
                 setShowDialog(false);
@@ -219,7 +218,7 @@ export function Currency() {
                 showToast("Error updating payment type", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create("currencies", data);
+            const res = await settingsService.create("currencies", data);
             if (res) {
                 showToast("Currency created successfully", "Success", "success");
                 setShowDialog(false);

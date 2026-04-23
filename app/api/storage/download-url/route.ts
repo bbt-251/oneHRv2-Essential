@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { readSessionClaims } from "@/lib/backend/auth/session";
-import { authorizeRequest } from "@/lib/backend/core/authorization";
-import { toErrorResponse } from "@/lib/backend/core/errors";
-import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/backend/config";
+import { readSessionClaims } from "@/lib/server/shared/auth/session";
+import { authorizeRequest } from "@/lib/server/shared/auth/authorization";
+import { toErrorResponse } from "@/lib/server/shared/errors";
+import { getCurrentConfig, getCurrentInstanceKey } from "@/lib/shared/config";
 import {
     createLegacySignedDownloadUrl,
     readStorageMetadata,
     requestStorageDownload,
-} from "@/lib/backend/services/storage.service";
+} from "@/lib/server/shared/storage";
 
 const payloadSchema = z.union([
     z.object({
@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
         const session = await readSessionClaims();
         const instanceKey = getCurrentInstanceKey();
         const resourceOwnerUid =
-            "objectKey" in body ? readStorageMetadata(body.objectKey)?.ownerUid : session?.uid;
+            "objectKey" in body
+                ? (await readStorageMetadata(body.objectKey))?.ownerUid
+                : session?.uid;
 
         authorizeRequest({
             session,
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
         });
 
         if ("objectKey" in body) {
-            const download = requestStorageDownload(body.objectKey);
+            const download = await requestStorageDownload(body.objectKey);
 
             return NextResponse.json({
                 downloadUrl: download.downloadUrl,

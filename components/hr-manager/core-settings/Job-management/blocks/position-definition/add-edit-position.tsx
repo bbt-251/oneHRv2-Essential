@@ -18,9 +18,12 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
 import RichTextEditor from "../rich-text-editor";
 import { KeywordEditor } from "./key-word-editor";
-import type { HrSettingsState } from "@/hooks/use-hr-settings";
-import type { PositionDefinitionModel } from "@/lib/backend/hr-settings-service";
+import type { PositionDefinitionModel } from "@/lib/repository/hr-settings";
 import { cn } from "@/lib/utils";
+
+interface PositionLookupState {
+    grades: Array<{ id: string; grade: string; active?: string }>;
+}
 
 interface PositionDialogProps {
     open: boolean;
@@ -32,7 +35,7 @@ interface PositionDialogProps {
     progress: number;
     form: PositionDefinitionModel | null;
     setForm: React.Dispatch<React.SetStateAction<PositionDefinitionModel | null>>;
-    hrSettings: HrSettingsState;
+    settingsState: PositionLookupState;
     workflowStepOptions: string[];
     stepSelectValue: string;
     handleSave: () => void;
@@ -49,7 +52,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
     progress,
     form,
     setForm,
-    hrSettings,
+    settingsState,
     workflowStepOptions,
     stepSelectValue,
     handleSave,
@@ -135,7 +138,7 @@ const PositionDialog: React.FC<PositionDialogProps> = ({
                                             <SelectValue placeholder="Select grade" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {hrSettings.grades
+                                            {settingsState.grades
                                                 ?.filter(g => g.active === "Yes")
                                                 ?.map(grade => (
                                                     <SelectItem key={grade.id} value={grade.id}>

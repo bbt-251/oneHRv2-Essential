@@ -60,12 +60,11 @@ export function HRManagerFilter({
     onClearFilters,
     employees,
 }: HRManagerFilterProps) {
-    const { ...hrSettings } = useData();
+    const { departmentSettings: departments } = useData();
     const [employeePopoverOpen, setEmployeePopoverOpen] = useState<boolean>(false);
     const [employeeSearch, setEmployeeSearch] = useState<string>("");
     const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState<boolean>(false);
     const [statusPopoverOpen, setStatusPopoverOpen] = useState<boolean>(false);
-    const departments = hrSettings.departmentSettings;
     const normalizedEmployeeSearch = employeeSearch.trim().toLowerCase();
     const filteredEmployees = employees.filter(employee => {
         if (!normalizedEmployeeSearch) return true;

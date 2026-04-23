@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/static-components */
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { PayrollData } from "../page";
-import { numberCommaSeparator } from "@/lib/backend/functions/numberCommaSeparator";
+import { numberCommaSeparator } from "@/lib/util/functions/numberCommaSeparator";
 
 Font.register({
     family: "Montserrat",

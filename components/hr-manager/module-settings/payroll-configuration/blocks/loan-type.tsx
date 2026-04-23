@@ -31,11 +31,10 @@ import { LoanTypeModel } from "@/lib/models/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 
 export function LoanType() {
-    const { ...hrSettings } = useData();
-    const loanTypes = hrSettings.loanTypes;
+    const { loanTypes } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
@@ -80,7 +79,7 @@ export function LoanType() {
 
     const handleDelete = (item: LoanTypeModel) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove("loanTypes", item.id);
+            const res = await settingsService.remove("loanTypes", item.id);
             if (res) {
                 showToast("Loan type deleted successfully", "Success", "success");
             } else {
@@ -94,7 +93,7 @@ export function LoanType() {
 
         const { id: _id, ...data } = formData;
         if (editingItem) {
-            const res = await hrSettingsService.update("loanTypes", editingItem.id, data);
+            const res = await settingsService.update("loanTypes", editingItem.id, data);
             if (res) {
                 showToast("Loan type updated successfully", "Success", "success");
                 setShowDialog(false);
@@ -103,7 +102,7 @@ export function LoanType() {
                 showToast("Error updating payment type", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create("loanTypes", data);
+            const res = await settingsService.create("loanTypes", data);
             if (res) {
                 showToast("Loan type created successfully", "Success", "success");
                 setShowDialog(false);

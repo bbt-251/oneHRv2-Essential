@@ -17,7 +17,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
 import { EmployeeModel } from "@/lib/models/employee";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import {
@@ -39,16 +39,13 @@ import {
 } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import { ModalState } from "../page";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
-import {
-    deleteOvertimeRequest,
-    updateOvertimeRequest,
-} from "@/lib/backend/api/attendance/overtime-service";
-import { batchUpdateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
+import { EmployeeRepository } from "@/lib/repository/employee";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 
 interface Props {
     overtimeRequests: OvertimeRequestModel[];
@@ -129,7 +126,8 @@ export const OvertimeRequests = ({
             }));
 
         if (updates.length === 0) return true;
-        return batchUpdateEmployee(updates);
+        const result = await EmployeeRepository.batchUpdateEmployees(updates);
+        return result.success && result.data.success;
     };
 
     const handleHRDelete = async (request: OvertimeRequestModel) => {
@@ -142,9 +140,12 @@ export const OvertimeRequests = ({
             return;
         }
         setActionLoadingId(request.id);
-        const res = await deleteOvertimeRequest(request.id, userData.uid, request.employeeUids);
+        const res = await AttendanceRepository.deleteOvertimeRequest(
+            request.id,
+            request.employeeUids,
+        );
 
-        if (!res) {
+        if (!res.success) {
             showToast("Failed to delete overtime request. Please try again.", "Error", "error");
         } else {
             showToast("Overtime request deleted successfully.", "Success", "success");
@@ -162,7 +163,7 @@ export const OvertimeRequests = ({
             return;
         }
         setActionLoadingId(request.id);
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 status: "pending",
@@ -174,7 +175,7 @@ export const OvertimeRequests = ({
             userData.uid,
         );
 
-        if (res) {
+        if (res.success) {
             const syncResult = await removeClaimedOvertimeFromEmployees(request);
             if (!syncResult) {
                 showToast(

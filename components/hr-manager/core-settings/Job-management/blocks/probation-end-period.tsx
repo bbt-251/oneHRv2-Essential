@@ -23,7 +23,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Filter, Search, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { hrSettingsService, ProbationDayModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    ProbationDayModel,
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
@@ -35,9 +38,8 @@ import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-manageme
 export default function ProbationEndPeriod() {
     const { showToast } = useToast();
     const { theme } = useTheme();
-    const { ...hrSettings } = useData();
+    const { probationDays } = useData();
     const { userData } = useAuth();
-    const probationDays = hrSettings.probationDays;
 
     const [showModal, setShowModal] = useState<boolean>(false);
     const [_isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -85,7 +87,7 @@ export default function ProbationEndPeriod() {
                 return;
             }
             if (editingDay) {
-                await hrSettingsService.update(
+                await settingsService.update(
                     "probationDays",
                     editingDay.id,
                     formData,
@@ -97,7 +99,7 @@ export default function ProbationEndPeriod() {
                 );
                 showToast("Probation day updated successfully", "success", "success");
             } else {
-                await hrSettingsService.create(
+                await settingsService.create(
                     "probationDays",
                     formData,
                     userData?.uid ?? "",
@@ -116,7 +118,7 @@ export default function ProbationEndPeriod() {
     };
 
     const handleDelete = async (id: string) => {
-        await hrSettingsService.remove(
+        await settingsService.remove(
             "probationDays",
             id,
             userData?.uid ?? "",

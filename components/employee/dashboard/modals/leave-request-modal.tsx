@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Upload, X, FileText, AlertCircle, User } from "lucide-react";
 import { format } from "date-fns";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 
 interface LeaveRequestModalProps {
@@ -30,7 +30,7 @@ interface LeaveRequestModalProps {
 
 export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
     const { userData } = useAuth();
-    const { activeEmployees: allEmployees, hrSettings } = useAppData();
+    const { activeEmployees: allEmployees, leaveTypes: leaveTypeRecords } = useData();
 
     const [formData, setFormData] = useState<{
         leaveType: string;
@@ -60,7 +60,7 @@ export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
     );
 
     // Get leave types from Firebase
-    const leaveTypes = hrSettings.leaveTypes
+    const leaveTypes = leaveTypeRecords
         .filter(lt => lt.active === "Yes")
         .map(lt => ({
             value: lt.id,

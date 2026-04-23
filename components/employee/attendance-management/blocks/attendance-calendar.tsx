@@ -3,7 +3,7 @@
 import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useData } from "@/context/app-data-context";
-import { HolidayModel, ShiftTypeModel } from "@/lib/backend/hr-settings-service";
+import { HolidayModel, ShiftTypeModel } from "@/lib/models/hr-settings";
 import { AttendanceModel, DailyAttendance } from "@/lib/models/attendance";
 import { dateFormat } from "@/lib/util/dayjs_format";
 import dayjs from "dayjs";
@@ -11,7 +11,7 @@ import { useMemo, useState } from "react";
 import { AttendanceModal } from "./attendance-modal";
 import { LeaveModel } from "@/lib/models/leave";
 import { EmployeeModel } from "@/lib/models/employee";
-import { calculatePWD } from "@/lib/backend/functions/returnPayslipData";
+import { calculatePWD } from "@/lib/util/functions/returnPayslipData";
 import { useAuth } from "@/context/authContext";
 
 interface DayBubble {
@@ -178,9 +178,7 @@ export function AttendanceCalendar({
 }: AttendanceCalendarProps) {
     const { userData } = useAuth();
     const { theme } = useTheme();
-    const { leaveManagements, ...hrSettings } = useData();
-    const holidays = hrSettings.holidays;
-    const shifts = hrSettings.shiftTypes;
+    const { leaveManagements, holidays, shiftTypes: shifts } = useData();
     const [selectedDay, setSelectedDay] = useState<{
         day: number;
         month: string;

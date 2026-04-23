@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { AuthSessionProvider, useAuthSession } from "@/context/auth-session-context";
-import { subscribeEmployeeByUidWithBackend } from "@/lib/backend/client/employee-client";
+import { EmployeeRepository } from "@/lib/repository/employee";
 import { EmployeeModel } from "@/lib/models/employee";
 
 interface AuthContextType {
@@ -31,7 +31,7 @@ const useCurrentEmployeeState = () => {
 
     const subscribeToCurrentEmployee = useCallback(
         (uid: string, email: string | null) =>
-            subscribeEmployeeByUidWithBackend(
+            EmployeeRepository.subscribeEmployeeByUid(
                 uid,
                 (employees, hasPendingWrites) => {
                     if (hasPendingWrites) {

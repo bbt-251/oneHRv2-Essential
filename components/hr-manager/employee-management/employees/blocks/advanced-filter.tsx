@@ -30,7 +30,7 @@ interface SelectOption {
     name: string;
 }
 
-interface AdvancedFilterHrSettings {
+interface SettingsOptions {
     positions?: SelectOption[];
     departmentSettings?: SelectOption[];
     contractTypes?: SelectOption[];
@@ -43,16 +43,20 @@ interface AdvancedFilterHrSettings {
 
 interface AdvancedFilterProps {
     employees: EmployeeModel[];
-    hrSettings?: AdvancedFilterHrSettings;
+    settingsOptions?: SettingsOptions;
     onFiltersChange: (filters: FilterConfig[]) => void;
 }
 
-export function AdvancedFilter({ employees, hrSettings, onFiltersChange }: AdvancedFilterProps) {
+export function AdvancedFilter({
+    employees,
+    settingsOptions,
+    onFiltersChange,
+}: AdvancedFilterProps) {
     const { theme } = useTheme();
     const [open, setOpen] = useState<boolean>(false);
     const [filters, setFilters] = useState<FilterConfig[]>([]);
 
-    // Build filter field config with dynamic options using hrSettings (if available) or falling back to values derived from employees
+    // Build filter field config with dynamic options using settings options (if available) or falling back to values derived from employees
     const filterFields = useMemo(() => {
         const toOptions = (items: SelectOption[] | undefined) =>
             (items || []).map(i => ({ id: i.id, name: i.name }));
@@ -89,19 +93,19 @@ export function AdvancedFilter({ employees, hrSettings, onFiltersChange }: Advan
                 key: "employmentPosition" as keyof EmployeeModel,
                 label: "Position",
                 type: "select",
-                options: toOptions(hrSettings?.positions),
+                options: toOptions(settingsOptions?.positions),
             },
             {
                 key: "department" as keyof EmployeeModel,
                 label: "Department",
                 type: "select",
-                options: toOptions(hrSettings?.departmentSettings),
+                options: toOptions(settingsOptions?.departmentSettings),
             },
             {
                 key: "contractType" as keyof EmployeeModel,
                 label: "Contract Type",
                 type: "select",
-                options: toOptions(hrSettings?.contractTypes),
+                options: toOptions(settingsOptions?.contractTypes),
             },
             {
                 key: "contractStatus" as keyof EmployeeModel,
@@ -113,31 +117,31 @@ export function AdvancedFilter({ employees, hrSettings, onFiltersChange }: Advan
                 key: "levelOfEducation" as keyof EmployeeModel,
                 label: "Education",
                 type: "select",
-                options: toOptions(hrSettings?.levelOfEducations),
+                options: toOptions(settingsOptions?.levelOfEducations),
             },
             {
                 key: "maritalStatus" as keyof EmployeeModel,
                 label: "Marital Status",
                 type: "select",
-                options: toOptions(hrSettings?.maritalStatuses),
+                options: toOptions(settingsOptions?.maritalStatuses),
             },
             {
                 key: "section" as keyof EmployeeModel,
                 label: "Section",
                 type: "select",
-                options: toOptions(hrSettings?.sectionSettings),
+                options: toOptions(settingsOptions?.sectionSettings),
             },
             {
                 key: "gradeLevel" as keyof EmployeeModel,
                 label: "Grade Level",
                 type: "select",
-                options: toOptions(hrSettings?.grades),
+                options: toOptions(settingsOptions?.grades),
             },
             {
                 key: "shiftType" as keyof EmployeeModel,
                 label: "Shift Type",
                 type: "select",
-                options: toOptions(hrSettings?.shiftTypes),
+                options: toOptions(settingsOptions?.shiftTypes),
             },
             {
                 key: "reportingLineManager" as keyof EmployeeModel,
@@ -146,7 +150,7 @@ export function AdvancedFilter({ employees, hrSettings, onFiltersChange }: Advan
                 options: reportingLineManagerOptions,
             },
         ];
-    }, [employees, hrSettings]);
+    }, [employees, settingsOptions]);
 
     const addFilter = () => {
         const newFilter: FilterConfig = {

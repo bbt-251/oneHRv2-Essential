@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/authContext";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
-import uploadFile from "@/lib/backend/upload/upload-file";
+import { CoreSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
+import uploadFile from "@/lib/util/upload-file";
 import { COMPANY_INFO_LOG_MESSAGES } from "@/lib/log-descriptions/company-info";
 import { CompanyInfoModel } from "@/lib/models/companyInfo";
 import { Building2, Edit, Globe, Loader2, Mail, MapPin, Phone, User } from "lucide-react";
@@ -27,10 +27,10 @@ export function BasicInfo({
     disableInputs?: boolean;
 }) {
     const { showToast } = useToast();
-    const { ...hrSettings } = useData();
+    const { companyInfo: companyInfoSettings } = useData();
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const companyInfo = hrSettings.companyInfo?.[0];
+    const companyInfo = companyInfoSettings?.[0];
 
     const persistedCompanyData = useMemo<Partial<CompanyInfoModel>>(
         () => ({
@@ -121,10 +121,10 @@ export function BasicInfo({
 
     const handleSave = async () => {
         setSaveLoading(true);
-        const companyInfo = await hrSettingsService.getAll("companyInfo");
+        const companyInfo = await settingsService.getAll("companyInfo");
         let res;
         if (companyInfo?.length) {
-            res = await hrSettingsService.update(
+            res = await settingsService.update(
                 "companyInfo",
                 companyInfo[0]?.id ?? "",
                 currentCompanyData,
@@ -136,7 +136,7 @@ export function BasicInfo({
                 }),
             );
         } else {
-            res = await hrSettingsService.create(
+            res = await settingsService.create(
                 "companyInfo",
                 { ...currentCompanyData, ...basicInfo } as CompanyInfoModel,
                 userData?.uid ?? "",
@@ -154,7 +154,7 @@ export function BasicInfo({
 
     const handleBasicInfoSubmit = async () => {
         setInfoSubmitLoading(true);
-        const companyInfo = await hrSettingsService.getAll("companyInfo");
+        const companyInfo = await settingsService.getAll("companyInfo");
         let res;
         let companyLogoURL = "";
 
@@ -171,7 +171,7 @@ export function BasicInfo({
         const logo = selectedFile ? { companyLogoURL } : {};
 
         if (companyInfo?.length)
-            res = await hrSettingsService.update(
+            res = await settingsService.update(
                 "companyInfo",
                 companyInfo[0]?.id ?? "",
                 { ...basicInfo, ...logo },
@@ -185,7 +185,7 @@ export function BasicInfo({
                 }),
             );
         else
-            res = await hrSettingsService.create(
+            res = await settingsService.create(
                 "companyInfo",
                 { ...currentCompanyData, ...basicInfo, ...logo } as CompanyInfoModel,
                 userData?.uid ?? "",

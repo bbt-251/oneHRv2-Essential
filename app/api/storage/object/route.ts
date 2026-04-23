@@ -1,13 +1,35 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
-import { manualEnv } from "@/lib/backend/core/env";
-import { verifyStorageToken } from "@/lib/backend/storage/signing";
+import { manualEnv } from "@/lib/server/shared/env";
+import { verifyStorageToken } from "@/lib/server/shared/storage/signing";
 
-const STORAGE_ROOT = path.resolve(process.cwd(), manualEnv.storageRoot);
+const DEFAULT_STORAGE_ROOT = path.resolve(".manual-storage");
+
+const getStorageRoot = (): string => {
+    const configuredRoot = manualEnv.storageRoot.trim();
+
+    if (!configuredRoot || configuredRoot === ".manual-storage") {
+        return DEFAULT_STORAGE_ROOT;
+    }
+
+    if (path.isAbsolute(configuredRoot)) {
+        return configuredRoot;
+    }
+
+    const normalizedRoot = configuredRoot.replaceAll("\\", "/");
+    if (normalizedRoot.startsWith(".manual-storage/")) {
+        const relativeSuffix = normalizedRoot.slice(".manual-storage/".length);
+        return path.join(DEFAULT_STORAGE_ROOT, relativeSuffix.split("/").join(path.sep));
+    }
+
+    throw new Error(
+        "Relative MANUAL_STORAGE_ROOT must be inside .manual-storage or be an absolute path.",
+    );
+};
 
 const resolveStoragePath = (relativePath: string): string =>
-    path.join(STORAGE_ROOT, relativePath.split("/").join(path.sep));
+    path.join(getStorageRoot(), relativePath.split("/").join(path.sep));
 
 export async function PUT(request: NextRequest) {
     try {
@@ -21,7 +43,7 @@ export async function PUT(request: NextRequest) {
 
         await fs.mkdir(path.dirname(filePath), { recursive: true });
         const bytes = await request.arrayBuffer();
-        await fs.writeFile(filePath, Buffer.from(bytes));
+        await fs.writeFile(filePath, new Uint8Array(bytes));
 
         return new NextResponse(null, { status: 204 });
     } catch (error) {

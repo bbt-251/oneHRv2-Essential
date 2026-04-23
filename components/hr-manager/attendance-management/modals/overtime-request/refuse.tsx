@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/context/toastContext";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
-import { updateOvertimeRequest } from "@/lib/backend/api/attendance/overtime-service";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
@@ -54,7 +54,7 @@ export function HROvertimeRefuseModal({ isOpen, onClose, request }: HROvertimeRe
 
         setIsSubmitting(true);
 
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 status: "rejected",
@@ -65,7 +65,7 @@ export function HROvertimeRefuseModal({ isOpen, onClose, request }: HROvertimeRe
             },
             userData?.uid,
         );
-        if (res) {
+        if (res.success) {
             // Send notification when OT request is rejected
             try {
                 const employeeNames = getEmployeeNames(employees, request.employeeUids);

@@ -6,11 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/authContext";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { generatePayrollSlip } from "@/lib/backend/functions/payroll/generatePayrollSlip";
-import returnPayrollData from "@/lib/backend/functions/returnPayslipData";
+import { generatePayrollSlip } from "@/lib/util/functions/payroll/generatePayrollSlip";
+import returnPayrollData from "@/lib/util/functions/returnPayslipData";
 import PayrollPDFSettingsModel from "@/lib/models/payrollPDFSettings";
+import { PayrollRepository } from "@/lib/repository/payroll";
 import { pdf } from "@react-pdf/renderer";
 import dayjs from "dayjs";
 import {
@@ -25,8 +26,6 @@ import {
     Search,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { getPayrollPDFSettings } from "@/lib/backend/api/payroll-settings-service";
-
 interface PayslipModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -92,8 +91,7 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
     const {
         employees,
         attendanceLogic,
-        attendance: attendances,
-        hrSettings,
+        attendances,
         headerDocuments,
         footerDocuments,
         signatureDocuments,
@@ -102,8 +100,31 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
         leaveManagements,
         compensations,
         employeeLoans,
-    } = useAppData();
-    const loanTypes = hrSettings.loanTypes;
+        loanTypes,
+        taxes,
+        overtimeTypes,
+        pension,
+        paymentTypes,
+        deductionTypes,
+        shiftTypes,
+        holidays,
+        currencies,
+        positions,
+        departmentSettings,
+        sectionSettings,
+        locations,
+        contractTypes,
+    } = useData();
+    const settingsLookup = useMemo(
+        () => ({
+            positions,
+            departmentSettings,
+            sectionSettings,
+            locations,
+            contractTypes,
+        }),
+        [contractTypes, departmentSettings, locations, positions, sectionSettings],
+    );
     const { showToast } = useToast();
 
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -130,7 +151,8 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
 
         async function loadPdfSettings() {
             try {
-                const settings = await getPayrollPDFSettings();
+                const result = await PayrollRepository.getPayrollPdfSettings();
+                const settings = result.success ? result.data : null;
                 if (settings) {
                     const resolvedSettings: PayrollPDFSettingsModel = {
                         ...settings,
@@ -220,20 +242,20 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
                 attendances,
                 attendanceLogic: attendanceLogic?.at(0)?.chosenLogic ?? 1,
                 loans: employeeLoans,
-                taxes: hrSettings.taxes,
+                taxes,
                 compensations,
                 overtimeRequests,
-                overtimeConfigs: hrSettings.overtimeTypes,
-                pension: hrSettings.pension?.at(0) || null,
-                paymentTypes: hrSettings.paymentTypes,
-                deductionTypes: hrSettings.deductionTypes,
+                overtimeConfigs: overtimeTypes,
+                pension: pension?.at(0) || null,
+                paymentTypes,
+                deductionTypes,
                 loanTypes,
-                shifts: hrSettings.shiftTypes,
+                shifts: shiftTypes,
                 payrollPDFSettings: defaultPDFSettings,
-                holidays: hrSettings.holidays,
+                holidays,
                 leaveDocs: leaveManagements,
-                currencies: hrSettings.currencies,
-                hrSettings,
+                currencies,
+                settingsLookup,
             });
 
             const userPayroll = payrollData.find(p => p.uid === userData.uid);
@@ -261,7 +283,7 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
         attendances,
         attendanceLogic,
         employeeLoans,
-        hrSettings,
+        settingsLookup,
         compensations,
         overtimeRequests,
         leaveManagements,
@@ -285,20 +307,20 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
             attendances,
             attendanceLogic: attendanceLogic?.at(0)?.chosenLogic ?? 1,
             loans: employeeLoans,
-            taxes: hrSettings.taxes,
+            taxes,
             compensations,
             overtimeRequests,
-            overtimeConfigs: hrSettings.overtimeTypes,
-            pension: hrSettings.pension?.at(0) || null,
-            paymentTypes: hrSettings.paymentTypes,
-            deductionTypes: hrSettings.deductionTypes,
+            overtimeConfigs: overtimeTypes,
+            pension: pension?.at(0) || null,
+            paymentTypes,
+            deductionTypes,
             loanTypes,
-            shifts: hrSettings.shiftTypes,
+            shifts: shiftTypes,
             payrollPDFSettings: defaultPDFSettings,
-            holidays: hrSettings.holidays,
+            holidays,
             leaveDocs: leaveManagements,
-            currencies: hrSettings.currencies,
-            hrSettings,
+            currencies,
+            settingsLookup,
         });
 
         const userPayroll = payrollData.filter(p => p.uid === userData.uid);
@@ -327,20 +349,20 @@ export function PayslipModal({ isOpen, onClose }: PayslipModalProps) {
                 attendances,
                 attendanceLogic: attendanceLogic?.at(0)?.chosenLogic ?? 1,
                 loans: employeeLoans,
-                taxes: hrSettings.taxes,
+                taxes,
                 compensations,
                 overtimeRequests,
-                overtimeConfigs: hrSettings.overtimeTypes,
-                pension: hrSettings.pension?.at(0) || null,
-                paymentTypes: hrSettings.paymentTypes,
-                deductionTypes: hrSettings.deductionTypes,
+                overtimeConfigs: overtimeTypes,
+                pension: pension?.at(0) || null,
+                paymentTypes,
+                deductionTypes,
                 loanTypes,
-                shifts: hrSettings.shiftTypes,
+                shifts: shiftTypes,
                 payrollPDFSettings: defaultPDFSettings,
-                holidays: hrSettings.holidays,
+                holidays,
                 leaveDocs: leaveManagements,
-                currencies: hrSettings.currencies,
-                hrSettings,
+                currencies,
+                settingsLookup,
             });
 
             const userPayroll = payrollData.find(p => p.uid === userData.uid);

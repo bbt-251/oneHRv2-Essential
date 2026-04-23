@@ -315,6 +315,224 @@ On Ubuntu 24.04, keep the `8.0` / `noble` repo only.
 
 ---
 
+## 6.2 Enable Replica Set For Realtime Change Streams
+
+This repo’s realtime update path uses MongoDB Change Streams.
+
+Important:
+
+- Change Streams require MongoDB to run as a **replica set**
+- a **single-node replica set** is enough
+- this is required even when MongoDB is installed on one VPS only
+
+### 6.2.1 Add Replica Set Config
+
+Edit MongoDB config:
+
+```bash
+sudo nano /etc/mongod.conf
+```
+
+Make sure these sections exist:
+
+```yaml
+net:
+    port: 27017
+    bindIp: 127.0.0.1
+
+security:
+    authorization: enabled
+    keyFile: /etc/mongo-keyfile/keyfile
+
+replication:
+    replSetName: rs0
+```
+
+### 6.2.2 Create the MongoDB Keyfile
+
+When `authorization` and `replication` are both enabled, MongoDB requires a keyfile for internal replica set authentication.
+
+Run:
+
+```bash
+sudo mkdir -p /etc/mongo-keyfile
+openssl rand -base64 756 | sudo tee /etc/mongo-keyfile/keyfile > /dev/null
+sudo chmod 400 /etc/mongo-keyfile/keyfile
+sudo chown mongodb:mongodb /etc/mongo-keyfile/keyfile
+```
+
+Verify:
+
+```bash
+sudo ls -l /etc/mongo-keyfile/keyfile
+```
+
+You want something like:
+
+```text
+-r-------- 1 mongodb mongodb ...
+```
+
+### 6.2.3 Restart MongoDB
+
+```bash
+sudo systemctl restart mongod
+sudo systemctl status mongod
+```
+
+If MongoDB fails at this stage, inspect:
+
+```bash
+sudo journalctl -u mongod -n 100 --no-pager
+sudo tail -n 100 /var/log/mongodb/mongod.log
+```
+
+### 6.2.4 Fix the Stale Unix Socket Problem If It Happens
+
+In our setup, MongoDB failed once because of a stale socket file:
+
+```text
+/tmp/mongodb-27017.sock
+```
+
+If you see an error like:
+
+```text
+Failed to unlink socket file ... Operation not permitted
+```
+
+run:
+
+```bash
+sudo systemctl stop mongod
+sudo ls -l /tmp/mongodb-27017.sock
+sudo rm -f /tmp/mongodb-27017.sock
+sudo systemctl start mongod
+sudo systemctl status mongod
+```
+
+### 6.2.5 Initialize `rs0`
+
+Because `authorization` is enabled, the cleanest recovery flow we used was:
+
+1. temporarily disable the `security` block
+2. start MongoDB without auth
+3. run `rs.initiate(...)`
+4. restore the `security` block
+5. restart MongoDB with auth enabled again
+
+#### Temporarily disable auth
+
+Edit the config:
+
+```bash
+sudo nano /etc/mongod.conf
+```
+
+Temporarily remove or comment out:
+
+```yaml
+security:
+    authorization: enabled
+    keyFile: /etc/mongo-keyfile/keyfile
+```
+
+Keep:
+
+```yaml
+replication:
+    replSetName: rs0
+```
+
+Then restart:
+
+```bash
+sudo systemctl restart mongod
+sudo systemctl status mongod
+```
+
+#### Connect and initialize the replica set
+
+```bash
+mongosh "mongodb://127.0.0.1:27017/admin"
+```
+
+Then run:
+
+```javascript
+rs.initiate({
+    _id: "rs0",
+    members: [{ _id: 0, host: "127.0.0.1:27017" }],
+});
+```
+
+Verify:
+
+```javascript
+rs.status();
+```
+
+You want:
+
+- `set: "rs0"`
+- `stateStr: "PRIMARY"`
+
+#### Re-enable auth
+
+Restore the `security` block in `/etc/mongod.conf`:
+
+```yaml
+security:
+    authorization: enabled
+    keyFile: /etc/mongo-keyfile/keyfile
+```
+
+Then restart:
+
+```bash
+sudo systemctl restart mongod
+sudo systemctl status mongod
+```
+
+### 6.2.6 Final Login Test With Replica Set URI
+
+Test authenticated access using the replica set parameter:
+
+```bash
+mongosh "mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_dev?authSource=admin&replicaSet=rs0"
+```
+
+If your password contains `%`, URL-encode it.
+
+Example:
+
+- raw password: `1q2w3e4r%T`
+- URI form: `1q2w3e4r%25T`
+
+If login succeeds and the prompt shows something like:
+
+```text
+rs0 [primary] onehr_dev>
+```
+
+then MongoDB is correctly configured for change streams.
+
+### 6.2.7 Why This Matters For This Repo
+
+The app’s realtime layer now depends on MongoDB Change Streams for live read updates.
+
+Without the replica set:
+
+- initial snapshots still load
+- but live change notifications from MongoDB do **not** work
+
+With `rs0` enabled:
+
+- Mongo-backed realtime updates work correctly
+- employee and leave changes can flow into the app without manual refresh
+
+---
+
 ## 7. Create the Storage Directory
 
 Create a persistent storage location:
@@ -383,7 +601,7 @@ For the current `DEFAULT_INSTANCE = dev`, the important variables are:
 NEXT_PUBLIC_API_DOMAIN_DEV=https://api-dev-onehr.yourdomain.com
 NEXT_PUBLIC_STORAGE_DOMAIN_DEV=https://api-dev-onehr.yourdomain.com
 
-MANUAL_MONGODB_URI_DEV=mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_dev?authSource=admin
+MANUAL_MONGODB_URI_DEV=mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_dev?authSource=admin&replicaSet=rs0
 MANUAL_MONGODB_DB_DEV=onehr_dev
 MANUAL_AUTH_JWT_SECRET_DEV=REPLACE_WITH_A_LONG_RANDOM_SECRET
 MANUAL_STORAGE_ROOT_DEV=/var/lib/onehr/storage/dev
@@ -424,7 +642,7 @@ The actual flow is:
 So this is correct and expected:
 
 ```env
-MANUAL_MONGODB_URI_DEV=mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_dev?authSource=admin
+MANUAL_MONGODB_URI_DEV=mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_dev?authSource=admin&replicaSet=rs0
 ```
 
 The distinction is:
@@ -439,7 +657,7 @@ If you also want `int` and `val`, add:
 ```env
 NEXT_PUBLIC_API_DOMAIN_INT=https://api-int-onehr.yourdomain.com
 NEXT_PUBLIC_STORAGE_DOMAIN_INT=https://api-int-onehr.yourdomain.com
-MANUAL_MONGODB_URI_INT=mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_int?authSource=admin
+MANUAL_MONGODB_URI_INT=mongodb://onehr_user:YOUR_PASSWORD@127.0.0.1:27017/onehr_int?authSource=admin&replicaSet=rs0
 MANUAL_MONGODB_DB_INT=onehr_int
 MANUAL_AUTH_JWT_SECRET_INT=ANOTHER_LONG_RANDOM_SECRET
 MANUAL_STORAGE_ROOT_INT=/var/lib/onehr/storage/int

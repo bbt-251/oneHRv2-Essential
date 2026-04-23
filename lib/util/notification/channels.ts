@@ -1,6 +1,6 @@
 // lib/notifications/channels.ts
-import { mutateCompactData } from "@/lib/backend/client/data-client";
 import { getTimestamp } from "../dayjs_format";
+import { NotificationRepository } from "@/lib/repository/notifications";
 
 export async function sendEmail(to: string, subject: string, htmlBody: string) {
     if (!to || !subject || !htmlBody) {
@@ -73,19 +73,20 @@ export async function sendInApp(
     }
 
     try {
-        const response = await mutateCompactData<{ notification?: { id?: string } }>({
-            resource: "notifications",
-            action: "create",
-            payload: {
-                uid: uid,
-                ...(title ? { title: title } : {}),
-                message: message,
-                action: action || null,
-                isRead: false,
-                timestamp: getTimestamp(),
-            },
+        const response = await NotificationRepository.create({
+            uid,
+            title: title ?? "",
+            message,
+            action: action || null,
+            isRead: false,
+            timestamp: getTimestamp(),
         });
-        return { success: true, docId: response.notification?.id };
+
+        if (!response.success) {
+            throw new Error(response.message);
+        }
+
+        return { success: true, docId: response.data.id ?? undefined };
     } catch (error) {
         console.error("Failed to send in-app notification:", {
             error: error instanceof Error ? error.message : error,

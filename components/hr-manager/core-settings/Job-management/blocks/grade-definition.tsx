@@ -21,7 +21,10 @@ import {
 } from "@/components/ui/select";
 import { Pencil, Trash2, Loader2, CalendarIcon } from "lucide-react";
 import ConfigTable, { ColumnDef } from "./config-table";
-import { GradeDefinitionModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    GradeDefinitionModel,
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
@@ -36,13 +39,12 @@ import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-manageme
 type FormState = GradeDefinitionModel & { id?: string };
 
 export default function GradeDefinition() {
-    const { ...hrSettings } = useData();
+    const { grades: rows } = useData();
     const { showToast } = useToast();
     const { theme } = useTheme();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
     const [saveLoading, setSaveLoading] = useState<boolean>(false);
-    const rows = hrSettings.grades;
     const [formOpen, setFormOpen] = useState<boolean>(false);
     const [formState, setFormState] = useState<FormState>({
         id: "",
@@ -57,7 +59,7 @@ export default function GradeDefinition() {
     const confirmDelete = useCallback(
         (id: string) => {
             confirm("Are you sure ?", async () => {
-                const res = await hrSettingsService.remove(
+                const res = await settingsService.remove(
                     "grades",
                     id,
                     userData?.uid ?? "",
@@ -171,7 +173,7 @@ export default function GradeDefinition() {
         if (formState.id) {
             // update
             const { id: _id, ...data } = formState;
-            const res = await hrSettingsService.update(
+            const res = await settingsService.update(
                 "grades",
                 formState.id,
                 data,
@@ -186,7 +188,7 @@ export default function GradeDefinition() {
             }
         } else {
             // add
-            const res = await hrSettingsService.create(
+            const res = await settingsService.create(
                 "grades",
                 newGrade,
                 userData?.uid ?? "",

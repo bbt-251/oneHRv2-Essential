@@ -9,13 +9,12 @@ import { Edit } from "lucide-react";
 import { useToast } from "@/context/toastContext";
 import { useTheme } from "@/components/theme-provider";
 import { useData } from "@/context/app-data-context";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { CoreSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 
 export default function ProbationEndPeriod() {
     const { showToast } = useToast();
     useTheme();
-    const { ...hrSettings } = useData();
-    const probationDays = hrSettings.probationDays;
+    const { probationDays } = useData();
 
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [formData, setFormData] = useState<{ value: number }>({
@@ -29,14 +28,12 @@ export default function ProbationEndPeriod() {
 
     const handleSave = () => {
         if (probationDays && probationDays.length > 0) {
-            hrSettingsService
-                .update("probationDays", probationDays[0].id, formData)
-                .catch(error => {
-                    console.error("Error updating probation day:", error);
-                    showToast("Failed to update probation day", "error", "error");
-                });
+            settingsService.update("probationDays", probationDays[0].id, formData).catch(error => {
+                console.error("Error updating probation day:", error);
+                showToast("Failed to update probation day", "error", "error");
+            });
         } else {
-            hrSettingsService.create("probationDays", formData).catch(error => {
+            settingsService.create("probationDays", formData).catch(error => {
                 console.error("Error creating probation day:", error);
                 showToast("Failed to create probation day", "error", "error");
             });

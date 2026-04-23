@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { ShiftTypeModel } from "../backend/firebase/hrSettingsService";
+import { ShiftTypeModel } from "../models/hr-settings";
 
 export function calculateProbationEndDate(
     date: dayjs.Dayjs,

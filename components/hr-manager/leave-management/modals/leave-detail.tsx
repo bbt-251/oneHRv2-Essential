@@ -13,7 +13,24 @@ import {
     annualLeaveType,
     unpaidLeaveType,
 } from "@/components/employee/leave-management/modals/add-leave-request-modal";
-import { X } from "lucide-react";
+import { ExternalLink, Paperclip, X } from "lucide-react";
+import { StorageRepository } from "@/lib/repository/storage/storage.repository";
+
+const DIRECT_URL_PREFIXES = [
+    "https://firebasestorage.googleapis.com/",
+    "https://storage.googleapis.com",
+    "http://",
+    "https://",
+];
+
+const isDirectAttachmentUrl = (value: string): boolean =>
+    DIRECT_URL_PREFIXES.some(prefix => value.startsWith(prefix));
+
+const getAttachmentLabel = (value: string): string => {
+    const normalizedPath = value.split("?")[0] ?? value;
+    const segments = normalizedPath.split("/");
+    return segments[segments.length - 1] || value;
+};
 
 // Helper hook to get effective theme (handles "system" option)
 function useEffectiveTheme() {
@@ -66,9 +83,13 @@ export default function LeaveDetail({
     setIsLeaveDetailModalOpen,
 }: LeaveDetailProps) {
     const theme = useEffectiveTheme();
-    const { employees, ...hrSettings } = useData();
-    const { sectionSettings, departmentSettings } = hrSettings;
-    const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
+    const {
+        employees,
+        sectionSettings,
+        departmentSettings,
+        leaveTypes: baseLeaveTypes,
+    } = useData();
+    const leaveTypes = [...baseLeaveTypes, annualLeaveType, unpaidLeaveType];
 
     const employee = employees.find((emp: EmployeeModel) => emp.uid === selectedLeave.employeeID);
     const standInEmployee = employees.find(
@@ -79,6 +100,46 @@ export default function LeaveDetail({
     const getLeaveTypeName = (id: string) => leaveTypes.find(lt => lt.id === id)?.name || "Unknown";
     const getDepartmentName = (id: string) =>
         departmentSettings.find(d => d.id === id)?.name || "Unknown";
+    const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+    const [attachmentErrors, setAttachmentErrors] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        let active = true;
+        const attachments = selectedLeave.attachments ?? [];
+
+        setAttachmentUrls({});
+        setAttachmentErrors({});
+
+        attachments.forEach(attachment => {
+            if (isDirectAttachmentUrl(attachment)) {
+                setAttachmentUrls(previous => ({ ...previous, [attachment]: attachment }));
+                return;
+            }
+
+            StorageRepository.getDownloadUrl(attachment)
+                .then(downloadUrl => {
+                    if (!active) {
+                        return;
+                    }
+
+                    setAttachmentUrls(previous => ({ ...previous, [attachment]: downloadUrl }));
+                })
+                .catch(() => {
+                    if (!active) {
+                        return;
+                    }
+
+                    setAttachmentErrors(previous => ({
+                        ...previous,
+                        [attachment]: "Attachment unavailable",
+                    }));
+                });
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [selectedLeave.attachments]);
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -441,6 +502,84 @@ export default function LeaveDetail({
                             </p>
                         </div>
                     </div>
+
+                    {selectedLeave.attachments && selectedLeave.attachments.length > 0 && (
+                        <div className="mb-8">
+                            <label
+                                className={`text-sm font-semibold uppercase tracking-wider ${
+                                    theme === "dark" ? "text-slate-300" : "text-slate-600"
+                                }`}
+                            >
+                                Attachments ({selectedLeave.attachments.length})
+                            </label>
+                            <div className="mt-2 space-y-3">
+                                {selectedLeave.attachments.map(attachment => {
+                                    const resolvedUrl = attachmentUrls[attachment];
+                                    const attachmentError = attachmentErrors[attachment];
+
+                                    return (
+                                        <div
+                                            key={attachment}
+                                            className={`flex items-center justify-between gap-4 p-4 rounded-xl ${
+                                                theme === "dark" ? "bg-gray-800" : "bg-slate-50"
+                                            }`}
+                                        >
+                                            <div className="min-w-0 flex items-center gap-3">
+                                                <Paperclip
+                                                    className={`h-4 w-4 shrink-0 ${
+                                                        theme === "dark"
+                                                            ? "text-slate-400"
+                                                            : "text-slate-500"
+                                                    }`}
+                                                />
+                                                <div className="min-w-0">
+                                                    <p
+                                                        className={`truncate font-medium ${
+                                                            theme === "dark"
+                                                                ? "text-slate-200"
+                                                                : "text-slate-700"
+                                                        }`}
+                                                    >
+                                                        {getAttachmentLabel(attachment)}
+                                                    </p>
+                                                    {!resolvedUrl && (
+                                                        <p
+                                                            className={`text-sm ${
+                                                                attachmentError
+                                                                    ? "text-rose-500"
+                                                                    : theme === "dark"
+                                                                        ? "text-slate-400"
+                                                                        : "text-slate-500"
+                                                            }`}
+                                                        >
+                                                            {attachmentError ||
+                                                                "Resolving attachment..."}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {resolvedUrl && (
+                                                <a
+                                                    href={resolvedUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={`inline-flex items-center gap-2 text-sm font-medium ${
+                                                        theme === "dark"
+                                                            ? "text-sky-300 hover:text-sky-200"
+                                                            : "text-sky-700 hover:text-sky-800"
+                                                    }`}
+                                                >
+                                                    Open
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Rollback Status Section */}
                     {selectedLeave?.rollbackStatus && selectedLeave.rollbackStatus !== "N/A" && (

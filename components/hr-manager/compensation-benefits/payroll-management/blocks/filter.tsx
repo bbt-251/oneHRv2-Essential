@@ -14,16 +14,16 @@ import {
 } from "@/components/ui/select";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
-import { generatePayrollSlip } from "@/lib/backend/functions/payroll/generatePayrollSlip";
-import { generatePension } from "@/lib/backend/functions/payroll/generatePension";
-import { generateTax } from "@/lib/backend/functions/payroll/generateTax";
+import { generatePayrollSlip } from "@/lib/util/functions/payroll/generatePayrollSlip";
+import { generatePension } from "@/lib/util/functions/payroll/generatePension";
+import { generateTax } from "@/lib/util/functions/payroll/generateTax";
 import { EmployeeModel } from "@/lib/models/employee";
 import PayrollPDFSettingsModel from "@/lib/models/payrollPDFSettings";
+import { PayrollRepository } from "@/lib/repository/payroll";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { Calculator, FileText, PiggyBank } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PayrollData } from "../page";
-import { getPayrollPDFSettings } from "@/lib/backend/api/payroll-settings-service";
 
 interface FilterActionsProps {
     months: string[];
@@ -46,9 +46,15 @@ export default function FilterActions({
     setSelectedMonth,
     setSelectedEmployees,
 }: FilterActionsProps) {
-    const { ...hrSettings } = useData();
-    const companyInfo = hrSettings.companyInfo?.at(0);
-    const pension = hrSettings.pension;
+    const {
+        companyInfo: companyInfoDocs,
+        pension,
+        headerDocuments,
+        footerDocuments,
+        signatureDocuments,
+        stampDocuments,
+    } = useData();
+    const companyInfo = companyInfoDocs?.at(0);
 
     const { showToast } = useToast();
     const [isEmployeeDropdownOpen, setIsEmployeeDropdownOpen] = useState<boolean>(false);
@@ -59,13 +65,14 @@ export default function FilterActions({
     useEffect(() => {
         async function loadPdfSettings() {
             try {
-                const settings = await getPayrollPDFSettings();
+                const result = await PayrollRepository.getPayrollPdfSettings();
+                const settings = result.success ? result.data : null;
                 if (settings) {
-                    // Resolve document IDs to actual URLs from hrSettings
-                    const headerDocs = hrSettings.headerDocuments || [];
-                    const footerDocs = hrSettings.footerDocuments || [];
-                    const signatureDocs = hrSettings.signatureDocuments || [];
-                    const stampDocs = hrSettings.stampDocuments || [];
+                    // Resolve document IDs to actual URLs from document collections
+                    const headerDocs = headerDocuments || [];
+                    const footerDocs = footerDocuments || [];
+                    const signatureDocs = signatureDocuments || [];
+                    const stampDocs = stampDocuments || [];
 
                     const resolvedSettings: PayrollPDFSettingsModel = {
                         ...settings,
@@ -88,15 +95,10 @@ export default function FilterActions({
                 console.error("[Filter] Error loading PDF settings:", error);
             }
         }
-        if (hrSettings.headerDocuments?.length > 0) {
+        if (headerDocuments?.length > 0) {
             loadPdfSettings();
         }
-    }, [
-        hrSettings.headerDocuments,
-        hrSettings.footerDocuments,
-        hrSettings.signatureDocuments,
-        hrSettings.stampDocuments,
-    ]);
+    }, [headerDocuments, footerDocuments, signatureDocuments, stampDocuments]);
 
     // Get current PDF settings or fall back to defaults
     const currentPDFSettings: PayrollPDFSettingsModel = pdfSettings || {

@@ -7,11 +7,6 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useData } from "@/context/app-data-context";
 import { getTimestamp } from "@/lib/util/dayjs_format";
-import {
-    createCompensation,
-    deleteCompensation,
-    updateCompensation,
-} from "@/lib/backend/api/compensation-benefit/compensation-service";
 import dayjs from "dayjs";
 import { EmployeeCompensationModel } from "@/lib/models/employeeCompensation";
 import { useToast } from "@/context/toastContext";
@@ -19,6 +14,8 @@ import { EmployeeModel } from "@/lib/models/employee";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
 import { COMPENSATION_LOG_MESSAGES } from "@/lib/log-descriptions/compensation";
 import { useAuth } from "@/context/authContext";
+import { LogRepository } from "@/lib/repository/logs/log.repository";
+import { PayrollRepository } from "@/lib/repository/payroll";
 import { usePaymentDeductionData } from "./hooks/usePaymentDeductionData";
 import { TabButtons } from "./blocks/tab-buttons";
 import { PaymentTable } from "./blocks/payment-table";
@@ -27,7 +24,7 @@ import { AddEditPaymentDialog } from "./blocks/add-edit-payment-dialog";
 import { AddEditDeductionDialog } from "./blocks/add-edit-deduction-dialog";
 import { EmployeeModal } from "./blocks/employee-modal";
 import { AmountModal } from "./blocks/amount-modal";
-import { validateMultipleSeverancePayEligibility } from "@/lib/backend/functions/calculateSeverancePay";
+import { validateMultipleSeverancePayEligibility } from "@/lib/util/functions/calculateSeverancePay";
 
 interface PaymentEntry {
     id: string;
@@ -64,12 +61,24 @@ function monthObjectToArray<T>(obj: Record<string, T | number>): (T | number)[] 
 export function PaymentDeductions() {
     const { confirm, ConfirmDialog } = useConfirm();
     const { showToast } = useToast();
-    const { activeEmployees: employees, ...hrSettings } = useData();
+    const {
+        activeEmployees: employees,
+        positions,
+        paymentTypes: rawPaymentTypes,
+        deductionTypes: rawDeductionTypes,
+        taxes,
+        ...settingsCollections
+    } = useData();
     const { userData } = useAuth();
-    const positions = hrSettings.positions;
-    const paymentTypes = hrSettings.paymentTypes.filter(p => p.active);
-    const deductionTypes = hrSettings.deductionTypes.filter(p => p.active);
-    const taxes = hrSettings.taxes || [];
+    const paymentTypes = rawPaymentTypes.filter(p => p.active);
+    const deductionTypes = rawDeductionTypes.filter(p => p.active);
+    const settingsLookup = {
+        positions,
+        paymentTypes: rawPaymentTypes,
+        deductionTypes: rawDeductionTypes,
+        taxes,
+        ...settingsCollections,
+    };
     const router = useRouter();
     const [isAddEditLoading, setIsAddEditLoading] = useState<boolean>(false);
     const [activeTab, setActiveTab] = useState<"payments" | "deductions">("payments");
@@ -196,17 +205,16 @@ export function PaymentDeductions() {
                     deductionAmount: null,
                 };
 
-                const res = await updateCompensation(
-                    updatePay,
-                    userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.UPDATED(
-                        `payment: ${paymentTypes.find(pt => pt.id == updatePay.paymentType)?.paymentName ?? ""}`,
-                    ),
+                const logInfo = COMPENSATION_LOG_MESSAGES.UPDATED(
+                    `payment: ${paymentTypes.find(pt => pt.id == updatePay.paymentType)?.paymentName ?? ""}`,
                 );
-                if (res) {
+                const result = await PayrollRepository.updateCompensation(updatePay);
+                if (result.success) {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Success");
                     showToast("Payment updated successfully", "Success", "success");
                     handleResetPay();
                 } else {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Failure");
                     showToast("Error updating payment", "Error", "error");
                 }
             } else {
@@ -221,17 +229,16 @@ export function PaymentDeductions() {
                     deductionAmount: null,
                 };
 
-                const res = await createCompensation(
-                    newPay,
-                    userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.CREATED(
-                        `payment: ${paymentTypes.find(pt => pt.id == newPay.paymentType)?.paymentName ?? ""}`,
-                    ),
+                const logInfo = COMPENSATION_LOG_MESSAGES.CREATED(
+                    `payment: ${paymentTypes.find(pt => pt.id == newPay.paymentType)?.paymentName ?? ""}`,
                 );
-                if (res) {
+                const result = await PayrollRepository.createCompensation(newPay);
+                if (result.success) {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Success");
                     showToast("Payment created successfully", "Success", "success");
                     handleResetPay();
                 } else {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Failure");
                     showToast("Error creating payment", "Error", "error");
                 }
             }
@@ -268,17 +275,16 @@ export function PaymentDeductions() {
                     paymentType: null,
                 };
 
-                const res = await updateCompensation(
-                    updatedDeduction,
-                    userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.UPDATED(
-                        `deduction: ${deductionTypes.find(dt => dt.id == updatedDeduction.deduction)?.deductionName ?? ""}`,
-                    ),
+                const logInfo = COMPENSATION_LOG_MESSAGES.UPDATED(
+                    `deduction: ${deductionTypes.find(dt => dt.id == updatedDeduction.deduction)?.deductionName ?? ""}`,
                 );
-                if (res) {
+                const result = await PayrollRepository.updateCompensation(updatedDeduction);
+                if (result.success) {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Success");
                     showToast("Deduction updated successfully", "Success", "success");
                     handleResetDeduction();
                 } else {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Failure");
                     showToast("Error updating deduction", "Error", "error");
                 }
             } else {
@@ -293,17 +299,16 @@ export function PaymentDeductions() {
                     paymentType: null,
                 };
 
-                const res = await createCompensation(
-                    newDeduct,
-                    userData?.uid ?? "",
-                    COMPENSATION_LOG_MESSAGES.CREATED(
-                        `deduction: ${deductionTypes.find(dt => dt.id == newDeduct.deduction)?.deductionName ?? ""}`,
-                    ),
+                const logInfo = COMPENSATION_LOG_MESSAGES.CREATED(
+                    `deduction: ${deductionTypes.find(dt => dt.id == newDeduct.deduction)?.deductionName ?? ""}`,
                 );
-                if (res) {
+                const result = await PayrollRepository.createCompensation(newDeduct);
+                if (result.success) {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Success");
                     showToast("Deduction created successfully", "Success", "success");
                     handleResetDeduction();
                 } else {
+                    await LogRepository.create(logInfo, userData?.uid ?? "", "Failure");
                     showToast("Error creating deduction", "Error", "error");
                 }
             }
@@ -322,22 +327,21 @@ export function PaymentDeductions() {
 
     const handleDelete = (id: string) => {
         confirm("Are you sure ?", async () => {
-            const res = await deleteCompensation(
-                id,
-                userData?.uid ?? "",
-                COMPENSATION_LOG_MESSAGES.DELETED(
-                    paymentTypes.find(
-                        pt => pt.id == paymentsData.find(p => p.id === id)?.paymentTypeName,
-                    )?.paymentName ||
-                        deductionTypes.find(
-                            dt => dt.id == deductionsData.find(d => d.id === id)?.deductionTypeName,
-                        )?.deductionName ||
-                        "",
-                ),
+            const logInfo = COMPENSATION_LOG_MESSAGES.DELETED(
+                paymentTypes.find(
+                    pt => pt.id == paymentsData.find(p => p.id === id)?.paymentTypeName,
+                )?.paymentName ||
+                    deductionTypes.find(
+                        dt => dt.id == deductionsData.find(d => d.id === id)?.deductionTypeName,
+                    )?.deductionName ||
+                    "",
             );
-            if (res) {
+            const result = await PayrollRepository.deleteCompensation(id);
+            if (result.success) {
+                await LogRepository.create(logInfo, userData?.uid ?? "", "Success");
                 showToast("Item Deleted successfully", "Success", "success");
             } else {
+                await LogRepository.create(logInfo, userData?.uid ?? "", "Failure");
                 showToast("Error deleting an item", "Error", "error");
             }
         });
@@ -424,7 +428,7 @@ export function PaymentDeductions() {
                                 isAddEditLoading={isAddEditLoading}
                                 paymentsData={paymentsData}
                                 taxes={taxes}
-                                hrSettings={hrSettings}
+                                settingsLookup={settingsLookup}
                             />
                         )}
                         {activeTab === "deductions" && (

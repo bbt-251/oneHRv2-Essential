@@ -82,7 +82,12 @@ const getStatusColor = (status: string) => {
 export default function LeaveTable() {
     const { theme } = useTheme();
     const { userData } = useAuth();
-    const { employees, leaveManagements, ...hrSettings } = useData();
+    const {
+        employees,
+        leaveManagements,
+        leaveTypes: baseLeaveTypes,
+        accrualConfigurations,
+    } = useData();
 
     const employeeLeaveRequests = useMemo(
         () =>
@@ -92,7 +97,7 @@ export default function LeaveTable() {
         [leaveManagements, userData?.uid],
     );
 
-    const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
+    const leaveTypes = [...baseLeaveTypes, annualLeaveType, unpaidLeaveType];
 
     const getLeaveTypeName = (leaveTypeId: string) => {
         const leaveType = leaveTypes.find(leaveType => leaveType.id === leaveTypeId);
@@ -252,9 +257,9 @@ export default function LeaveTable() {
                 eligibleDays={userData?.eligibleLeaveDays || 0}
                 accrualDays={userData?.accrualLeaveDays || 0}
                 contractStartDate={userData?.contractStartingDate}
-                carryOverLimit={hrSettings.accrualConfigurations?.[0]?.limitUnusedDays}
+                carryOverLimit={accrualConfigurations?.[0]?.limitUnusedDays}
                 onBalanceClick={
-                    hrSettings.accrualConfigurations?.[0]?.limitUnusedDays
+                    accrualConfigurations?.[0]?.limitUnusedDays
                         ? () => setIsBalanceDetailsModalOpen(true)
                         : undefined
                 }
@@ -981,7 +986,7 @@ export default function LeaveTable() {
                     balanceLeaveDays={userData?.balanceLeaveDays || 0}
                     accrualLeaveDays={userData?.accrualLeaveDays || 0}
                     eligibleLeaveDays={userData?.eligibleLeaveDays || 0}
-                    carryOverLimit={hrSettings.accrualConfigurations?.[0]?.limitUnusedDays || 5}
+                    carryOverLimit={accrualConfigurations?.[0]?.limitUnusedDays || 5}
                 />
             )}
         </>

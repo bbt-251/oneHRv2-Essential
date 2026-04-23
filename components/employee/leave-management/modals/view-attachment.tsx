@@ -13,7 +13,7 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
-import { getBackendStorageDownloadUrl } from "@/lib/backend/client/storage-client";
+import { StorageRepository } from "@/lib/repository/storage/storage.repository";
 
 interface ViewAttachmentProps {
     attachments: string[];
@@ -49,7 +49,7 @@ export default function ViewAttachment({
             return;
         }
 
-        getBackendStorageDownloadUrl(firstAttachment)
+        StorageRepository.getDownloadUrl(firstAttachment)
             .then(downloadUrl => {
                 if (!active) {
                     return;

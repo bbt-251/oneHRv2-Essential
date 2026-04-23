@@ -17,13 +17,13 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
-import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
+import { EmployeeRepository } from "@/lib/repository/employee";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import dayjs from "dayjs";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 
 interface OvertimeClaimFormProps {
     day: {
@@ -70,14 +70,14 @@ export function OvertimeClaimForm({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setClaimLoading(true);
-        const res = await updateEmployee({
+        const result = await EmployeeRepository.updateEmployee({
             id: userData?.id ?? "",
             claimedOvertimes: [
                 ...(userData?.claimedOvertimes?.filter(o => o != formData.overtime) ?? []),
                 formData.overtime,
             ],
         });
-        if (res) {
+        if (result.success) {
             showToast("Overtime claimed successfully", "Success", "success");
             onClose();
         } else {

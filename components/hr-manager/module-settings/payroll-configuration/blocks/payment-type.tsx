@@ -30,14 +30,13 @@ import { PaymentTypeForm } from "./payment-type-component";
 import { PaymentTypeModel } from "@/lib/models/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService } from "@/lib/backend/hr-settings-service";
+import { ModuleSettingsRepository as settingsService } from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { PAYROLL_CONFIGURATION_LOG_MESSAGES } from "@/lib/log-descriptions/payroll-configuration";
 import { useAuth } from "@/context/authContext";
 
 export function PaymentType() {
-    const { ...hrSettings } = useData();
-    const paymentTypes = hrSettings.paymentTypes;
+    const { paymentTypes } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
@@ -83,7 +82,7 @@ export function PaymentType() {
 
     const handleDelete = (item: PaymentTypeModel) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
+            const res = await settingsService.remove(
                 "paymentTypes",
                 item.id,
                 userData?.uid,
@@ -102,7 +101,7 @@ export function PaymentType() {
 
         const { id: _id, ...data } = formData;
         if (editingItem) {
-            const res = await hrSettingsService.update(
+            const res = await settingsService.update(
                 "paymentTypes",
                 editingItem.id,
                 data,
@@ -121,7 +120,7 @@ export function PaymentType() {
                 showToast("Error updating payment type", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create(
+            const res = await settingsService.create(
                 "paymentTypes",
                 data,
                 userData?.uid,

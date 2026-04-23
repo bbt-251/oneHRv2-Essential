@@ -57,6 +57,7 @@ import {
 } from "@/lib/models/hr-settings";
 import { CompanyInfoModel } from "@/lib/models/companyInfo";
 import { FileDocumentModel } from "@/lib/models/file-document";
+import { ProjectModel } from "@/lib/models/project";
 import {
     CurrencyModel,
     DeductionTypeModel,
@@ -74,18 +75,6 @@ export interface InAppNotificationModel {
     action?: string | null;
     isRead?: boolean;
     timestamp?: string;
-}
-
-export interface ProjectAllocationModel {
-    uid: string;
-    allocation: number;
-}
-
-export interface ProjectModel {
-    id: string;
-    name: string;
-    assignedMembers?: string[];
-    employeeAllocations?: ProjectAllocationModel[];
 }
 
 export interface AppDataContextValue {
@@ -141,6 +130,8 @@ export interface AppDataContextValue {
     initialDocuments: FileDocumentModel[];
     loading: boolean;
     error: string | null;
+    hydratedResources: AppDataResource[];
+    isResourceHydrated: (resource: AppDataResource) => boolean;
     realtimeStatus: "idle" | "connecting" | "connected" | "reconnecting" | "error";
     realtimeEnabled: boolean;
     realtimeError: string | null;
@@ -255,6 +246,8 @@ const AppDataContext = createContext<AppDataContextValue>({
     activeEmployees: [],
     loading: true,
     error: null,
+    hydratedResources: [],
+    isResourceHydrated: () => false,
     realtimeStatus: "idle",
     realtimeEnabled: false,
     realtimeError: null,
@@ -330,6 +323,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const employeeOnly = useMemo(() => userRolesKey === "Employee", [userRolesKey]);
     const [data, setData] = useState<AppDataState>(initialAppData);
     const [error, setError] = useState<string | null>(null);
+    const [hydratedResources, setHydratedResources] = useState<AppDataResource[]>([]);
     const [pendingResourceCount, setPendingResourceCount] = useState<number>(
         Object.keys(initialAppData).length,
     );
@@ -396,6 +390,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                 closeRealtimeSource();
                 setData(initialAppData);
                 setError(null);
+                setHydratedResources([]);
                 setPendingResourceCount(0);
                 setRealtimeStatus("idle");
                 setRealtimeError(null);
@@ -412,6 +407,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                 closeRealtimeSource();
                 setData(initialAppData);
                 setError(null);
+                setHydratedResources([]);
                 setPendingResourceCount(0);
                 setRealtimeStatus("idle");
                 setRealtimeError(null);
@@ -429,6 +425,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             }
 
             hydratedResources.add(resource);
+            setHydratedResources(previous =>
+                previous.includes(resource) ? previous : [...previous, resource],
+            );
             setPendingResourceCount(previous => Math.max(previous - 1, 0));
         };
 
@@ -548,6 +547,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const activeEmployees = data.employees.filter(
         employee => employee.contractStatus.toLowerCase() === "active",
     );
+    const isResourceHydrated = useCallback(
+        (resource: AppDataResource) => hydratedResources.includes(resource),
+        [hydratedResources],
+    );
 
     return (
         <AppDataContext.Provider
@@ -556,6 +559,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                 activeEmployees,
                 loading,
                 error,
+                hydratedResources,
+                isResourceHydrated,
                 realtimeStatus,
                 realtimeEnabled,
                 realtimeError,
@@ -568,47 +573,4 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
 export function useData() {
     return useContext(AppDataContext);
-}
-
-export function useAppData() {
-    const data = useData();
-
-    return {
-        ...data,
-        attendance: data.attendances,
-        hrSettings: {
-            companyInfo: data.companyInfo,
-            leaveSettings: data.leaveSettings,
-            payrollSettings: data.payrollSettings,
-            departmentSettings: data.departmentSettings,
-            sectionSettings: data.sectionSettings,
-            notificationTypes: data.notificationTypes,
-            locations: data.locations,
-            maritalStatuses: data.maritalStatuses,
-            contractTypes: data.contractTypes,
-            contractHours: data.contractHours,
-            reasonOfLeaving: data.reasonOfLeaving,
-            probationDays: data.probationDays,
-            salaryScales: data.salaryScales,
-            leaveTypes: data.leaveTypes,
-            eligibleLeaveDays: data.eligibleLeaveDays,
-            backdateCapabilities: data.backdateCapabilities,
-            accrualConfigurations: data.accrualConfigurations,
-            holidays: data.holidays,
-            shiftHours: data.shiftHours,
-            shiftTypes: data.shiftTypes,
-            overtimeTypes: data.overtimeTypes,
-            grades: data.grades,
-            positions: data.positions,
-            levelOfEducations: data.levelOfEducations,
-            yearsOfExperiences: data.yearsOfExperiences,
-            announcementTypes: data.announcementTypes,
-            paymentTypes: data.paymentTypes,
-            deductionTypes: data.deductionTypes,
-            loanTypes: data.loanTypes,
-            taxes: data.taxes,
-            currencies: data.currencies,
-            pension: data.pension,
-        },
-    };
 }

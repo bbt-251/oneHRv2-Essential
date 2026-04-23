@@ -7,7 +7,7 @@ import { AttendanceChangeRequest, ModalState } from "../page";
 import { Dispatch, SetStateAction } from "react";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { EmployeeModel } from "@/lib/models/employee";
-import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
+import { calculateTotalWorkedHours } from "@/lib/util/functions/calculateDuration";
 
 interface Props {
     employees: EmployeeModel[];

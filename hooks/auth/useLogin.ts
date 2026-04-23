@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { loginWithBackend } from "@/lib/backend/client/auth-client";
+import { AuthRepository } from "@/lib/repository/auth";
 
 interface LoginProps {
     email: string;
@@ -33,7 +33,7 @@ export const useLogin = (): LoginHook => {
         setError(null);
 
         try {
-            const data = await loginWithBackend({ email, password });
+            const data = await AuthRepository.login({ email, password });
             console.log("[auth][login] backend login response", {
                 email,
                 authenticated: data.authenticated,

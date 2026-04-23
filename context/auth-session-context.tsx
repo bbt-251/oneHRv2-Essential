@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useToast } from "./toastContext";
-import { AuthIdentity, authClient, logoutFromBackend } from "@/lib/backend/client/auth-client";
+import { AuthIdentity, AuthRepository } from "@/lib/repository/auth";
 
 interface AuthSessionContextType {
     user: AuthIdentity | null;
@@ -23,7 +23,7 @@ export const AuthSessionProvider = ({ children }: { children: React.ReactNode })
     const [signingOut, setSigningOut] = useState<boolean>(false);
     const { showToast } = useToast();
     const router = useRouter();
-    const session = authClient.useSession();
+    const session = AuthRepository.authClient.useSession();
     const user = useMemo(
         () =>
             session.data
@@ -34,15 +34,15 @@ export const AuthSessionProvider = ({ children }: { children: React.ReactNode })
                     active: session.data.active,
                 } satisfies AuthIdentity)
                 : null,
-        [session.data?.active, session.data?.email, session.data?.roles, session.data?.uid],
+        [session.data],
     );
     const authLoading = session.isPending || (!session.data && session.isRefetching);
 
-    const signout = async () => {
+    const signout = useCallback(async () => {
         setSigningOut(true);
         try {
             showToast("Signing out ...", "👋🏻", "default");
-            await logoutFromBackend();
+            await AuthRepository.logout();
             router.push("/signin");
         } catch (error) {
             console.error("Error signing out:", error);
@@ -51,7 +51,7 @@ export const AuthSessionProvider = ({ children }: { children: React.ReactNode })
                 setSigningOut(false);
             }, 2000);
         }
-    };
+    }, [router, showToast]);
 
     useEffect(() => {
         if (!user) {
@@ -73,7 +73,7 @@ export const AuthSessionProvider = ({ children }: { children: React.ReactNode })
 
             timer = setTimeout(
                 () => {
-                    void logoutFromBackend();
+                    void AuthRepository.logout();
                     router.push("/logged-out");
                 },
                 5 * 60 * 1000,
@@ -100,7 +100,7 @@ export const AuthSessionProvider = ({ children }: { children: React.ReactNode })
             signout,
             signingOut,
         }),
-        [authLoading, signingOut, user],
+        [authLoading, signout, signingOut, user],
     );
 
     return (

@@ -71,7 +71,7 @@ import { TestError } from "@/components/test-error";
 
 ### Discord Webhook
 
-The error reporting webhook URL is configured in `lib/backend/error-reporting.ts`:
+The error reporting webhook URL is configured in `lib/shared/error-reporting.ts`:
 
 ```typescript
 const errorBotProduction = "https://discord.com/api/webhooks/...";

@@ -3,20 +3,20 @@
 import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/authContext";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { Bell, Calendar, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MetricDetailModal } from "../modals/metric-detail-modal";
 import BalanceDetailsModal from "../../leave-management/modals/balance-details-modal";
 
 export function MetricsCards() {
-    const { notifications, hrSettings } = useAppData();
+    const { notifications, holidays, accrualConfigurations } = useData();
     const { userData } = useAuth();
     const { theme } = useTheme();
     const [activeModal, setActiveModal] = useState<string | null>(null);
     const [isBalanceDetailsOpen, setIsBalanceDetailsOpen] = useState<boolean>(false);
 
-    const upcomingHolidays = hrSettings.holidays
+    const upcomingHolidays = holidays
         .filter(holiday => new Date(holiday.date) >= new Date() && holiday.active === "Yes")
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -40,7 +40,7 @@ export function MetricsCards() {
         {
             id: "leave",
             title: "Leave Balance",
-            value: hrSettings.accrualConfigurations?.[0]?.limitUnusedDays
+            value: accrualConfigurations?.[0]?.limitUnusedDays
                 ? (userData?.balanceLeaveDays || 0) + (userData?.accrualLeaveDays || 0)
                 : userData?.balanceLeaveDays || 0,
             subtitle: "Days remaining",
@@ -64,7 +64,7 @@ export function MetricsCards() {
                         className={`cursor-pointer shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-lg ${theme === "dark" ? "bg-black border-gray-800" : ""}`}
                         onClick={() => {
                             if (metric.id === "leave") {
-                                if (hrSettings.accrualConfigurations?.[0]?.limitUnusedDays) {
+                                if (accrualConfigurations?.[0]?.limitUnusedDays) {
                                     setIsBalanceDetailsOpen(true);
                                 }
                                 return;
@@ -118,7 +118,7 @@ export function MetricsCards() {
                 balanceLeaveDays={userData?.balanceLeaveDays || 0}
                 accrualLeaveDays={userData?.accrualLeaveDays || 0}
                 eligibleLeaveDays={userData?.eligibleLeaveDays || 0}
-                carryOverLimit={hrSettings.accrualConfigurations?.[0]?.limitUnusedDays}
+                carryOverLimit={accrualConfigurations?.[0]?.limitUnusedDays}
             />
         </>
     );

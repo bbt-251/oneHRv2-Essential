@@ -14,7 +14,7 @@ import {
     AlertCircle,
     Edit,
 } from "lucide-react";
-import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
+import { calculateTotalWorkedHours } from "@/lib/util/functions/calculateDuration";
 import { AttendanceChangeRequest } from "../../page";
 import { useData } from "@/context/app-data-context";
 import getFullName from "@/lib/util/getEmployeeFullName";

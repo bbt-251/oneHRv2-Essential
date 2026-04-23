@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
 import { EmployeeModel } from "@/lib/models/employee";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import {
@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import EmployeesListModal from "@/components/common/modals/employees-list-modal";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import {
     getOvertimeManagerDisplayName,

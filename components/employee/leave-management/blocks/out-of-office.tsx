@@ -76,7 +76,7 @@ function transformLeaveRequestsToOutOfOfficeData(
 export default function OutOfOffice() {
     const { theme } = useTheme();
     const { user } = useAuth();
-    const { employees, leaveManagements, ...hrSettings } = useData();
+    const { employees, leaveManagements, sectionSettings, departmentSettings } = useData();
 
     const getReporteeIds = (managerId: string): string[] => {
         const directReports = employees.filter(emp => emp.reportingLineManager === managerId);
@@ -96,9 +96,9 @@ export default function OutOfOffice() {
         return myReportees.includes(request.employeeID) && isVisible;
     });
 
-    const sections = hrSettings.sectionSettings;
+    const sections = sectionSettings;
 
-    const departments = hrSettings.departmentSettings;
+    const departments = departmentSettings;
 
     const getSectionName = (sectionId: string) => {
         const section = sections.find(section => section.id === sectionId);

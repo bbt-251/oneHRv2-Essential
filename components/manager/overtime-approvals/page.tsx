@@ -37,23 +37,19 @@ import { OvertimeFilter } from "./blocks/overtime-filter";
 import { OvertimeForm } from "./blocks/overtime-form";
 import { OvertimeDetailModal } from "./modals/overtime-detail-modal";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
-import {
-    createOvertimeRequest,
-    deleteOvertimeRequest,
-    updateOvertimeRequest,
-} from "@/lib/backend/api/attendance/overtime-service";
 import { useToast } from "@/context/toastContext";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients, getEmployeeNames } from "@/lib/util/notification/recipients";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
 import { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import dayjs from "dayjs";
 
 import { dateFormat } from "@/lib/util/dayjs_format";
 import generateID from "@/lib/util/generateID";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { getPrimaryOvertimeEmployee } from "@/lib/util/overtime-request-display";
 import { Trash2, Undo2 } from "lucide-react";
@@ -63,8 +59,7 @@ export function OvertimeApprovals() {
     const { theme } = useTheme();
     const { userData } = useAuth();
     const { showToast } = useToast();
-    const { activeEmployees, overtimeRequests: overtimeRequestsData, ...hrSettings } = useAppData();
-    const overtimeTypes = hrSettings.overtimeTypes;
+    const { activeEmployees, overtimeRequests: overtimeRequestsData, overtimeTypes } = useData();
     const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
     const [isRequestLoading, setIsRequestLoading] = useState<boolean>(false);
 
@@ -151,9 +146,9 @@ export function OvertimeApprovals() {
             duration: duration,
         };
 
-        const res = await createOvertimeRequest(newRequest, userData?.uid || "");
+        const res = await AttendanceRepository.createOvertimeRequest(newRequest);
 
-        if (res) {
+        if (res.success) {
             // Send notification to HR Manager and Employees when OT request is submitted
             try {
                 const employeeNames = getEmployeeNames(
@@ -251,14 +246,14 @@ export function OvertimeApprovals() {
             return;
         }
         setActionLoadingId(request.id);
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 approvalStage: "hr",
             },
             userData.uid,
         );
-        if (!res) {
+        if (!res.success) {
             showToast(
                 "Failed to forward overtime request to HR. Please try again.",
                 "Error",
@@ -280,7 +275,7 @@ export function OvertimeApprovals() {
             return;
         }
         setActionLoadingId(request.id);
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 status: "rejected",
@@ -291,7 +286,7 @@ export function OvertimeApprovals() {
             },
             userData.uid,
         );
-        if (!res) {
+        if (!res.success) {
             showToast("Failed to reject overtime request. Please try again.", "Error", "error");
         } else {
             showToast("Overtime request rejected.", "Success", "success");
@@ -321,8 +316,11 @@ export function OvertimeApprovals() {
             return;
         }
         setActionLoadingId(request.id);
-        const res = await deleteOvertimeRequest(request.id, userData.uid, request.employeeUids);
-        if (!res) {
+        const res = await AttendanceRepository.deleteOvertimeRequest(
+            request.id,
+            request.employeeUids,
+        );
+        if (!res.success) {
             showToast("Failed to delete overtime request. Please try again.", "Error", "error");
         } else {
             showToast("Overtime request deleted successfully.", "Success", "success");
@@ -340,7 +338,7 @@ export function OvertimeApprovals() {
             return;
         }
         setActionLoadingId(request.id);
-        const res = await updateOvertimeRequest(
+        const res = await AttendanceRepository.updateOvertimeRequest(
             {
                 id: request.id,
                 status: "pending",
@@ -351,7 +349,7 @@ export function OvertimeApprovals() {
             },
             userData.uid,
         );
-        if (!res) {
+        if (!res.success) {
             showToast("Failed to rollback overtime request. Please try again.", "Error", "error");
         } else {
             showToast("Overtime request rolled back to manager review.", "Success", "success");

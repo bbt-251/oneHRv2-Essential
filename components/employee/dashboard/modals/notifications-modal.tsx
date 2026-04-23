@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Bell, Calendar } from "lucide-react";
 import { useAuth } from "@/context/authContext";
 import { useToast } from "@/context/toastContext";
-import { updateEmployee } from "@/lib/backend/api/employee-management/employee-management-service";
+import { EmployeeRepository } from "@/lib/repository/employee";
 import { useEffect, useMemo, useState } from "react";
 import { ExtendedNotificationModel } from "@/components/header";
 import { useRouter } from "next/navigation";
@@ -75,10 +75,11 @@ export function NotificationsModal({
                 ];
             }
 
-            const success = await updateEmployee({
+            const result = await EmployeeRepository.updateEmployee({
                 id: userData.id,
                 notifications: updatedNotifications,
             });
+            const success = result.success;
 
             if (success) {
                 showToast("Notification marked as read", "success", "success");
@@ -148,10 +149,11 @@ export function NotificationsModal({
                 }
             });
 
-            const success = await updateEmployee({
+            const result = await EmployeeRepository.updateEmployee({
                 id: userData.id,
                 notifications: updatedNotifications,
             });
+            const success = result.success;
 
             if (success) {
                 showToast("All notifications marked as read", "success", "success");

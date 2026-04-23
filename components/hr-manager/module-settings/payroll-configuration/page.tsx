@@ -21,11 +21,8 @@ import { PaymentType } from "./blocks/payment-type";
 import { Pension } from "./blocks/pension";
 import { TaxConfiguration } from "./blocks/tax-config";
 import { useData } from "@/context/app-data-context";
-import {
-    savePayrollPDFSettings,
-    getPayrollPDFSettings,
-} from "@/lib/backend/api/payroll-settings-service";
 import { FileDocumentModel } from "@/lib/models/file-document";
+import { PayrollRepository } from "@/lib/repository/payroll";
 
 interface PayslipSettingsData {
     headerID: string;
@@ -35,7 +32,7 @@ interface PayslipSettingsData {
 }
 
 function PayslipSettings() {
-    const { ...hrSettings } = useData();
+    const { headerDocuments, footerDocuments, signatureDocuments, stampDocuments } = useData();
     const [settings, setSettings] = useState<PayslipSettingsData>({
         headerID: "",
         footerID: "",
@@ -47,16 +44,17 @@ function PayslipSettings() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     // Get document options from the shared app data layer
-    const headerOptions: FileDocumentModel[] = hrSettings.headerDocuments || [];
-    const footerOptions: FileDocumentModel[] = hrSettings.footerDocuments || [];
-    const signatureOptions: FileDocumentModel[] = hrSettings.signatureDocuments || [];
-    const stampOptions: FileDocumentModel[] = hrSettings.stampDocuments || [];
+    const headerOptions: FileDocumentModel[] = headerDocuments || [];
+    const footerOptions: FileDocumentModel[] = footerDocuments || [];
+    const signatureOptions: FileDocumentModel[] = signatureDocuments || [];
+    const stampOptions: FileDocumentModel[] = stampDocuments || [];
 
     // Load existing settings on mount
     useEffect(() => {
         async function loadSettings() {
             try {
-                const existingSettings = await getPayrollPDFSettings();
+                const result = await PayrollRepository.getPayrollPdfSettings();
+                const existingSettings = result.success ? result.data : null;
                 if (existingSettings) {
                     setSettings({
                         headerID: existingSettings.header || "",
@@ -77,8 +75,13 @@ function PayslipSettings() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const result = await savePayrollPDFSettings(settings);
-            if (result) {
+            const result = await PayrollRepository.savePayrollPdfSettings({
+                header: settings.headerID || null,
+                footer: settings.footerID || null,
+                stamp: settings.stampID || null,
+                signature: settings.signatureID || null,
+            });
+            if (result.success) {
                 setShowSuccess(true);
                 setTimeout(() => setShowSuccess(false), 3000);
             }

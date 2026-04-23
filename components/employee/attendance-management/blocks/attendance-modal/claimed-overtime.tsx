@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
-import { calculateDuration } from "@/lib/backend/functions/calculateDuration";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
+import { calculateDuration } from "@/lib/util/functions/calculateDuration";
 import { DailyAttendance } from "@/lib/models/attendance";
 import { OvertimeRequestModel } from "@/lib/models/overtime-request";
 import { DollarSign } from "lucide-react";

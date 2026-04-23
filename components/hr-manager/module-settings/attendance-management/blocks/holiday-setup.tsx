@@ -31,7 +31,10 @@ import {
 } from "@/components/ui/select";
 import dayjs from "dayjs";
 import { timestampFormat } from "@/lib/util/dayjs_format";
-import { HolidayModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    HolidayModel,
+    ModuleSettingsRepository as settingsService,
+} from "@/lib/repository/hr-settings";
 import { useToast } from "@/context/toastContext";
 import { useData } from "@/context/app-data-context";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
@@ -41,7 +44,7 @@ import { useAuth } from "@/context/authContext";
 import { HOLIDAY_SETUP_LOG_MESSAGES } from "@/lib/log-descriptions/attendance-management";
 
 export function HolidaySetup() {
-    const { ...hrSettings } = useData();
+    const { holidays } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { theme } = useTheme();
@@ -63,8 +66,6 @@ export function HolidaySetup() {
         year: new Date().getFullYear().toString(),
         country: "",
     });
-    const holidays: HolidayModel[] = hrSettings.holidays;
-
     // THEME CLASSES
     const cardBg = theme === "dark" ? "bg-black border-gray-800" : "bg-white border-gray-200";
     const headingColor = theme === "dark" ? "text-gray-100" : "text-gray-900";
@@ -129,7 +130,7 @@ export function HolidaySetup() {
         if (editingHoliday) {
             const { id: _id, ...data } = formData;
 
-            const res = await hrSettingsService.update(
+            const res = await settingsService.update(
                 "holidays",
                 editingHoliday.id,
                 data,
@@ -148,7 +149,7 @@ export function HolidaySetup() {
                 showToast("Error updating holiday", "Error", "error");
             }
         } else {
-            const res = await hrSettingsService.create(
+            const res = await settingsService.create(
                 "holidays",
                 newHoliday,
                 userData?.uid ?? "",
@@ -181,7 +182,7 @@ export function HolidaySetup() {
 
     const handleDeleteHoliday = (id: string) => {
         confirm("Are you sure ?", async () => {
-            const res = await hrSettingsService.remove(
+            const res = await settingsService.remove(
                 "holidays",
                 id,
                 userData?.uid ?? "",
@@ -231,7 +232,7 @@ export function HolidaySetup() {
             d.active = "Yes";
         });
 
-        const response = await hrSettingsService.batchCreate(
+        const response = await settingsService.batchCreate(
             "holidays",
             data,
             userData?.uid ?? "",

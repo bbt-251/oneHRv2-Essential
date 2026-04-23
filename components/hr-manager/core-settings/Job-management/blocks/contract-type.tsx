@@ -15,7 +15,10 @@ import {
 import { Edit } from "lucide-react";
 
 import ConfigTable from "./config-table";
-import { ContractTypeModel, hrSettingsService } from "@/lib/backend/hr-settings-service";
+import {
+    ContractTypeModel,
+    CoreSettingsRepository as settingsService,
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import DeleteConfirm from "../../blocks/delete-confirm";
 import { useTheme } from "@/components/theme-provider";
@@ -25,11 +28,10 @@ import { useAuth } from "@/context/authContext";
 import { JOB_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/job-management";
 
 export default function ContractType() {
-    const { ...hrSettings } = useData();
+    const { contractTypes } = useData();
     const { theme } = useTheme();
     const { showToast } = useToast();
     const { userData } = useAuth();
-    const contractTypes = hrSettings.contractTypes;
 
     const [showModal, setShowModal] = useState<boolean>(false);
     const [editingContractType, setEditingContractType] = useState<ContractTypeModel | null>(null);
@@ -92,7 +94,7 @@ export default function ContractType() {
             }
 
             if (editingContractType) {
-                hrSettingsService.update(
+                settingsService.update(
                     "contractTypes",
                     editingContractType.id,
                     formData,
@@ -107,7 +109,7 @@ export default function ContractType() {
                 );
                 showToast("Contract type updated successfully", "Success", "success");
             } else {
-                hrSettingsService.create(
+                settingsService.create(
                     "contractTypes",
                     formData,
                     userData?.uid ?? "",
@@ -130,7 +132,7 @@ export default function ContractType() {
     };
 
     const handleDelete = (id: string) => {
-        hrSettingsService.remove(
+        settingsService.remove(
             "contractTypes",
             id,
             userData?.uid ?? "",

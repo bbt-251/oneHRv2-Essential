@@ -24,43 +24,53 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ employees, columns, onClose }: ExportModalProps) {
-    const { employees: allEmployees, ...hrSettings } = useData();
+    const {
+        employees: allEmployees,
+        locations,
+        sectionSettings,
+        contractTypes,
+        maritalStatuses,
+        positions,
+        departmentSettings,
+        shiftTypes,
+        yearsOfExperiences,
+        levelOfEducations,
+        reasonOfLeaving,
+        currencies,
+        taxes,
+        contractHours,
+        grades,
+    } = useData();
 
     const getName = (items: { id: string; name: string }[], id: string) =>
         items.find(item => item.id === id)?.name || "";
 
-    const getLocationName = (locationId: string) => getName(hrSettings.locations, locationId);
-    const getSectionName = (sectionId: string) => getName(hrSettings.sectionSettings, sectionId);
-    const getContractTypeName = (contractTypeId: string) =>
-        getName(hrSettings.contractTypes, contractTypeId);
+    const getLocationName = (locationId: string) => getName(locations, locationId);
+    const getSectionName = (sectionId: string) => getName(sectionSettings, sectionId);
+    const getContractTypeName = (contractTypeId: string) => getName(contractTypes, contractTypeId);
     const getMaritalStatusName = (maritalStatusId: string) =>
-        getName(hrSettings.maritalStatuses, maritalStatusId);
-    const getEmploymentPositionName = (positionId: string) =>
-        getName(hrSettings.positions, positionId);
-    const getDepartmentName = (departmentId: string) =>
-        getName(hrSettings.departmentSettings, departmentId);
-    const getShiftTypeName = (shiftTypeId: string) => getName(hrSettings.shiftTypes, shiftTypeId);
+        getName(maritalStatuses, maritalStatusId);
+    const getEmploymentPositionName = (positionId: string) => getName(positions, positionId);
+    const getDepartmentName = (departmentId: string) => getName(departmentSettings, departmentId);
+    const getShiftTypeName = (shiftTypeId: string) => getName(shiftTypes, shiftTypeId);
     const getYearsOfExperienceName = (yearsOfExperienceId: string) =>
-        getName(hrSettings.yearsOfExperiences, yearsOfExperienceId);
+        getName(yearsOfExperiences, yearsOfExperienceId);
     const getLevelOfEducationName = (levelOfEducationId: string) =>
-        getName(hrSettings.levelOfEducations, levelOfEducationId);
-    const getReasonOfLeavingName = (reasonId: string) =>
-        getName(hrSettings.reasonOfLeaving, reasonId);
-    const getCurrencyName = (currencyId: string) => getName(hrSettings.currencies, currencyId);
+        getName(levelOfEducations, levelOfEducationId);
+    const getReasonOfLeavingName = (reasonId: string) => getName(reasonOfLeaving, reasonId);
+    const getCurrencyName = (currencyId: string) => getName(currencies, currencyId);
     const getTaxName = (taxId: string) => {
-        const tax = hrSettings.taxes.find(tax => tax.id === taxId);
+        const tax = taxes.find(tax => tax.id === taxId);
         return tax?.taxName || "";
     };
 
     const getContractHourName = (contractHourId: string) => {
-        const contractHour = hrSettings.contractHours.find(
-            contractHour => contractHour.id === contractHourId,
-        );
+        const contractHour = contractHours.find(contractHour => contractHour.id === contractHourId);
         return contractHour?.hourPerWeek || "";
     };
 
     const getGradeLevelName = (gradeLevelId: string) => {
-        const gradeLevel = hrSettings.grades.find(gradeLevel => gradeLevel.id === gradeLevelId);
+        const gradeLevel = grades.find(gradeLevel => gradeLevel.id === gradeLevelId);
         return gradeLevel?.grade || "";
     };
 

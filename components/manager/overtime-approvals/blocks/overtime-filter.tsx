@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar, Clock, Users, Filter, ChevronDown, X } from "lucide-react";
 import { EmployeeModel } from "@/lib/models/employee";
 import getFullName from "@/lib/util/getEmployeeFullName";
-import { OvertimeConfigurationModel } from "@/lib/backend/hr-settings-service";
+import { OvertimeConfigurationModel } from "@/lib/models/hr-settings";
 
 interface ManagerOvertimeFilterProps {
     employees: EmployeeModel[];

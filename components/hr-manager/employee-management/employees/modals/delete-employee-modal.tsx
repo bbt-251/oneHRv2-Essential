@@ -17,7 +17,7 @@ import type { EmployeeModel } from "@/lib/models/employee";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/context/toastContext";
 import getEmployeeFullName from "@/lib/util/getEmployeeFullName";
-import { cascadeDeleteEmployeeWithBackend } from "@/lib/backend/client/employee-client";
+import { EmployeeRepository } from "@/lib/repository/employee";
 
 interface DeleteEmployeeModalProps {
     open: boolean;
@@ -38,13 +38,15 @@ export function DeleteEmployeeModal({ open, onOpenChange, employee }: DeleteEmpl
         setError(null);
 
         try {
-            const result = await cascadeDeleteEmployeeWithBackend(employee.uid);
+            const result = await EmployeeRepository.cascadeDeleteEmployee(employee.uid);
 
-            if (result.success) {
+            if (result.success && result.data.success) {
                 showToast(`Employee ${employeeName} deleted successfully`, "success", "success");
                 onOpenChange(false);
             } else {
-                const message = result.errors[0] || "Failed to delete employee";
+                const message = result.success
+                    ? result.data.errors[0] || "Failed to delete employee"
+                    : result.message;
                 setError(message);
                 showToast(message, "error", "error");
             }

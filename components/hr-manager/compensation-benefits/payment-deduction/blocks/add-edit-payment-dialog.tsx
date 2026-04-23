@@ -29,9 +29,9 @@ import {
 } from "@/components/ui/table";
 
 import { EmployeeModel } from "@/lib/models/employee";
-import { months } from "@/lib/backend/functions/getListOfDays";
-import { calculateSeverancePay } from "@/lib/backend/functions/calculateSeverancePay";
-import { calculateAnnualLeavePay } from "@/lib/backend/functions/calculateAnnualLeavePay";
+import { months } from "@/lib/util/functions/getListOfDays";
+import { calculateSeverancePay } from "@/lib/util/functions/calculateSeverancePay";
+import { calculateAnnualLeavePay } from "@/lib/util/functions/calculateAnnualLeavePay";
 import dayjs from "dayjs";
 
 interface PaymentTypeOption {
@@ -77,7 +77,7 @@ interface AddEditPaymentDialogProps {
     isAddEditLoading: boolean;
     _paymentsData: PaymentEntry[];
     taxes?: TaxOption[];
-    _hrSettings?: unknown;
+    settingsLookup?: unknown;
 }
 
 export function AddEditPaymentDialog({
@@ -101,7 +101,7 @@ export function AddEditPaymentDialog({
     isAddEditLoading,
     _paymentsData,
     taxes,
-    _hrSettings,
+    settingsLookup: _settingsLookup,
 }: AddEditPaymentDialogProps) {
     // Check if selected payment type is Severance Pay or Annual Leave
     const selectedPaymentType = paymentTypes.find(pt => pt.id === newPayment.paymentTypeName);

@@ -18,10 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, MapPin, ChevronRight, ChevronDown, GripVertical } from "lucide-react";
 import { DataToolbar, Density } from "../blocks/data-toolbar";
 import {
-    hrSettingsService,
-    HrSettingsType,
+    CoreSettingsRepository as settingsService,
+    CoreSettingsType as SettingsCollectionType,
     LocationModel,
-} from "@/lib/backend/hr-settings-service";
+} from "@/lib/repository/hr-settings";
 import { useData } from "@/context/app-data-context";
 import { AddLocation } from "../modals/add-location";
 import { useToast } from "@/context/toastContext";
@@ -41,9 +41,8 @@ export function LocationManagement() {
     const { theme } = useTheme();
 
     const { showToast } = useToast();
-    const { ...hrSettings } = useData();
+    const { locations: rawLocations } = useData();
     const { userData } = useAuth();
-    const rawLocations = hrSettings.locations;
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
     const [editingLocation, setEditingLocation] = useState<LocationNode | null>(null);
     const [selectedParent, setSelectedParent] = useState<LocationNode | null>(null);
@@ -139,7 +138,7 @@ export function LocationManagement() {
         return null;
     };
 
-    const handleDelete = async (type: HrSettingsType, id: string) => {
+    const handleDelete = async (type: SettingsCollectionType, id: string) => {
         const nodeToDelete = findLocationById(locations, id);
 
         if (!nodeToDelete) {
@@ -162,7 +161,7 @@ export function LocationManagement() {
                 const allIdsToDelete = [id, ...descendantIds];
 
                 await Promise.all(
-                    allIdsToDelete.map(deleteId => hrSettingsService.remove(type, deleteId)),
+                    allIdsToDelete.map(deleteId => settingsService.remove(type, deleteId)),
                 );
 
                 showToast(
@@ -283,7 +282,7 @@ export function LocationManagement() {
     const handleDrop = async (e: React.DragEvent, targetLocation: LocationNode) => {
         e.preventDefault();
         if (!draggedItem || draggedItem.id === targetLocation.id) return;
-        await hrSettingsService.update(
+        await settingsService.update(
             "locations",
             draggedItem.id,
             {

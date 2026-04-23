@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useData } from "@/context/app-data-context";
 import { useToast } from "@/context/toastContext";
 import { useConfirm } from "@/hooks/use-confirm-dialog";
-import { hrSettingsService, PositionDefinitionModel } from "@/lib/backend/hr-settings-service";
+import {
+    CoreSettingsRepository as settingsService,
+    PositionDefinitionModel,
+} from "@/lib/repository/hr-settings";
 import { useCallback, useMemo, useState } from "react";
 import ConfigTable, { ColumnDef } from "../config-table";
 import PositionDialog from "./add-edit-position";
@@ -30,12 +33,11 @@ const nonFilterableKeys = [
 ];
 
 export default function PositionDefinition() {
-    const { ...hrSettings } = useData();
+    const { positions: items, grades } = useData();
     const { showToast } = useToast();
     const { confirm, ConfirmDialog } = useConfirm();
     const { userData } = useAuth();
 
-    const items = hrSettings.positions;
     const [open, setOpen] = useState<boolean>(false);
     const [form, setForm] = useState<FormState | null>(null);
     const [mode, setMode] = useState<"add" | "edit">("add");
@@ -48,7 +50,7 @@ export default function PositionDefinition() {
     const handleDelete = useCallback(
         (id: string) => {
             confirm("Are you sure ?", async () => {
-                const removed = await hrSettingsService.remove(
+                const removed = await settingsService.remove(
                     "positions",
                     id,
                     userData?.uid ?? "",
@@ -72,7 +74,7 @@ export default function PositionDefinition() {
                 key: "grade",
                 header: "Grade",
                 render: (row: PositionDefinitionModel) =>
-                    hrSettings.grades?.find(grade => grade.id === row.grade)?.grade ?? "",
+                    grades?.find(grade => grade.id === row.grade)?.grade ?? "",
             },
             { key: "band", header: "Band" },
             { key: "startDate", header: "Start Date" },
@@ -141,7 +143,7 @@ export default function PositionDefinition() {
                 ),
             },
         ],
-        [handleDelete, hrSettings.grades],
+        [handleDelete, grades],
     );
 
     function openAdd() {
@@ -184,7 +186,7 @@ export default function PositionDefinition() {
 
         try {
             if (mode === "add") {
-                const createdId = await hrSettingsService.create(
+                const createdId = await settingsService.create(
                     "positions",
                     newData as Partial<FormState>,
                     userData?.uid ?? "",
@@ -198,7 +200,7 @@ export default function PositionDefinition() {
                     showToast("Error creating position", "Error", "error");
                 }
             } else {
-                const updated = await hrSettingsService.update(
+                const updated = await settingsService.update(
                     "positions",
                     id,
                     newData,
@@ -242,7 +244,7 @@ export default function PositionDefinition() {
                 progress={((step + 1) / steps.length) * 100}
                 form={form}
                 setForm={setForm}
-                hrSettings={hrSettings}
+                settingsState={{ grades }}
                 workflowStepOptions={workflowStepOptions}
                 stepSelectValue={stepSelectValue}
                 handleSave={handleSave}

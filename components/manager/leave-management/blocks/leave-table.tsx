@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/theme-provider";
 
 import { FileText, Eye, CheckCircle, XCircle } from "lucide-react";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 
 import { LeaveModel } from "@/lib/models/leave";
 import { EmployeeModel } from "@/lib/models/employee";
@@ -50,10 +50,10 @@ export default function LeaveTable({
     managerVisibleColumns,
 }: LeaveTableProps) {
     const { theme } = useTheme();
-    const { employees, ...hrSettings } = useAppData();
-    const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
+    const { employees, leaveTypes: leaveTypeRecords, departmentSettings } = useData();
+    const leaveTypes = [...leaveTypeRecords, annualLeaveType, unpaidLeaveType];
 
-    const departments = hrSettings.departmentSettings;
+    const departments = departmentSettings;
     const getLeaveTypeName = (leaveTypeId: string) => {
         const leaveType = leaveTypes.find(leaveType => leaveType.id === leaveTypeId);
         return leaveType?.name || "Unknown";

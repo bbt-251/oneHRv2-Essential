@@ -24,13 +24,13 @@ import TeamDirectoryPage from "@/components/manager/team-directory/page";
 import {
     employeeItems,
     hrMonitorItems,
-    hrSettingsItems,
+    settingsItems,
     managerItems,
     payrollOfficerItems,
 } from "@/components/sidebar";
 import { useAuth } from "@/context/authContext";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo } from "react";
 
 const routeMap: Record<string, () => React.ReactNode> = {
     dashboard: () => (
@@ -144,46 +144,9 @@ export default function DynamicPage() {
     const { userData, employeeNotFound, authLoading, user } = useAuth();
     const params = useParams();
     const router = useRouter();
-    const pathname = usePathname();
     const path = Array.isArray(params.route) ? params.route.join("/") : "";
 
-    const employeeSidebarPaths = employeeItems.flatMap(i => [
-        i.url,
-        ...(i.items ? i.items.map(sub => sub.url) : []),
-    ]);
-    const managerSidebarPaths = managerItems.flatMap(i => [
-        i.url,
-        ...(i.items ? i.items.map(sub => sub.url) : []),
-    ]);
-    const hrManagerSidebarPaths = [
-        ...hrMonitorItems.flatMap(i => [i.url, ...(i.items ? i.items.map(sub => sub.url) : [])]),
-        ...hrSettingsItems.flatMap(i => [i.url, ...(i.items ? i.items.map(sub => sub.url) : [])]),
-    ];
-
-    const employeePaths = employeeSidebarPaths;
-    const managerPaths = [...employeeSidebarPaths, ...managerSidebarPaths];
-    const hrManagerPaths = [
-        ...employeeSidebarPaths,
-        ...managerSidebarPaths,
-        ...hrManagerSidebarPaths,
-        "/hr/payroll",
-        "/hr/payment-deduction",
-        "/hr/employee-loan",
-    ];
-
-    const payrollOfficerSidebarPaths = payrollOfficerItems.flatMap(i => [
-        i.url,
-        ...(i.items ? i.items.map(sub => sub.url) : []),
-    ]);
-    const payrollOfficerPaths = [
-        ...payrollOfficerSidebarPaths,
-        "/hr/payroll",
-        "/hr/payment-deduction",
-        "/hr/employee-loan",
-        "/hr/module-settings/payroll-configuration",
-    ];
-
-    const getRedirectReason = (): string => {
+    const getRedirectReason = useCallback((): string => {
         if (!user) {
             return "no-user-data";
         }
@@ -200,25 +163,65 @@ export default function DynamicPage() {
             return "no-role";
         }
         return "page-not-allowed";
-    };
+    }, [authLoading, employeeNotFound, user, userData]);
 
     const allowedPaths = useMemo(() => {
+        const employeeSidebarPaths = employeeItems.flatMap(i => [
+            i.url,
+            ...(i.items ? i.items.map(sub => sub.url) : []),
+        ]);
+        const managerSidebarPaths = managerItems.flatMap(i => [
+            i.url,
+            ...(i.items ? i.items.map(sub => sub.url) : []),
+        ]);
+        const hrManagerSidebarPaths = [
+            ...hrMonitorItems.flatMap(i => [
+                i.url,
+                ...(i.items ? i.items.map(sub => sub.url) : []),
+            ]),
+            ...settingsItems.flatMap(i => [i.url, ...(i.items ? i.items.map(sub => sub.url) : [])]),
+        ];
+        const payrollOfficerSidebarPaths = payrollOfficerItems.flatMap(i => [
+            i.url,
+            ...(i.items ? i.items.map(sub => sub.url) : []),
+        ]);
         const paths: string[] = [];
 
         userData?.role?.forEach(role => {
             if (role == "HR Manager") {
-                paths.push(...(hrManagerPaths.filter(Boolean) as string[]));
+                paths.push(
+                    ...([
+                        ...employeeSidebarPaths,
+                        ...managerSidebarPaths,
+                        ...hrManagerSidebarPaths,
+                        "/hr/payroll",
+                        "/hr/payment-deduction",
+                        "/hr/employee-loan",
+                    ].filter(Boolean) as string[]),
+                );
             } else if (role == "Manager") {
-                paths.push(...(managerPaths.filter(Boolean) as string[]));
+                paths.push(
+                    ...([...employeeSidebarPaths, ...managerSidebarPaths].filter(
+                        Boolean,
+                    ) as string[]),
+                );
             } else if (role == "Employee") {
-                paths.push(...(employeePaths.filter(Boolean) as string[]));
+                paths.push(...(employeeSidebarPaths.filter(Boolean) as string[]));
             } else if (role == "Payroll Officer") {
-                paths.push(...(payrollOfficerPaths.filter(Boolean) as string[]));
+                paths.push(
+                    ...([
+                        ...payrollOfficerSidebarPaths,
+                        "/hr/payroll",
+                        "/hr/payment-deduction",
+                        "/hr/employee-loan",
+                        "/hr/module-settings/payroll-configuration",
+                    ].filter(Boolean) as string[]),
+                );
             }
         });
 
         return paths;
-    }, [employeePaths, hrManagerPaths, managerPaths, payrollOfficerPaths, userData?.role]);
+    }, [userData?.role]);
 
     const isAllowedPath = allowedPaths.includes(`/${path}`);
     const renderRoute = routeMap[path];
@@ -237,7 +240,16 @@ export default function DynamicPage() {
             const reason = getRedirectReason();
             router.replace(`/unauthorized?reason=${reason}`);
         }
-    }, [authLoading, isAllowedPath, path, router, user, userData, employeeNotFound]);
+    }, [
+        authLoading,
+        employeeNotFound,
+        getRedirectReason,
+        isAllowedPath,
+        path,
+        router,
+        user,
+        userData,
+    ]);
 
     if (authLoading) {
         return (

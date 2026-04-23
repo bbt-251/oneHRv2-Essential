@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useAppData } from "@/context/app-data-context";
+import { useData } from "@/context/app-data-context";
 import { useTheme } from "@/components/theme-provider";
 import { LeaveModel } from "@/lib/models/leave";
 import { EmployeeModel } from "@/lib/models/employee";
@@ -51,9 +51,13 @@ export default function LeaveDetail({
     setIsLeaveDetailModalOpen,
 }: LeaveDetailProps) {
     const { theme } = useTheme();
-    const { employees, ...hrSettings } = useAppData();
-    const { sectionSettings, departmentSettings } = hrSettings;
-    const leaveTypes = [...hrSettings.leaveTypes, annualLeaveType, unpaidLeaveType];
+    const {
+        employees,
+        sectionSettings,
+        departmentSettings,
+        leaveTypes: leaveTypeRecords,
+    } = useData();
+    const leaveTypes = [...leaveTypeRecords, annualLeaveType, unpaidLeaveType];
 
     const {
         isApproveLoading,

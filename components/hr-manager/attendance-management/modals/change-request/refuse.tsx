@@ -10,11 +10,11 @@ import { XCircle, User, Calendar, Clock, Edit, X, AlertTriangle } from "lucide-r
 import { useState } from "react";
 import { useToast } from "@/context/toastContext";
 import { RequestModificationModel } from "@/lib/models/attendance";
-import { refuseAttendanceModification } from "@/lib/backend/api/attendance/request-modification";
+import { AttendanceRepository } from "@/lib/repository/attendance";
 import { AttendanceChangeRequest } from "../../page";
 import { useAuth } from "@/context/authContext";
 import { getTimestamp } from "@/lib/util/dayjs_format";
-import { calculateTotalWorkedHours } from "@/lib/backend/functions/calculateDuration";
+import { calculateTotalWorkedHours } from "@/lib/util/functions/calculateDuration";
 import { useData } from "@/context/app-data-context";
 import { sendNotification } from "@/lib/util/notification/send-notification";
 import { getNotificationRecipients } from "@/lib/util/notification/recipients";
@@ -56,14 +56,14 @@ export function HRAttendanceRefuseModal({
 
         setIsSubmitting(true);
 
-        const res = await refuseAttendanceModification({
+        const res = await AttendanceRepository.refuseAttendanceModification({
             ...requestData,
             reviewedBy: userData?.uid ?? null,
             reviewedDate: getTimestamp(),
             hrComments: reason,
         } as RequestModificationModel);
 
-        if (res) {
+        if (res.success) {
             // Send notification when attendance change request is rejected
             try {
                 const employee = employees.find(e => e.uid === request.employeeUid);

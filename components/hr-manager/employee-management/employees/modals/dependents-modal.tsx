@@ -31,9 +31,7 @@ import { AddDependentModal } from "./add-dependent-modal";
 import { EditDependentModal } from "./edit-dependent-modal";
 import { ViewDependentDetailModal } from "./view-dependent-detail-modal";
 import { useToast } from "@/context/toastContext";
-import { deleteDependent } from "@/lib/backend/api/employee-management/dependent-service";
-import { EMPLOYEE_MANAGEMENT_LOG_MESSAGES } from "@/lib/log-descriptions/employee-management";
-import { useAuth } from "@/context/authContext";
+import { DependentRepository } from "@/lib/repository/employee";
 import { useData } from "@/context/app-data-context";
 
 interface DependentsModalProps {
@@ -43,7 +41,6 @@ interface DependentsModalProps {
 
 export function DependentsModal({ employee, onClose }: DependentsModalProps) {
     const { showToast } = useToast();
-    const { userData } = useAuth();
     const { dependents, loading: dependentsLoading, error: dependentsError } = useData();
 
     // Modal states
@@ -68,17 +65,13 @@ export function DependentsModal({ employee, onClose }: DependentsModalProps) {
 
     const handleDelete = async (dependent: DependentModel) => {
         try {
-            const dependentName = `${dependent.firstName} ${dependent.lastName}`;
-            const employeeName = `${employee.firstName} ${employee.surname}`;
-            await deleteDependent(
+            const result = await DependentRepository.deleteDependent(
                 dependent.id!,
-                userData?.uid ?? "",
-                EMPLOYEE_MANAGEMENT_LOG_MESSAGES.DEPENDENT_DELETED(
-                    dependentName,
-                    dependent.relationship,
-                    employeeName,
-                ),
+                dependent.relatedTo,
             );
+            if (!result.success) {
+                throw new Error(result.message);
+            }
             showToast("Dependent deleted successfully", "success", "success");
         } catch (error) {
             console.error("Error deleting dependent:", error);
