@@ -104,7 +104,7 @@ const updateAttendanceRecord = async (
 ): Promise<AttendanceModel | null> => {
     const collection = await getMongoCollection<AttendanceDocument>(attendanceCollectionName);
     const updateData = Object.fromEntries(
-        Object.entries(data).filter(([, value]) => value !== undefined && value !== null),
+        Object.entries(data).filter(([key, value]) => key !== "id" && value !== undefined),
     );
 
     if (Object.keys(updateData).length > 0) {
