@@ -104,6 +104,48 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en" suppressHydrationWarning={true}>
             <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            (function () {
+                                var cryptoObject = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+                                if (!cryptoObject || typeof cryptoObject.randomUUID === "function") {
+                                    return;
+                                }
+
+                                cryptoObject.randomUUID = function () {
+                                    if (typeof cryptoObject.getRandomValues === "function") {
+                                        var bytes = cryptoObject.getRandomValues(new Uint8Array(16));
+                                        bytes[6] = (bytes[6] & 15) | 64;
+                                        bytes[8] = (bytes[8] & 63) | 128;
+
+                                        var hex = Array.from(bytes, function (byte) {
+                                            return byte.toString(16).padStart(2, "0");
+                                        }).join("");
+
+                                        return (
+                                            hex.slice(0, 8) +
+                                            "-" +
+                                            hex.slice(8, 12) +
+                                            "-" +
+                                            hex.slice(12, 16) +
+                                            "-" +
+                                            hex.slice(16, 20) +
+                                            "-" +
+                                            hex.slice(20)
+                                        );
+                                    }
+
+                                    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
+                                        var random = Math.floor(Math.random() * 16);
+                                        var value = char === "x" ? random : (random & 3) | 8;
+                                        return value.toString(16);
+                                    });
+                                };
+                            })();
+                        `,
+                    }}
+                />
                 <link rel="icon" href="/favicon.ico" sizes="any" />
                 <link rel="icon" href="/logo.png" type="image/png" />
                 <link rel="apple-touch-icon" href="/logo.png" />

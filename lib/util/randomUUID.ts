@@ -1,5 +1,9 @@
-export default function randomUUID(): string {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+interface RandomUUIDOptions {
+    useNative?: boolean;
+}
+
+export default function randomUUID({ useNative = true }: RandomUUIDOptions = {}): string {
+    if (useNative && typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
         return crypto.randomUUID();
     }
 

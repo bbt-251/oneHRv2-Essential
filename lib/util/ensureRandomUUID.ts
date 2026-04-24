@@ -13,6 +13,6 @@ export default function ensureRandomUUID(): void {
     Object.defineProperty(cryptoObject, "randomUUID", {
         configurable: true,
         writable: true,
-        value: () => randomUUID(),
+        value: () => randomUUID({ useNative: false }),
     });
 }
