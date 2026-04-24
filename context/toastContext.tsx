@@ -7,6 +7,7 @@ import {
     ToastTitle,
     ToastViewport,
 } from "@/components/ui/toast";
+import randomUUID from "@/lib/util/randomUUID";
 import React, { createContext, useContext, useRef, useState, useCallback } from "react";
 
 type ToastVariant = "success" | "error" | "warning" | "default";
@@ -27,7 +28,7 @@ type AnalyticsWindow = Window & {
     gtag?: (command: "event", eventName: string, params: Record<string, string | number>) => void;
 };
 
-const createToastId = (): string => crypto.randomUUID();
+const createToastId = (): string => randomUUID();
 const getToastTimestamp = (): number => Date.now();
 
 interface ToastContextType {

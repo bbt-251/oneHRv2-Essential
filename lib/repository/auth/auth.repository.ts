@@ -1,8 +1,11 @@
 import { createAuthClient } from "better-auth/react";
 import { customSessionClient } from "better-auth/client/plugins";
 import { buildBackendUrl } from "@/lib/shared/config";
+import ensureRandomUUID from "@/lib/util/ensureRandomUUID";
 import type { auth } from "@/lib/server/auth/better-auth";
 import type { Role } from "@/lib/server/shared/types";
+
+ensureRandomUUID();
 
 export interface AuthUserPayload {
     uid: string;

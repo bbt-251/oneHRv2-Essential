@@ -24,6 +24,7 @@ import generateID from "@/lib/util/generateID";
 import getFullName from "@/lib/util/getEmployeeFullName";
 import { getNotificationRecipients } from "@/lib/util/notification/recipients";
 import { sendNotification } from "@/lib/util/notification/send-notification";
+import randomUUID from "@/lib/util/randomUUID";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useMemo, useState } from "react";
@@ -159,7 +160,7 @@ export function AttendanceModal({ day, attendance, onClose }: AttendanceModalPro
                     newValue: newVal,
                     comment: comment
                         ? {
-                            id: crypto.randomUUID(),
+                            id: randomUUID(),
                             commentBy: userData?.uid ?? "",
                             timestamp: getTimestamp(),
                             text: comment,

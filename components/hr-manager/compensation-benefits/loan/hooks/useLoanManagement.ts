@@ -14,6 +14,7 @@ import { COMPENSATION_LOG_MESSAGES } from "@/lib/log-descriptions/compensation";
 import { useAuth } from "@/context/authContext";
 import { LogRepository } from "@/lib/repository/logs/log.repository";
 import { PayrollRepository } from "@/lib/repository/payroll";
+import randomUUID from "@/lib/util/randomUUID";
 dayjs.extend(isSameOrBefore);
 
 export interface ExtendedEmployeeLoan extends EmployeeLoanModel {
@@ -237,7 +238,7 @@ export function useLoanManagement(
         let currentDate = startDate;
         while (currentDate.isSameOrBefore(endDate)) {
             months.push({
-                id: crypto.randomUUID(),
+                id: randomUUID(),
                 date: currentDate.format("MMMM YYYY"),
                 amount: monthlyRepaymentAmount,
                 deductFromSalary: monthlyRepaymentAmount,

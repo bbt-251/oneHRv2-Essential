@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DailyAttendance, WorkedHoursModel } from "@/lib/models/attendance";
+import randomUUID from "@/lib/util/randomUUID";
 import dayjs from "dayjs";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -119,7 +120,7 @@ export function AttendanceChangeForm({ day, onClose, onSubmit }: AttendanceChang
 
     const addNewValue = () => {
         const newEntry: WorkedHoursModel = {
-            id: crypto.randomUUID(),
+            id: randomUUID(),
             type: "Clock In",
             hour: "",
             timestamp: "",

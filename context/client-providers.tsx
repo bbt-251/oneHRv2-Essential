@@ -3,9 +3,12 @@
 import { AuthProvider } from "@/context/authContext";
 import { AppDataProvider } from "@/context/app-data-context";
 import { ToastProviderWrapper } from "@/context/toastContext";
+import ensureRandomUUID from "@/lib/util/ensureRandomUUID";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import ClassErrorBoundary from "@/components/class-error-boundary";
+
+ensureRandomUUID();
 
 interface ClientProvidersProps {
     children: ReactNode;

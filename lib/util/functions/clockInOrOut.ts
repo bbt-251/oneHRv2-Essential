@@ -11,6 +11,7 @@ import { AttendanceRepository } from "@/lib/repository/attendance";
 import { EmployeeRepository } from "@/lib/repository/employee";
 import { EmployeeModel } from "@/lib/models/employee";
 import { GeoCoordinate, validateWorkingAreaGeofence } from "@/lib/util/geofence";
+import randomUUID from "@/lib/util/randomUUID";
 
 export const clockInOrOut = async (
     type: "Clock In" | "Clock Out", // Type of action, either "Clock In" or "Clock Out"
@@ -72,7 +73,7 @@ export const clockInOrOut = async (
 
         // Add the clock-in entry to the worked hours array
         workedHours.push({
-            id: crypto.randomUUID(), // Generate a unique ID for this clock-in entry
+            id: randomUUID(), // Generate a unique ID for this clock-in entry
             timestamp: clockInTimestamp, // ISO timestamp for the clock-in
             type: "Clock In", // Mark as a clock-in
             hour: dayjs().format("h:mm A"), // Store local time for display
@@ -163,7 +164,7 @@ export const clockInOrOut = async (
 
         // Add the clock-out entry to the worked hours array
         workedHours.push({
-            id: crypto.randomUUID(), // Generate a unique ID for this clock-out entry
+            id: randomUUID(), // Generate a unique ID for this clock-out entry
             timestamp: clockOutTimestamp, // ISO timestamp for the clock-out
             type: "Clock Out", // Mark as a clock-out
             hour: dayjs().format("h:mm A"), // Store local time for display

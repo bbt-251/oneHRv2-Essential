@@ -22,6 +22,7 @@ import { CalendarIcon, Upload, X, FileText, AlertCircle, User } from "lucide-rea
 import { format } from "date-fns";
 import { useData } from "@/context/app-data-context";
 import { useAuth } from "@/context/authContext";
+import randomUUID from "@/lib/util/randomUUID";
 
 interface LeaveRequestModalProps {
     isOpen: boolean;
@@ -55,9 +56,7 @@ export function LeaveRequestModal({ isOpen, onClose }: LeaveRequestModalProps) {
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [requestId] = useState<string>(
-        () => `LR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-    );
+    const [requestId] = useState<string>(() => `LR-${randomUUID().slice(0, 8).toUpperCase()}`);
 
     // Get leave types from Firebase
     const leaveTypes = leaveTypeRecords
